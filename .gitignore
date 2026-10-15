@@ -1,0 +1,23 @@
+# 个人数据和本机文件：不上传
+node_modules/
+models/
+data/
+logs/
+browser-profile/
+voice/.venv/
+voice/qwen3-tts/
+hostbound.config.json
+*.lnk
+tools/cua-driver/
+
+# 运行时生成的
+__pycache__/
+*.pyc
+*.log
+
+# 编辑器、本机工具的配置
+.claude/
+.vscode/
+.idea/
+Thumbs.db
+desktop.ini

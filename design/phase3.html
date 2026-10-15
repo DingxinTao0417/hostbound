@@ -1,0 +1,463 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>阶段 3 设计稿</title>
+<link rel="stylesheet" href="kit.css">
+<style>
+  /* 跟现在的程序一致：底板半透明 */
+  .fr > .l2 { background: rgba(7, 12, 36, .78); }
+  .fr > .l4 { background: rgba(16, 28, 70, .2); }
+  .fr > .l1, .fr > .l3 { --w: 2px; clip-path: polygon(evenodd,
+    var(--c) 0, calc(100% - var(--c)) 0, 100% var(--c), 100% calc(100% - var(--c)), calc(100% - var(--c)) 100%, var(--c) 100%, 0 calc(100% - var(--c)), 0 var(--c), var(--c) 0,
+    calc(var(--w) + var(--c)) var(--w), var(--w) calc(var(--w) + var(--c)), var(--w) calc(100% - var(--w) - var(--c)), calc(var(--w) + var(--c)) calc(100% - var(--w)),
+    calc(100% - var(--w) - var(--c)) calc(100% - var(--w)), calc(100% - var(--w)) calc(100% - var(--w) - var(--c)), calc(100% - var(--w)) calc(var(--w) + var(--c)),
+    calc(100% - var(--w) - var(--c)) var(--w), calc(var(--w) + var(--c)) var(--w)); }
+  .fr > .l3 { --w: 1px; }
+  .sect { max-width: 1180px; margin: 0 auto; }
+  .note { max-width: 1180px; margin: 10px auto 0; font-size: 13px; color: var(--muted); line-height: 1.8; }
+  .note b { color: #cfe0ff; }
+
+  /* ---------- 可以点的面板 ---------- */
+  .stage { max-width: 1180px; margin: 40px auto 0; display: flex; gap: 34px; align-items: flex-start; }
+  .stage .side { flex: 1; min-width: 240px; font-size: 13px; color: var(--muted); line-height: 1.85; padding-top: 6px; }
+  .stage .side h4 { margin: 0 0 6px; color: #cfe0ff; font-size: 14px; letter-spacing: .06em; }
+  .stage .side ol { margin: 0 0 14px; padding-left: 20px; }
+  .stage .side .key { font-size: 11px; }
+  #panel { width: 440px; height: 560px; flex: none; transition: width .35s cubic-bezier(.3,.7,.3,1); }
+  #panel.wide { width: 760px; }
+  #panel > .body { height: 100%; display: flex; flex-direction: column; padding: 40px 22px 18px; }
+  .nav { display: flex; align-items: center; gap: 2px; margin: -2px 0 10px; border-bottom: 1px solid rgba(95,230,255,.18); }
+  .nav span { padding: 5px 14px; font-size: 13.5px; color: var(--muted); border-bottom: 2px solid transparent; margin-bottom: -1px; cursor: pointer; user-select: none; }
+  .nav span:hover { color: #e9f4ff; }
+  .nav span.on { color: #fff; border-color: var(--g1); text-shadow: 0 0 8px var(--g1); background: linear-gradient(0deg, color-mix(in srgb, var(--g1) 18%, transparent), transparent); }
+  .nav .r { margin-left: auto; border: 0; padding: 0; }
+  .page { display: none; flex: 1; min-height: 0; }
+  .page.on { display: flex; flex-direction: column; }
+  .scroll { overflow-y: auto; min-height: 0; flex: 1; scrollbar-width: thin; scrollbar-color: rgba(95,230,255,.35) transparent; }
+  .clickable { cursor: pointer; }
+
+  /* 对话 */
+  .divider { text-align: center; font-size: 11.5px; color: var(--dim); margin: 2px 0 10px; letter-spacing: .06em; }
+  .divider::before, .divider::after { content: ""; display: inline-block; width: 46px; height: 1px; background: rgba(95,230,255,.25); vertical-align: middle; margin: 0 8px; }
+  .chat { padding-right: 4px; }
+  .ask { display: flex; gap: 8px; margin-top: 10px; }
+  .ask .field { flex: 1; }
+  .ask .btn { flex: none; min-width: 70px; }
+
+  /* 记录 */
+  .two { display: grid; grid-template-columns: 1fr 250px; gap: 14px; flex: 1; min-height: 0; }
+  .two > * { min-height: 0; }
+  .search { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
+  .search .field { flex: 1; padding: 4px 10px; font-size: 12.5px; }
+  .day { font-size: 12px; color: var(--gold); letter-spacing: .12em; margin: 10px 0 2px; }
+  .day:first-child { margin-top: 0; }
+  .rec { display: grid; grid-template-columns: 44px 1fr auto 42px; gap: 8px; align-items: center; padding: 6px 6px; font-size: 13px; border-bottom: 1px dashed rgba(95,230,255,.15); cursor: pointer; }
+  .rec:hover { background: rgba(95,230,255,.06); }
+  .rec.sel { background: color-mix(in srgb, var(--g1) 14%, transparent); box-shadow: inset 2px 0 0 var(--g1); }
+  .rec .t { font: 12px Consolas, monospace; color: var(--dim); }
+  .rec .q { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .rec .s { font: 11.5px Consolas, monospace; color: var(--muted); text-align: right; }
+  .res { font-size: 11.5px; padding: 0 7px; border: 1px solid; clip-path: polygon(4px 0, 100% 0, calc(100% - 4px) 100%, 0 100%); }
+  .res.ok { color: var(--green); border-color: rgba(109,255,190,.5); }
+  .res.fail { color: var(--red); border-color: rgba(255,90,114,.5); }
+  .res.deny { color: #ff9ae0; border-color: rgba(255,154,224,.5); }
+  .detail { display: flex; flex-direction: column; }
+  .detail .card { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+  .detail .ct { flex: 1; overflow-y: auto; font-size: 12.5px; line-height: 1.7; }
+  .detail .q { font-size: 13.5px; color: #fff; margin-bottom: 6px; }
+  .detail .steps { font-size: 12px; }
+  .detail .btns { margin-top: 10px; }
+
+  /* 日志 */
+  .filters { display: flex; flex-wrap: wrap; gap: 2px; margin-bottom: 8px; align-items: center; }
+  .filters .chip { cursor: pointer; font-size: 12px; }
+  .filters .r { margin-left: auto; }
+  .lg { font: 12.5px/1.6 Consolas, "Microsoft YaHei UI", monospace; }
+  .lg .e { display: grid; grid-template-columns: 62px 58px 1fr; gap: 8px; padding: 4px 6px; border-bottom: 1px dashed rgba(95,230,255,.12); cursor: pointer; color: #c7d6f5; }
+  .lg .e:hover { background: rgba(95,230,255,.05); }
+  .lg .e .tm { color: var(--dim); }
+  .lg .e .ty { font-size: 11.5px; text-align: center; border: 1px solid rgba(95,230,255,.35); color: var(--cyan); height: fit-content; }
+  .lg .e[data-type="auth"] .ty { color: #ff9ae0; border-color: rgba(255,154,224,.45); }
+  .lg .e[data-type="err"] .ty { color: var(--red); border-color: rgba(255,90,114,.5); }
+  .lg .e[data-type="screen"] .ty { color: var(--gold); border-color: rgba(255,217,122,.5); }
+  .lg .e[data-type="voice"] .ty { color: var(--green); border-color: rgba(109,255,190,.45); }
+  .lg .e[data-type="web"] .ty { color: #9fb6ff; border-color: rgba(159,182,255,.5); }
+  .lg .e .more { display: none; grid-column: 3; color: var(--muted); font-size: 11.5px; padding: 4px 0 2px; border-top: 1px solid rgba(95,230,255,.1); white-space: pre-wrap; }
+  .lg .e.open .more { display: block; }
+  .lg .e .more a { color: var(--cyan); }
+
+  /* 设置 */
+  .set { display: grid; grid-template-columns: 112px 1fr; gap: 14px; flex: 1; min-height: 0; }
+  .snav { display: flex; flex-direction: column; gap: 2px; border-right: 1px solid rgba(95,230,255,.15); padding-right: 8px; }
+  .snav span { padding: 6px 10px; font-size: 13px; color: var(--muted); cursor: pointer; clip-path: polygon(6px 0, 100% 0, calc(100% - 6px) 100%, 0 100%); }
+  .snav span:hover { color: #fff; }
+  .snav span.on { color: #fff; background: color-mix(in srgb, var(--g1) 20%, transparent); text-shadow: 0 0 6px var(--g1); }
+  .snav span.warn.on { background: color-mix(in srgb, var(--pink) 22%, transparent); text-shadow: 0 0 6px var(--pink); }
+  .spage { display: none; }
+  .spage.on { display: block; }
+  .spage h5 { margin: 0 0 4px; font-size: 13px; color: var(--gold); letter-spacing: .14em; font-weight: 400; }
+  .spage h5:not(:first-child) { margin-top: 14px; }
+  .spage .row { font-size: 13px; padding: 6px 2px; }
+  .spage .row .lbl { width: 108px; flex: none; }
+  .spage .row .hint { font-size: 11.5px; color: var(--dim); }
+  .spage .row .val { width: 46px; text-align: right; }
+  .badge { font-size: 10.5px; padding: 0 6px; border: 1px solid rgba(255,217,122,.5); color: var(--gold); white-space: nowrap; }
+  .badge.live { border-color: rgba(109,255,190,.45); color: var(--green); }
+  .tog, .chip.pick { cursor: pointer; }
+  .sel-field { padding: 3px 10px; font-size: 12.5px; }
+  .eng { display: flex; align-items: center; gap: 8px; }
+  .eng .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); box-shadow: 0 0 6px var(--green); }
+  .eng .dot.off { background: var(--dim); box-shadow: none; }
+  .mods { display: grid; grid-template-columns: 1fr auto; gap: 1px 14px; font-size: 12.5px; }
+  .mods > :nth-child(even) { color: var(--muted); font-family: Consolas, monospace; font-size: 11.5px; }
+  .lockline { font-size: 12px; color: var(--muted); padding: 5px 2px; display: flex; gap: 8px; align-items: center; border-bottom: 1px dashed rgba(255,154,224,.15); }
+  .lockline::before { content: "🔒"; font-size: 11px; filter: grayscale(1) brightness(1.6); }
+
+  /* 新手引导 */
+  .onboard { max-width: 1180px; margin: 40px auto 0; display: grid; grid-template-columns: 560px 1fr; gap: 34px; align-items: start; }
+  .ob-steps { display: flex; gap: 10px; margin-bottom: 14px; }
+  .ob-steps span { flex: 1; text-align: center; font-size: 12px; padding: 5px 0; color: var(--muted); border-bottom: 2px solid rgba(95,230,255,.2); }
+  .ob-steps span.done { color: var(--green); border-color: var(--green); }
+  .ob-steps span.on { color: #fff; border-color: var(--g1); text-shadow: 0 0 8px var(--g1); }
+
+  /* 存盘 */
+  .files { max-width: 1180px; margin: 34px auto 0; display: grid; grid-template-columns: 1fr 1fr; gap: 30px; }
+  .tree .c { color: var(--muted); }
+
+  /* 拍板 */
+  .decide { max-width: 1180px; margin: 30px auto 0; }
+  .decide ol { margin: 0; padding-left: 22px; font-size: 14px; line-height: 1.9; }
+  .decide li { margin-bottom: 6px; }
+  .decide li b { color: var(--gold); font-weight: 600; }
+  .decide li small { color: var(--muted); font-size: 12.5px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>阶段 3 设计稿 · 多页面面板 + 设置、记录、日志</h1>
+  <p>面板能翻页；设置不用再手改配置文件；能翻历史对话、查系统做过的每个操作；重启后能接着聊。下面的面板可以直接点：页签、记录、日志、设置左边的分类、开关都能点。</p>
+</header>
+
+<h2 class="group">一、面板翻页（可以点）</h2>
+
+<div class="stage">
+  <section class="fr" id="panel">
+    <div class="nav" id="nav">
+      <span data-p="chat" class="on">对话</span><span data-p="rec">记录</span><span data-p="log">日志</span><span data-p="set">设置</span>
+      <span class="r" id="newchat"><span class="btn ghost sm" style="cursor:pointer">新对话</span></span>
+    </div>
+
+    <!-- 对话 -->
+    <div class="page on" data-page="chat">
+      <div class="scroll chat" id="chatlog">
+        <div class="divider" id="chatdiv">接着 10月15日 14:02 的对话 · 重启前已存盘</div>
+        <div class="msg-u"><span class="tag">宿主 · 14:02</span>打开计算器，算一下七加八</div>
+        <div class="msg-s"><span class="tag">系统 · 14:02</span>计算器已在后台打开。【结果：7 + 8 = 15】</div>
+        <div class="msg-u"><span class="tag">宿主 · 14:03</span>再乘以三</div>
+        <div class="msg-s"><span class="tag">系统 · 14:03</span>【结果：15 × 3 = 45】</div>
+        <div class="divider">系统重启 · 10月15日 18:40</div>
+        <div class="msg-u"><span class="tag">宿主 · 18:41</span>刚才算出来是多少来着</div>
+        <div class="msg-s"><span class="tag">系统 · 18:41</span>重启前算的是 15 × 3，【结果：45】。</div>
+      </div>
+      <form class="ask" onsubmit="return false"><div class="field">输入指令，回车发送<span class="caret"></span></div><span class="btn">发送</span></form>
+    </div>
+
+    <!-- 记录 -->
+    <div class="page" data-page="rec">
+      <div class="two">
+        <div style="display:flex;flex-direction:column;min-height:0">
+          <div class="search"><div class="field">⌕ 搜索指令或结果</div><span class="chip on pick">全部</span><span class="chip pick">完成</span><span class="chip pick">失败</span></div>
+          <div class="scroll" id="reclist"></div>
+        </div>
+        <div class="detail"><div class="card"><div class="hd"><span class="dia"></span>这一次<span class="sub" id="d-when"></span></div><div class="ct" id="d-body"></div></div>
+          <div class="btns"><span class="btn sm" id="d-cont">接着这次聊</span><span class="btn ghost sm">再做一遍</span></div></div>
+      </div>
+    </div>
+
+    <!-- 日志 -->
+    <div class="page" data-page="log">
+      <div class="filters" id="filters">
+        <span class="chip on" data-f="all">全部</span><span class="chip" data-f="cmd">命令</span><span class="chip" data-f="app">软件</span><span class="chip" data-f="web">网页</span><span class="chip" data-f="file">文件</span><span class="chip" data-f="auth">授权</span><span class="chip" data-f="screen">看屏幕</span><span class="chip" data-f="voice">语音</span><span class="chip" data-f="err">出错</span>
+        <span class="r field sel-field">10月15日 ▾</span>
+      </div>
+      <div class="scroll lg" id="loglist"></div>
+    </div>
+
+    <!-- 设置 -->
+    <div class="page" data-page="set">
+      <div class="set">
+        <div class="snav" id="snav">
+          <span data-s="ear" class="on">听觉</span><span data-s="voice">声音</span><span data-s="brain">大脑</span><span data-s="hand">操作</span><span data-s="safe" class="warn">安全中心</span><span data-s="live">直播模式</span><span data-s="keys">快捷键</span><span data-s="look">外观</span><span data-s="about">关于</span>
+        </div>
+        <div class="scroll" style="padding-right:6px">
+          <div class="spage on" data-s="ear">
+            <h5>唤醒</h5>
+            <div class="row"><span class="lbl">唤醒词</span><span class="chip on">系统启动</span><span class="chip pick">+ 添加</span><span class="r badge">自动重启耳朵</span></div>
+            <div class="row"><span class="lbl">停止词</span><span class="chip on">系统停止</span></div>
+            <div class="row"><span class="lbl">唤醒灵敏度</span><div class="slider"><i style="width:45%"></i><b style="left:45%"></b></div><span class="mono val">0.25</span><span class="btn ghost sm">边说边测</span></div>
+            <div class="row"><span class="lbl">麦克风</span><span class="field sel-field">USB 麦克风 ▾</span><span class="r badge">自动重启耳朵</span></div>
+            <h5>说话</h5>
+            <div class="row"><span class="lbl">说完等待</span><div class="slider"><i style="width:40%"></i><b style="left:40%"></b></div><span class="mono val">0.8 秒</span></div>
+            <div class="row"><span class="lbl">连续对话</span><span class="hint">叫醒一次后接着听，不用每句都喊唤醒词</span><span class="r tog on"></span></div>
+            <div class="row"><span class="lbl">多久没说话收起</span><div class="slider"><i style="width:30%"></i><b style="left:30%"></b></div><span class="mono val">30 秒</span></div>
+            <div class="row"><span class="lbl">忽略闲聊</span><span class="hint">醒着时听到不是对系统说的话就不理</span><span class="r tog on"></span></div>
+          </div>
+
+          <div class="spage" data-s="voice">
+            <h5>发声</h5>
+            <div class="row"><span class="lbl">用什么发声</span><span class="chip on pick">显卡</span><span class="chip pick">CPU</span><span class="chip pick">静音</span><span class="r hint">显卡 · 已就绪，约 0.5 秒出声</span></div>
+            <div class="row"><span class="lbl">音色</span><span>中性机械系统</span><span class="r btn ghost sm">试听</span></div>
+            <div class="row"><span class="lbl">电子音效</span><div class="slider"><i style="width:60%"></i><b style="left:60%"></b></div><span class="mono val">0.6</span></div>
+            <div class="row"><span class="lbl">音量</span><div class="slider"><i style="width:90%"></i><b style="left:90%"></b></div><span class="mono val">90%</span></div>
+            <div class="row"><span class="lbl">最多念几个字</span><div class="slider"><i style="width:30%"></i><b style="left:30%"></b></div><span class="mono val">60</span></div>
+            <div class="row"><span class="lbl">戴耳机</span><span class="hint">系统说话时也照样听你说话（外放时别开）</span><span class="r tog"></span></div>
+          </div>
+
+          <div class="spage" data-s="brain">
+            <div class="card"><div class="hd"><span class="dia"></span>当前模型</div>
+              <div class="ct kv"><span>模型</span><span>DeepSeek V4.1 Flash</span><span>密钥</span><span class="c-ok">已配置</span><span>延迟</span><span><span class="mono">1.3 秒</span>　<span class="btn ghost sm">测一下</span></span></div></div>
+            <h5>换模型</h5>
+            <div class="row"><span>DeepSeek V4.1 Flash</span><span class="r chip on">使用中</span></div>
+            <div class="row"><span>DeepSeek V4 Pro</span><span class="r chip pick">切换</span></div>
+            <div class="row dim"><span>Kimi K3</span><span class="r hint">没配密钥 · 终端里 npm run pi → /login</span></div>
+            <div class="row"><span class="lbl">思考深度</span><span class="chip pick">关</span><span class="chip on pick">低</span><span class="chip pick">中</span><span class="chip pick">高</span><span class="r badge">下次对话生效</span></div>
+            <h5>其他</h5>
+            <div class="row"><span class="lbl">工作目录</span><span class="field sel-field" style="flex:1">C:\Users\…\Desktop</span><span class="btn ghost sm">选文件夹</span></div>
+            <div class="row"><span class="lbl">时区</span><span class="field sel-field">跟电脑走 ▾</span></div>
+          </div>
+
+          <div class="spage" data-s="hand">
+            <h5>软件界面</h5>
+            <div class="row"><span class="lbl">操作软件</span><span class="r tog on"></span></div>
+            <div class="row"><span class="lbl">引擎</span><span class="eng"><i class="dot"></i>Cua Driver 0.35.4</span><span class="eng" style="margin-left:14px"><i class="dot"></i>Open Computer Use</span></div>
+            <h5>网页</h5>
+            <div class="row"><span class="lbl">操作网页</span><span class="r tog on"></span></div>
+            <div class="row"><span class="lbl">显示浏览器窗口</span><span class="hint">关掉就在后台开网页，看不见</span><span class="r tog on"></span></div>
+            <div class="row"><span class="lbl">系统专用 Chrome</span><span class="hint">登录状态单独保存，碰不到你日常的 Chrome</span><span class="r btn ghost sm">打开它登录网站</span></div>
+            <h5>效果</h5>
+            <div class="row"><span class="lbl">系统光标</span><span class="hint">关掉后点击不等光标飞过去，更快</span><span class="r tog on"></span></div>
+            <div class="row"><span class="lbl">完成通知</span><span class="hint">干完活屏幕中央弹全屏通知</span><span class="r tog on"></span></div>
+          </div>
+
+          <div class="spage tone-warn" data-s="safe">
+            <h5>这些操作一定先问你（不能关）</h5>
+            <div class="lockline">删除、移动、改名、覆盖文件；改工作目录以外的文件</div>
+            <div class="lockline">结束程序、关机重启、改注册表和系统设置、以管理员身份运行</div>
+            <div class="lockline">安装卸载软件、联网下载、运行脚本、git push 这类危险操作</div>
+            <div class="lockline">点「删除」「发送」「发布」「付款」这类按钮，在聊天软件里按回车</div>
+            <h5>禁止操作的软件</h5>
+            <div class="row"><span class="chip">网上银行</span><span class="chip">密码管理器</span><span class="chip pick">+ 从开着的窗口里选</span></div>
+            <div class="row"><span class="hint">名单里的软件系统读都不读，更不会点；你让它做也会拒绝并说明。</span></div>
+            <h5>授权</h5>
+            <div class="row"><span class="lbl">能用嘴回答</span><span class="hint">说「授权」「拒绝」</span><span class="r tog on"></span></div>
+            <div class="row"><span class="lbl">没人回应</span><span class="mono">90 秒后当作拒绝</span></div>
+          </div>
+
+          <div class="spage" data-s="live">
+            <div class="row"><span class="lbl">直播模式</span><span class="r tog"></span></div>
+            <h5>打开后</h5>
+            <div class="row"><span>关掉语音唤醒和连续对话（按住说话还能用）</span></div>
+            <div class="row"><span>面板顶上显示「直播模式」标记</span></div>
+            <div class="row"><span>授权框照常弹，但不念出命令里的路径和网址</span></div>
+            <div class="row dim"><span>检测到 OBS 开始推流时自动打开</span><span class="r badge">阶段 4 做</span></div>
+          </div>
+
+          <div class="spage" data-s="keys">
+            <div class="row"><span class="lbl">叫醒系统</span><span class="key">Ctrl</span>+<span class="key">Alt</span>+<span class="key">T</span><span class="r btn ghost sm">改</span></div>
+            <div class="row"><span class="lbl">停止当前任务</span><span class="key">Ctrl</span>+<span class="key">Alt</span>+<span class="key">X</span><span class="r btn ghost sm">改</span></div>
+            <div class="row"><span class="lbl">按住说话</span><span class="key">鼠标侧键（前）</span><span class="key">右 Ctrl</span><span class="r btn ghost sm">改</span></div>
+            <div class="row"><span class="hint">点「改」以后直接按新的键；跟别的软件冲突会提示。</span></div>
+          </div>
+
+          <div class="spage" data-s="look">
+            <div class="row"><span class="lbl">面板透明度</span><div class="slider"><i style="width:68%"></i><b style="left:68%"></b></div><span class="mono val">78%</span></div>
+            <div class="row"><span class="lbl">核心大小</span><div class="slider"><i style="width:40%"></i><b style="left:40%"></b></div><span class="mono val">76</span></div>
+            <div class="row"><span class="lbl">面板大小</span><span class="mono">440 × 540</span><span class="hint">　拖右下角也能改</span><span class="r btn ghost sm">恢复默认</span></div>
+            <div class="row"><span class="lbl">提示音</span><span class="r tog on"></span></div>
+            <div class="row"><span class="lbl">开机自检动画</span><span class="r tog on"></span></div>
+          </div>
+
+          <div class="spage" data-s="about">
+            <div style="display:flex;gap:14px;align-items:center;margin-bottom:10px"><div class="core sm"><i></i></div><div><div style="font-size:16px;font-weight:700;letter-spacing:.1em">Hostbound（宿主系统）</div><div class="mono muted" style="font-size:12px">v0.3.0 · 2026-10</div></div></div>
+            <h5>用到的模块</h5>
+            <div class="mods">
+              <span>pi（大脑内核）</span><span>MIT</span><span>sherpa-onnx（耳朵、CPU 发声）</span><span>Apache-2.0</span><span>Qwen3-TTS / faster-qwen3-tts（显卡发声）</span><span>Apache-2.0 / MIT</span>
+              <span>Cua Driver（操作软件）</span><span>MIT</span><span>Open Computer Use（操作软件，备用）</span><span>MIT</span><span>agent-browser（操作网页）</span><span>Apache-2.0</span><span>Electron · koffi · uiohook-napi</span><span>MIT</span>
+            </div>
+            <div class="btns"><span class="btn ghost sm">打开数据文件夹</span><span class="btn ghost sm">再看一遍新手引导</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="side">
+    <h4>怎么翻页</h4>
+    <ol>
+      <li>面板顶上一排页签：<b>对话 · 记录 · 日志 · 设置</b>。</li>
+      <li>也可以直接说：「系统，打开设置」「系统，看看日志」「系统，回到对话」。</li>
+      <li>托盘菜单里的「打开配置文件」换成「设置」。</li>
+    </ol>
+    <h4>面板会变宽</h4>
+    <p>对话页保持现在的大小（440×540，可以拖）。翻到记录、日志、设置时，面板自动加宽到 760，回到对话再变回去。</p>
+    <h4>改设置</h4>
+    <p>改完马上生效。少数项旁边有标记：<span class="badge">自动重启耳朵</span> 改完耳朵重新加载，约 2 秒听不到；<span class="badge">下次对话生效</span> 当前这段对话还用旧的。配置还是存在 <span class="mono">hostbound.config.json</span>，手改也行。</p>
+    <h4>任务、记忆、技能</h4>
+    <p>这三个页签等阶段 4、5、6 做完再出现，现在不放空页面。</p>
+  </div>
+</div>
+
+<h2 class="group">二、新手引导（第一次打开时）</h2>
+<div class="onboard">
+  <section class="fr">
+    <div class="ob-steps"><span class="done">① 连接大脑</span><span class="on">② 试麦克风</span><span>③ 试一个任务</span></div>
+    <div class="card"><div class="hd"><span class="dia"></span>试麦克风和唤醒词</div>
+      <div class="ct">
+        <div class="center" style="margin:4px 0 10px">对着麦克风说「<b class="c-cyan">系统启动</b>」</div>
+        <div class="wave" id="obwave" style="height:54px"></div>
+        <div class="row"><span>麦克风</span><span class="r field sel-field">USB 麦克风 ▾</span></div>
+        <div class="row"><span>听到了</span><span class="r c-ok">✓ 系统启动（第 1 次就听到了）</span></div>
+      </div></div>
+    <div class="btns"><span class="btn ghost sm">叫不醒？调灵敏度</span><span class="btn">下一步</span><span class="btn ghost sm">跳过引导</span></div>
+  </section>
+  <div class="side note" style="margin:0">
+    <p><b>① 连接大脑</b>：检查有没有配好模型密钥。配好了直接打勾；没配就说清楚怎么配（终端里 <span class="mono">npm run pi</span> → <span class="mono">/login</span>），系统自己不碰密钥。</p>
+    <p><b>② 试麦克风</b>：选麦克风，说一遍唤醒词，听到了就打勾；叫不醒就引到灵敏度设置。</p>
+    <p><b>③ 试一个任务</b>：给三个例子点一下就能跑：「现在几点」「打开计算器算 7 加 8」「看看我屏幕上这是什么」。</p>
+    <p>只在第一次打开时出现，以后可以在「设置 · 关于」里再看一遍。</p>
+  </div>
+</div>
+
+<h2 class="group">三、存在哪</h2>
+<div class="files">
+  <div class="card"><div class="hd"><span class="dia"></span>个人数据 · data 文件夹（开源时不上传）</div>
+    <div class="ct tree">
+      data\<br>
+      ├ <span class="n">sessions\</span>　<span class="c">对话存盘，一次对话一个文件（pi 自带的格式）</span><br>
+      ├ <span class="n">history.jsonl</span>　<span class="c">任务记录：每条指令、结果、用时、属于哪次对话</span><br>
+      ├ <span class="n">logs\2026-10-15.jsonl</span>　<span class="c">系统日志，一天一个文件</span><br>
+      ├ <span class="n">state.json</span>　<span class="c">托盘里的开关、面板位置大小、看没看过引导</span><br>
+      └ <span class="n">voice\</span>　<span class="c">系统音色、常用句缓存（已有）</span>
+    </div></div>
+  <div class="card"><div class="hd"><span class="dia"></span>别的</div>
+    <div class="ct tree">
+      <span class="n">hostbound.config.json</span>　<span class="c">设置页改的就是它</span><br>
+      <span class="n">logs\brain.log</span>　<span class="c">程序自己的调试日志，排查 bug 用，不是给你看的那份</span><br><br>
+      <span class="c">系统日志里记：运行的命令、点了什么、填了什么（密码只记 ••••）、开了哪个网页、授权结果、截了哪个窗口发给了模型、出了什么错。不存截图本身。</span>
+    </div></div>
+</div>
+
+<h2 class="group">四、需要你拍板的（括号里是默认）</h2>
+<div class="decide card"><div class="ct">
+<ol>
+  <li>记录、日志、设置在哪打开？（<b>同一个面板里翻页</b>，翻到这三页时面板自动加宽到 760，回到对话变回原来大小）<br><small>另一种做法：单独开一个普通窗口，可以最大化，但跟系统面板的风格就分开了。</small></li>
+  <li>重启以后怎么接着聊？（<b>接着上一次的对话</b>；超过 4 小时没说话，下次叫醒自动开新对话，旧的留在记录里随时能点回去）</li>
+  <li>日志保留多久？（<b>30 天</b>，过期自动删；任务记录和对话一直留着，可以手动删）</li>
+  <li>安全中心的授权规则能不能在设置里关掉？（<b>不能，只能看</b>；「禁止操作的软件」名单可以自己加）</li>
+  <li>「系统，打开设置」这类话要不要直接翻页？（<b>要</b>：本地认出来直接翻，不经过大脑，不花钱也不用等）</li>
+  <li>设置里添加唤醒词时，自动把汉字转成拼音？（<b>要</b>：要下载一个小的拼音库 pinyin-pro，开发时再单独问你；不同意就手写拼音）</li>
+  <li>外观里的配色方案这次做不做？（<b>这次不做</b>，只做透明度、大小、提示音；配色放到以后）</li>
+</ol>
+</div></div>
+<p class="note">任务、记忆、技能三个页签等对应阶段做完再加；直播模式「检测到 OBS 推流自动打开」放到阶段 4 跟「主动报告」一起做。</p>
+
+<script>
+  // 给每个 .fr 套上切角双线框和标题牌
+  document.querySelectorAll('section.fr').forEach((fr) => {
+    const kids = [...fr.childNodes];
+    fr.innerHTML = '<i class="l1"></i><i class="l2"></i><i class="l3"></i><i class="l4"></i><div class="plate"><span class="wing l"></span><span class="p"></span><span class="wing r"></span></div><span class="code"></span><div class="body"></div>';
+    const body = fr.querySelector('.body');
+    kids.forEach((n) => body.appendChild(n));
+  });
+  const $ = (s, el = document) => el.querySelector(s);
+  const $$ = (s, el = document) => [...el.querySelectorAll(s)];
+  const panel = $('#panel');
+  const TITLES = { chat: ['系统通知', 'SYS'], rec: ['任务记录', 'HISTORY'], log: ['系统日志', 'LOG'], set: ['系统设置', 'CONFIG'] };
+  function go(p) {
+    $$('#nav span[data-p]').forEach((s) => s.classList.toggle('on', s.dataset.p === p));
+    $$('#panel .page').forEach((s) => s.classList.toggle('on', s.dataset.page === p));
+    panel.classList.toggle('wide', p !== 'chat');
+    $('#panel .plate .p').textContent = TITLES[p][0];
+    $('#panel > .code').textContent = TITLES[p][1];
+    $('#newchat').style.visibility = p === 'chat' ? 'visible' : 'hidden';
+  }
+  $$('#nav span[data-p]').forEach((s) => s.addEventListener('click', () => go(s.dataset.p)));
+  go('chat');
+  $('.onboard .plate .p').textContent = '新手引导';
+  $('.onboard .code').textContent = 'GUIDE 2/3';
+
+  // ---- 记录 ----
+  const RECS = [
+    { day: '今天 · 10月15日', t: '18:41', q: '刚才算出来是多少来着', r: 'ok', n: 0, s: '3s', steps: [], a: '重启前算的是 15 × 3，【结果：45】。' },
+    { day: '今天 · 10月15日', t: '16:20', q: '在剪映里打开模板页', r: 'ok', n: 3, s: '9s', steps: ['读界面 · 剪映专业版（读不出按钮，看截图）', '点击 (100, 355)「模板」', '读界面 · 确认已切到模板页'], a: '已切到剪映的模板页。' },
+    { day: '今天 · 10月15日', t: '14:03', q: '再乘以三', r: 'ok', n: 2, s: '5s', steps: ['点击「乘」「三」「等于」', '读界面 · 计算器'], a: '【结果：15 × 3 = 45】' },
+    { day: '今天 · 10月15日', t: '14:02', q: '打开计算器，算一下七加八', r: 'ok', n: 6, s: '12s', steps: ['后台打开 · 计算器', '读界面 · 计算器（Cua，32 个元素）', '点击「七」', '点击「加」', '点击「八」「等于」', '读界面 · 确认结果'], a: '计算器已在后台打开。【结果：7 + 8 = 15】' },
+    { day: '昨天 · 10月14日', t: '21:30', q: '用浏览器看看 B 站热门第一是什么', r: 'ok', n: 4, s: '21s', steps: ['打开网页 · bilibili.com/v/popular', '读网页 · 86 个元素', '点击「热门」', '读网页'], a: '热门第一是……（这里显示当时的回答）' },
+    { day: '昨天 · 10月14日', t: '20:12', q: '把下载文件夹里的安装包都删了', r: 'deny', n: 1, s: '15s', steps: ['列出 Downloads 里的 .exe / .msi（3 个）', '申请授权：删除 3 个文件 → 宿主拒绝（语音）'], a: '宿主没让删，本系统不删。' },
+    { day: '昨天 · 10月14日', t: '19:55', q: '帮我把这段视频导出成 1080P', r: 'fail', n: 5, s: '48s', steps: ['读界面 · 剪映专业版', '点击「导出」', '读界面', '后台点不进去 · 申请接管前台', '宿主选了「稍后」'], a: '卡在第 4 步：导出对话框只认前台点击，宿主选了稍后。建议：有空时说「可以」，本系统 10 秒内做完。' },
+  ];
+  const RES = { ok: ['完成', 'ok'], fail: ['失败', 'fail'], deny: ['被拒绝', 'deny'] };
+  const list = $('#reclist');
+  let day = '';
+  RECS.forEach((r, i) => {
+    if (r.day !== day) { day = r.day; list.insertAdjacentHTML('beforeend', `<div class="day">${day}</div>`); }
+    list.insertAdjacentHTML('beforeend', `<div class="rec" data-i="${i}"><span class="t">${r.t}</span><span class="q">${r.q}</span><span class="res ${RES[r.r][1]}">${RES[r.r][0]}</span><span class="s">${r.s}</span></div>`);
+  });
+  function pick(i) {
+    const r = RECS[i];
+    $$('.rec').forEach((x) => x.classList.toggle('sel', +x.dataset.i === i));
+    $('#d-when').textContent = `${r.day.split(' · ')[1]} ${r.t}`;
+    $('#d-body').innerHTML = `<div class="q">${r.q}</div>` +
+      (r.steps.length ? `<div class="muted" style="font-size:11.5px">过程 · ${r.n} 个动作 · ${r.s}</div><ul class="steps">${r.steps.map((s, k) => `<li class="${r.r === 'ok' || k < r.steps.length - 1 ? 'done' : 'fail'}">${s}</li>`).join('')}</ul>` : '<div class="muted" style="font-size:11.5px">直接回答，没动手</div>') +
+      `<div style="margin-top:8px" class="${r.r === 'ok' ? '' : r.r === 'deny' ? 'c-warn' : 'c-err'}">${r.a}</div>`;
+    $('#d-cont').onclick = () => {
+      $('#chatdiv').textContent = `接着 ${r.day.split(' · ')[1]} ${r.t} 的对话`;
+      go('chat');
+    };
+  }
+  $$('.rec').forEach((x) => x.addEventListener('click', () => pick(+x.dataset.i)));
+  pick(3);
+
+  // ---- 日志 ----
+  const LOGS = [
+    ['18:40:02', 'voice', '语音', '系统启动 · 自检通过（耳朵、大脑、显卡发声）', '启动用了 9.4 秒'],
+    ['16:20:31', 'app', '软件', '读界面 · 剪映专业版 · Cua · 读不出按钮，附截图', '0.26 秒；截图 1600×1068 发给了 DeepSeek'],
+    ['16:20:35', 'err', '出错', '剪映 · 后台点击时界面接口忙', '自动重试 2 次，第 3 次点进去了'],
+    ['16:20:39', 'app', '软件', '点击 (100, 355) · 剪映专业版', '后台点击，没动鼠标、没切前台'],
+    ['14:05:12', 'screen', '看屏幕', '截了「Chrome」窗口，发给了 DeepSeek', '宿主问：「这个报错怎么回事」\n截图本身不存'],
+    ['14:02:20', 'app', '软件', '后台打开 · 计算器', '没抢焦点'],
+    ['14:02:22', 'app', '软件', '点击「七」 · 计算器', '元素编号 18 · Cua'],
+    ['13:40:07', 'cmd', '命令', 'Get-ChildItem D:\\Downloads -Filter *.zip', '退出码 0 · 0.3 秒 · 列出 12 个文件'],
+    ['13:38:51', 'web', '网页', '打开 https://www.bilibili.com/v/popular', '系统专用 Chrome'],
+    ['13:31:10', 'file', '文件', '写入 Desktop\\周报.md（新文件）', '工作目录内，不用授权'],
+    ['13:30:44', 'auth', '授权', '删除 3 个文件 → 宿主拒绝（语音：「不行」）', '请求等了 6 秒\n文件：a.exe、b.msi、c.exe'],
+    ['13:12:03', 'voice', '语音', '叫醒 · 听到「看看我屏幕上这是什么」', '连续对话第 2 句，没喊唤醒词'],
+  ];
+  const ll = $('#loglist');
+  LOGS.forEach(([t, ty, name, text, more]) => ll.insertAdjacentHTML('beforeend',
+    `<div class="e" data-type="${ty}"><span class="tm">${t}</span><span class="ty">${name}</span><span>${text}</span><div class="more">${more.replace(/\n/g, '<br>')}　<a>→ 看那次对话</a></div></div>`));
+  $$('#loglist .e').forEach((e) => e.addEventListener('click', () => e.classList.toggle('open')));
+  $$('#filters .chip[data-f]').forEach((c) => c.addEventListener('click', () => {
+    $$('#filters .chip[data-f]').forEach((x) => x.classList.toggle('on', x === c));
+    $$('#loglist .e').forEach((e) => (e.style.display = c.dataset.f === 'all' || e.dataset.type === c.dataset.f ? '' : 'none'));
+  }));
+
+  // ---- 设置 ----
+  $$('#snav span').forEach((s) => s.addEventListener('click', () => {
+    $$('#snav span').forEach((x) => x.classList.toggle('on', x === s));
+    $$('.spage').forEach((p) => p.classList.toggle('on', p.dataset.s === s.dataset.s));
+  }));
+  $$('.spage .tog').forEach((t) => t.addEventListener('click', () => t.classList.toggle('on')));
+  $$('.spage .row').forEach((row) => {
+    const picks = $$('.chip.pick, .chip.on', row).filter((c) => !/添加|切换|选/.test(c.textContent));
+    if (picks.length > 1) picks.forEach((c) => { c.classList.add('pick'); c.addEventListener('click', () => picks.forEach((x) => x.classList.toggle('on', x === c))); });
+  });
+
+  // 引导页的波形
+  const w = $('#obwave');
+  for (let i = 0; i < 24; i++) { const b = document.createElement('i'); b.style.setProperty('--h', 10 + Math.round(Math.abs(Math.sin(i * 0.7)) * 34) + 'px'); b.style.animationDelay = (i * 0.06).toFixed(2) + 's'; w.appendChild(b); }
+</script>
+</body>
+</html>

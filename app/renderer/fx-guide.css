@@ -1,0 +1,35 @@
+/* 就地讲解、手把手教学画在效果层上的东西：窗口外面压暗、目标框、编号、讲解字幕、「点这里」、点错提示 */
+.gframe { position: absolute; overflow: hidden; pointer-events: none; transition: left .3s, top .3s, width .3s, height .3s; }
+.ghole { position: absolute; box-shadow: 0 0 0 4000px rgba(2, 4, 14, .42); transition: left .45s cubic-bezier(.6,0,.2,1), top .45s cubic-bezier(.6,0,.2,1), width .45s, height .45s; }
+.gtgt { position: absolute; transition: left .45s cubic-bezier(.6,0,.2,1), top .45s cubic-bezier(.6,0,.2,1), width .45s, height .45s; }
+.gtgt::before { content: ""; position: absolute; inset: 0; border: 1px solid rgba(255,217,122,.5); box-shadow: 0 0 10px rgba(255,217,122,.35), inset 0 0 8px rgba(255,217,122,.18); }
+.gtgt.est::before { border-style: dashed; }
+.gtgt .k { position: absolute; width: 14px; height: 14px; border: 0 solid var(--gold); filter: drop-shadow(0 0 5px var(--gold)); }
+.gtgt .k.tl { left: -3px; top: -3px; border-left-width: 3px; border-top-width: 3px; }
+.gtgt .k.tr { right: -3px; top: -3px; border-right-width: 3px; border-top-width: 3px; }
+.gtgt .k.bl { left: -3px; bottom: -3px; border-left-width: 3px; border-bottom-width: 3px; }
+.gtgt .k.br { right: -3px; bottom: -3px; border-right-width: 3px; border-bottom-width: 3px; }
+.gtgt.pulse .k { animation: gpulse .8s ease-in-out infinite; }
+.gtgt.pulse::before { animation: gring 1.2s ease-out infinite; }
+.gtgt .tagx { position: absolute; left: -3px; bottom: calc(100% + 7px); display: flex; align-items: center; gap: 7px; white-space: nowrap; padding: 3px 12px 3px 9px; font-size: 13px; color: #fff;
+  text-shadow: 0 0 6px var(--gold); background: linear-gradient(90deg, #5a4718, #241f12); border-left: 2px solid var(--gold); clip-path: polygon(0 0, 100% 0, calc(100% - 8px) 100%, 0 100%); }
+.gtgt .tagx .d { width: 7px; height: 7px; flex: none; transform: rotate(45deg); background: var(--gold); box-shadow: 0 0 6px var(--gold); }
+.gtgt .tagx small { font: 11px Consolas, monospace; color: #ffe9b0; letter-spacing: .06em; }
+.gtgt.below .tagx { bottom: auto; top: calc(100% + 7px); }
+.gmark { position: absolute; width: 20px; height: 20px; margin: -8px 0 0 -8px; border-radius: 50%; display: grid; place-items: center; background: var(--gold); color: #1a1200;
+  font: 700 12px Consolas, monospace; box-shadow: 0 0 9px rgba(255,217,122,.8); transition: transform .3s, opacity .3s; }
+.gmark.cur { transform: scale(1.35); }
+.gmark.later { opacity: .6; }
+.gmark.past { opacity: .8; background: #c9b27a; }
+.gcap { position: absolute; width: 320px; padding: 8px 13px 9px; font-size: 14px; line-height: 1.7; color: #fff; background: rgba(9,15,42,.95); border: 1px solid rgba(95,230,255,.6);
+  box-shadow: 0 0 12px rgba(95,230,255,.35); clip-path: polygon(9px 0, 100% 0, 100% calc(100% - 9px), calc(100% - 9px) 100%, 0 100%, 0 9px);
+  transition: left .45s cubic-bezier(.6,0,.2,1), top .45s cubic-bezier(.6,0,.2,1), opacity .25s; }
+.gcap .lb { display: flex; justify-content: space-between; font: 11px Consolas, "Microsoft YaHei UI", monospace; color: var(--cyan); letter-spacing: .1em; margin-bottom: 2px; }
+.gcap .lb .ps { color: #ff9ae0; }
+.gcap.tutor { border-color: rgba(255,217,122,.7); box-shadow: 0 0 12px rgba(255,217,122,.35); }
+.gcap.tutor .lb { color: var(--gold); }
+.ghint { position: absolute; padding: 6px 13px; font-size: 13px; color: #fff; white-space: nowrap; background: rgba(60,12,48,.96); border: 1px solid var(--pink);
+  box-shadow: 0 0 12px rgba(255,95,207,.55); opacity: 0; transition: opacity .2s; }
+.ghint.on { opacity: 1; }
+@keyframes gpulse { 50% { opacity: .35; } }
+@keyframes gring { 0% { box-shadow: 0 0 0 0 rgba(255,217,122,.55); } 100% { box-shadow: 0 0 0 12px rgba(255,217,122,0); } }

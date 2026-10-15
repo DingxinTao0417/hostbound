@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>面板预览（假数据）</title>
+<link rel="stylesheet" href="/style.css">
+<link rel="stylesheet" href="/pages.css">
+<link rel="stylesheet" href="/explain-cards.css">
+<style>
+  /* 浏览器里预览：给个桌面底色，看得清半透明面板 */
+  html, body { background: radial-gradient(ellipse at 70% 30%, #2a3f6e, transparent 60%), linear-gradient(160deg, #1b2440, #10162b) !important; }
+</style>
+</head>
+<body>
+<script>
+// 在普通浏览器里预览真实的面板代码（app/renderer 下的 index.html、app.js、pages.js、样式）。
+// 后台换成假的：查询回假数据，设置改了只记在内存里。用法：node tools/serve-ui.cjs → http://localhost:5178/design/panel-preview.html
+(async () => {
+  const now = Date.now();
+  const H = 3600_000;
+  const TASKS = [
+    { id: 'a', at: now - 0.3 * H, text: '在剪映里打开模板页', via: 'voice', result: 'ok', answer: '已切到剪映的模板页。', steps: [{ text: '剪映专业版：读界面', ok: true }, { text: '剪映专业版：点击 (100, 355)', ok: true }, { text: '剪映专业版：读界面', ok: true }], tools: 3, seconds: 9 },
+    { id: 'b', at: now - 2 * H, text: '再乘以三', via: 'voice', result: 'ok', answer: '【结果：15 × 3 = 45】', steps: [{ text: '计算器：点击「乘以」', ok: true }, { text: '计算器：点击「三」', ok: true }], tools: 2, seconds: 5 },
+    { id: 'c', at: now - 2.02 * H, text: '打开计算器，算一下七加八', via: 'text', result: 'ok', answer: '计算器已在后台打开。【结果：7 + 8 = 15】', steps: [{ text: '后台打开：计算器', ok: true }, { text: '计算器：读界面', ok: true }, { text: '计算器：点击「七」', ok: true }, { text: '计算器：点击「加」', ok: true }], tools: 6, seconds: 12 },
+    { id: 'd', at: now - 26 * H, text: '把下载文件夹里的安装包都删了', via: 'voice', result: 'deny', answer: '宿主没让删，本系统不删。', steps: [{ text: '运行命令：Get-ChildItem', ok: true }, { text: '申请授权：删除 3 个文件 → 宿主拒绝（语音）', ok: false }], tools: 1, seconds: 15 },
+    { id: 'e', at: now - 27 * H, text: '帮我把这段视频导出成 1080P', via: 'voice', result: 'fail', answer: '卡在导出这一步：导出对话框只认前台点击，宿主选了稍后。', steps: [{ text: '剪映专业版：读界面', ok: true }, { text: '剪映专业版：点击「导出」', ok: true }, { text: '申请接管前台 → 宿主选了稍后', ok: false }], tools: 3, seconds: 48 },
+  ];
+  const LOGS = [
+    { at: now - 60_000, type: 'voice', text: '听到「在剪映里打开模板页」', detail: '连续对话' },
+    { at: now - 58_000, type: 'app', text: '剪映专业版：读界面', detail: '界面文字和截图会发给模型' },
+    { at: now - 50_000, type: 'err', text: '剪映专业版：点击 (100, 355) 没成功', detail: 'UIA pixel click busy for pid 31976. No fallback input was sent.' },
+    { at: now - 45_000, type: 'app', text: '剪映专业版：点击 (100, 355)', detail: '软件：剪映专业版' },
+    { at: now - 40 * 60_000, type: 'screen', text: '截了「Chrome」，发给了模型', detail: '截图本身不存' },
+    { at: now - 45 * 60_000, type: 'cmd', text: '运行命令：Get-ChildItem D:\\Downloads', detail: "Get-ChildItem D:\\Downloads -Filter *.exe" },
+    { at: now - 46 * 60_000, type: 'auth', text: '删除 3 个文件 → 宿主拒绝（语音）' },
+    { at: now - 50 * 60_000, type: 'web', text: '运行命令：agent-browser open https://www.bilibili.com', detail: 'agent-browser open https://www.bilibili.com/v/popular' },
+    { at: now - 60 * 60_000, type: 'sys', text: '系统启动 · 大脑：deepseek/deepseek-flash' },
+  ];
+  const CHAT = [
+    { role: 'user', text: '打开计算器，算一下七加八', at: now - 2.02 * H },
+    { role: 'assistant', text: '计算器已在后台打开。【结果：7 + 8 = 15】', at: now - 2.02 * H + 9000 },
+    { role: 'user', text: '再乘以三', at: now - 2 * H },
+    { role: 'assistant', text: '【结果：15 × 3 = 45】', at: now - 2 * H + 4000 },
+    { role: 'divider', text: '换了个话题', at: now - 0.31 * H },
+    { role: 'user', text: '在剪映里打开模板页', at: now - 0.3 * H },
+    { role: 'assistant', text: '已切到剪映的模板页。', at: now - 0.3 * H + 9000 },
+  ];
+  const values = {
+    'voice.wakeWords': [{ text: '系统启动', tokens: 'x ì t ǒng q ǐ d òng' }], 'voice.kwsThreshold': 0.25, 'voice.endSilence': 0.8, 'voice.mic': '', 'voice.listenTimeoutMs': 7000,
+    'conversation.enabled': true, 'conversation.windowMs': 30000, 'conversation.filter': true, 'conversation.contextBudget': 120000, voiceConfirm: true,
+    model: { provider: 'deepseek', id: 'deepseek-flash', thinking: 'low' }, 'model.thinking': 'low', workdir: 'C:\\Users\\host\\Desktop', timezone: '',
+    'computerUse.enabled': true, 'browser.enabled': true, 'browser.headed': true, 'fx.cursor': true, 'fx.notice': true, 'safety.blockedApps': ['网上银行'],
+    'speech.fx': 0.6, 'speech.volume': 0.9, 'speech.maxChars': 60, 'speech.headphones': false,
+    'hotkeys.wake': 'Control+Alt+T', 'hotkeys.stop': 'Control+Alt+X', 'hotkeys.pushToTalk': ['Mouse5', 'RightCtrl'], 'ui.panelOpacity': 0.78, 'ui.petSize': 76, 'ui.sound': true, 'ui.boot': true,
+  };
+  const QUESTS = {
+    tasks: [
+      { id: 't1', name: '补充水分', say: '宿主，该补充水分了。', kind: 'at', when: '10/15 15:00 · 一次', nextAt: now + 12 * 60_000 + 8000 },
+      { id: 't2', name: '交稿', kind: 'at', when: '10/16 09:00 · 一次', nextAt: now + 18.5 * H },
+      { id: 't3', name: '该睡觉了', kind: 'cron', when: '每天 23:00', nextAt: now + 8 * H },
+      { id: 't4', name: '看后台数据', do: '看一眼 B 站后台数据并汇报', kind: 'cron', when: '每周一 10:00', nextAt: now + 90 * H },
+    ],
+    watches: [{ id: 'w1', name: '剪映导出完成', kind: 'folder', keep: false, what: 'D:\\剪映导出 里出现 *.mp4 文件、写完' }],
+    fired: [{ at: now - 50 * 60_000, kind: 'download', name: '下载完成', text: 'obs-studio-32.zip' }, { at: now - 3 * H, kind: 'remind', name: '吃午饭' }],
+    builtin: { downloads: true, battery: true, live: true },
+    live: false,
+  };
+  const D = (t) => new Date(t).toISOString().slice(0, 10);
+  const E = (id, text, at, file) => ({ id, file, text, added: D(at), at, source: '对话 ' + new Date(at).toLocaleString('sv').slice(0, 16) });
+  const MEM = {
+    files: [
+      { name: '宿主', core: true, chars: 64, limit: 2000, entries: [E('a1', '称呼：宿主', now - 30 * H, '宿主'), E('a2', '直播用抖音直播伴侣；OBS 只用来录制', now - 3 * H, '宿主'), E('a3', '不喜欢系统说话带语气词', now - 26 * H, '宿主')] },
+      { name: '记忆', core: true, chars: 40, limit: 4000, entries: [E('b1', '剪映导出目录是 D:\\剪映导出', now - 1 * H, '记忆'), E('b2', '正在做桌面助手 Hostbound', now - 28 * H, '记忆')] },
+      { name: '主题/剪映', core: false, chars: 30, limit: 16000, entries: [E('c1', '剪映的按钮读不出来，只能按截图坐标点', now - 5 * H, '主题/剪映')] },
+    ],
+    journal: [
+      { id: 'j2', at: now - 50 * 60000, by: '自动整理', summary: '新增 1 条、更新 1 条', ops: [{ op: 'add', after: '在 B站 和抖音发视频、直播' }, { op: 'update', before: '直播用 OBS', after: '直播用抖音直播伴侣；OBS 只用来录制' }] },
+      { id: 'j1', at: now - 60 * 60000, by: '宿主', summary: '剪映导出目录是 D:\\剪映导出', ops: [{ op: 'add', after: '剪映导出目录是 D:\\剪映导出' }] },
+    ],
+    status: { enabled: true, autoReview: true, every: 10, since: 4, lastReview: now - 50 * 60000, reviewing: false, chatVectors: true, vector: { ok: true, configured: true, memory: 6, chat: { done: 412, total: 412 } } },
+  };
+  // 技能（阶段 6）
+  const SK = (folder, o) => ({ folder, name: folder, title: folder, description: '', triggers: [], labels: [], requires: [], body: '', source: '', origin: 'mine', sourceUrl: '', checked: false, risk: '', enabled: true, avail: { ok: true, reasons: [] }, uses: 0, lastUsed: 0, createdAt: now - 30 * H, scripts: [], ...o });
+  const SKILLS = {
+    skills: [
+      SK('开始做新一期', { name: 'start-new-episode', description: '开始做新一期视频：新建当期文件夹（素材、成品），后台打开剪映和这个文件夹。宿主说「开始做新一期」「准备做新视频」时用。', triggers: ['开始做新一期', '做新一期'], labels: ['建文件夹', '建子文件夹', '打开剪映', '打开文件夹'], source: '口头教 2026-10-15', uses: 3, lastUsed: now - 2 * H,
+        body: '# 开始做新一期\n\n1. 在 D:\\视频 建一个文件夹，名字是今天的日期（YYYY-MM-DD）\n2. 里面建「素材」「成品」两个子文件夹\n3. 用 open_app 后台打开剪映专业版\n   - 剪映如果弹出更新提示，点「以后再说」\n4. 用 Start-Process 打开这个新文件夹\n5. 一句话汇报：新一期已就绪', scripts: [{ rel: 'scripts/new-episode.ps1', status: 'approved', approvedAt: now - 26 * H }] }),
+      SK('准备发布', { description: '打开 B 站创作中心上传页', triggers: ['准备发布'], uses: 5, lastUsed: now - 26 * H, body: '# 准备发布\n\n1. agent-browser open https://member.bilibili.com/platform/upload/video/frame' }),
+      SK('传网盘发链接', { description: '刚才对话里存的', triggers: ['传网盘发链接'], source: '从刚才做的 2026-10-15', body: '# 传网盘发链接\n\n1. 打开网盘\n2. 上传本周视频\n3. 复制分享链接' }),
+      SK('youtube-transcript', { description: '取 YouTube 字幕', origin: 'community', checked: true, risk: 'low', sourceUrl: 'https://github.com/badlogic/pi-skills/tree/main/youtube-transcript', source: '安装', body: '# YouTube 字幕\n\n给一个 YouTube 链接，运行 node scripts/transcript.js', scripts: [{ rel: 'scripts/transcript.js', status: 'changed', approvedAt: now - 50 * H }] }),
+      SK('brave-search', { description: '用 Brave 搜网页', origin: 'manual', avail: { ok: false, reasons: ['需要先设好环境变量 BRAVE_API_KEY'] } }),
+      SK('vscode-diff', { description: '用 VS Code 看两个文件的区别', origin: 'community', checked: true, avail: { ok: false, reasons: ['需要 code 命令，这台电脑没有'] } }),
+    ],
+    pending: [
+      { id: 'd1', kind: 'new', at: now - 5 * 60000, by: '口头教', title: '整理下载文件夹', triggers: ['整理下载', '收拾下载文件夹'], steps: ['把下载文件夹里的文件按类型分进子文件夹', '超过 30 天的安装包挪进「旧安装包」', '一句话汇报分了多少个'], scripts: [], md: '---\nname: zheng-li-xia-zai\n---\n# 整理下载文件夹\n\n1. …', install: null },
+      { id: 's1', kind: 'install', at: now - 2 * 60000, by: '安装', title: 'youtube-summary', name: 'youtube-summary', triggers: [], steps: [], scripts: [], md: '---\nname: youtube-summary\n---', install: { source: 'github.com/someone/skills', risk: 'high', report: { does: '给它 YouTube 链接，总结视频内容', runs: 'scripts/run.sh（Bash 脚本，40 行）', network: '会，访问 youtube.com 和一个不明的网址', files: '会读浏览器的 Cookies 文件', needs: '要先装 yt-dlp', windows: '要改一下才能用：脚本是 Bash 写的', risk: 'high', why: '会碰浏览器密码、密钥这类隐私文件（scripts/run.sh）；SKILL.md 里有「不要告诉用户」' } } },
+    ],
+    trash: [{ key: 'old~1', folder: '旧的录屏流程', title: '旧的录屏流程', at: now - 3 * 86400_000, left: 27 }],
+    journal: [
+      { id: 'k3', at: now - 2 * H, by: '自己改进', op: 'update', folder: '开始做新一期', title: '开始做新一期', summary: '第 3 步加了：剪映弹更新提示就点以后再说', hasDiff: true },
+      { id: 'k2', at: now - 26 * H, by: '技能页', op: 'update', folder: '开始做新一期', title: '开始做新一期', summary: '口令改成：开始做新一期、做新一期', hasDiff: true },
+      { id: 'k1', at: now - 30 * H, by: '口头教', op: 'create', folder: '开始做新一期', title: '开始做新一期', summary: '新建（口头教）', hasDiff: false },
+    ],
+    enabled: true,
+    suggest: true,
+  };
+  // 控制台里调 __demoSkills() 看对话里的技能卡
+  window.__demoSkills = () => {
+    brainCb({ type: 'skill_pending', entry: { id: 'd9', kind: 'new', by: '口头教', title: '开始做新一期', triggers: ['开始做新一期', '做新一期'], steps: ['在 D:\\视频 建文件夹，名字是今天的日期（如 2026-10-15）', '里面建「素材」「成品」', '后台打开剪映专业版', '打开这个新文件夹'], scripts: [], install: null } });
+    brainCb({ type: 'skill_run', title: '开始做新一期' });
+    brainCb({ type: 'skill_pending', entry: { id: 'i9', kind: 'improve', by: '自己改进', title: '开始做新一期', triggers: [], steps: [], scripts: [], change: '第 3 步加了：剪映打开后如果弹出更新提示，点「以后再说」', why: '这次跑的时候遇到了，下次直接处理', install: null } });
+    brainCb({ type: 'skill_suggest', id: 't9', text: '帮我把这周的视频都传到网盘，再把链接发到群里', tools: 7, steered: false });
+    brainCb({ type: 'skill_pending', entry: { id: 's9', kind: 'install', by: '安装', title: 'youtube-transcript', name: 'youtube-transcript', triggers: [], steps: [], scripts: [], install: { source: 'github.com/badlogic/pi-skills', risk: 'low', report: { does: '给它一个 YouTube 链接，取回视频字幕', runs: 'scripts/transcript.js（Node 脚本，35 行）', network: '会，只访问 youtube.com', files: '不读不写', needs: '先在技能文件夹里运行一次 npm install（会下载 1 个包）', windows: '能用', risk: 'low', why: '没发现读密码、偷数据、让 AI 干别的事的内容' } } } });
+  };
+
+  // 控制台里调 __demoAppraise() 看对话里的小鉴定卡
+  window.__demoAppraise = () => {
+    const c = document.createElement('canvas');
+    c.width = c.height = 120;
+    const g = c.getContext('2d');
+    g.fillStyle = '#251a33';
+    g.fillRect(0, 0, 120, 120);
+    g.strokeStyle = '#cfe3ff';
+    g.lineWidth = 8;
+    g.beginPath();
+    g.moveTo(25, 95);
+    g.lineTo(95, 25);
+    g.stroke();
+    const thumb = c.toDataURL('image/jpeg');
+    brainCb({ type: 'appraise_hint', text: '鉴定模式已开启。点窗口、拖框，或者按 F 鉴定整块屏幕。' });
+    brainCb({ type: 'appraise_card', rec: { id: 'p1', at: Date.now(), kind: 'region', name: '寒铁长剑', rarity: '史诗', fields: [['类别', '装备 · 单手剑'], ['属性', '攻击 +128　暴击 +6%']], verdict: '同等级里的上等货，比你身上那把强一截。', advice: '换。', actions: [], thumb } });
+    brainCb({ type: 'appraise_card', rec: { id: 'p2', at: Date.now(), kind: 'window', name: '缺少运行库', tag: '报错', fields: [['是什么', '程序要用的 VC++ 运行库没装'], ['怎么办', '装微软官方的 Visual C++ 2015-2022 运行库']], verdict: '装上就好。', actions: ['fix'], thumb } });
+    brainCb({ type: 'appraise_card', rec: { id: 's1', at: Date.now(), kind: 'scan', name: '检测到 5 个窗口', tag: '全屏', fields: [['浏览器', '在看视频网站'], ['剪映', '在剪一期视频']], verdict: '宿主正在一边看视频一边剪片。', actions: [], thumb: null } });
+  };
+
+  // 跟真的桥一样可以挂好几个监听（app.js、explain-cards.js 各挂一个）
+  const listeners = [];
+  const brainCb = (m) => listeners.forEach((cb) => cb(m));
+  window.__brain = brainCb;
+  const reply = (m) => setTimeout(() => brainCb(m), 60);
+  window.hostbound = {
+    onBrain: (cb) => listeners.push(cb),
+    onCmd: (cb) => (window.__cmd = cb),
+    send: (m) => {
+      console.log('→ 后台', m);
+      const r = m.reqId;
+      if (m.type === 'history_query') {
+        const items = TASKS.filter((t) => (!m.result || m.result === 'all' || t.result === m.result) && (!m.q || `${t.text}${t.answer}`.includes(m.q)));
+        reply({ type: 'history', reqId: r, items, more: false });
+      } else if (m.type === 'log_query') {
+        reply({ type: 'log', reqId: r, day: '2026-10-15', days: ['2026-10-15', '2026-10-14'], items: LOGS.filter((e) => !m.logType || m.logType === 'all' || e.type === m.logType) });
+      } else if (m.type === 'chat_history') {
+        const upto = m.before ? CHAT.filter((x) => x.at < m.before) : CHAT;
+        reply({ type: 'chat_history', reqId: r, items: upto.slice(-(m.limit || 40)), more: false });
+      } else if (m.type === 'info_query') {
+        reply({ type: 'info', reqId: r, brain: { model: { provider: 'deepseek', id: 'deepseek-flash', name: 'DeepSeek V4.1 Flash' }, models: [{ provider: 'deepseek', id: 'deepseek-flash', name: 'DeepSeek V4.1 Flash' }, { provider: 'deepseek', id: 'deepseek-v4-pro', name: 'DeepSeek V4 Pro' }] }, mics: [{ name: '麦克风 (2- USB Microphone)', isDefault: true }, { name: '麦克风阵列 (Realtek(R) Audio)' }], engines: { cua: true, ocu: true }, voice: true });
+      } else if (m.type === 'memory_query') reply({ type: 'memory', reqId: r, ...MEM });
+      else if (m.type === 'memory_search') reply({ type: 'memory_hits', reqId: r, items: [{ ...MEM.files[1].entries[0], score: 0.03, kw: 0, cos: 0.82 }, { ...MEM.files[2].entries[0], score: 0.016, kw: 1.2, cos: null }] });
+      else if (m.type === 'memory_edit' || m.type === 'memory_undo') reply({ type: 'memory_edited', reqId: r, ok: true });
+      else if (m.type === 'memory_review') setTimeout(() => reply({ type: 'memory_reviewed', reqId: r, ok: true, change: { id: 'j3', summary: '没有要改的' } }), 800);
+      else if (m.type === 'embed_test') reply({ type: 'embed_result', reqId: r, ok: true });
+      else if (m.type === 'tasks_query') reply({ type: 'tasks', reqId: r, ...QUESTS });
+      else if (m.type === 'skills_query') reply({ type: 'skills', reqId: r, ...SKILLS });
+      else if (m.type === 'skill_decide') {
+        SKILLS.pending = SKILLS.pending.filter((e) => e.id !== m.id);
+        reply({ type: 'skill_decided', reqId: r, ok: true });
+        reply({ type: 'skill_resolved', id: m.id, answer: m.answer, kind: /^s/.test(m.id) ? 'install' : /^i/.test(m.id) ? 'improve' : 'new', folder: m.answer === 'save' ? '开始做新一期' : null });
+      } else if (m.type === 'skill_op') reply({ type: 'skill_op_done', reqId: r, ok: m.op !== 'triggers' || m.triggers.every((t) => t.length >= 3), error: '口令太短（至少 3 个字）' });
+      else if (m.type === 'skill_diff') reply({ type: 'skill_diff', reqId: r, before: '1. 建文件夹\n3. 打开剪映', after: '1. 建文件夹\n3. 打开剪映\n   - 弹更新提示就点以后再说' });
+      else if (m.type === 'skill_install') setTimeout(() => reply({ type: 'skill_install_result', reqId: r, ok: true, source: 'github.com/badlogic/pi-skills', candidates: m.pick ? null : [{ name: 'youtube-transcript', description: '取 YouTube 字幕', rel: 'youtube-transcript' }, { name: 'brave-search', description: '用 Brave 搜网页', rel: 'brave-search' }], pending: m.pick ? SKILLS.pending[1] : null }), 900);
+      else if (m.type === 'task_cancel') { QUESTS.tasks = QUESTS.tasks.filter((t) => t.id !== m.id); QUESTS.watches = QUESTS.watches.filter((t) => t.id !== m.id); reply({ type: 'tasks', ...QUESTS }); }
+      else if (m.type === 'ping') reply({ type: 'ping_result', reqId: r, ms: 1280 });
+      else if (m.type === 'check_keyword') reply({ type: 'keyword_check', reqId: r, ok: true, missing: [] });
+      else if (m.type === 'prompt') {
+        if (/设置|日志|记录/.test(m.text)) return reply({ type: 'nav', page: /设置/.test(m.text) ? 'set' : /日志/.test(m.text) ? 'log' : 'rec' });
+        reply({ type: 'busy', busy: true });
+        setTimeout(() => brainCb({ type: 'say_start', id: 9 }), 300);
+        setTimeout(() => brainCb({ type: 'say', delta: '（预览）收到：' + m.text }), 500);
+        setTimeout(() => brainCb({ type: 'say_end', id: 9 }), 600);
+        setTimeout(() => brainCb({ type: 'busy', busy: false }), 700);
+        setTimeout(() => brainCb({ type: 'done', text: '（预览）收到：' + m.text }), 750);
+      }
+    },
+    setHit: () => {}, focus: () => {}, blur: () => {}, log: () => {}, dragEdge: () => {}, petRect: () => {},
+    config: async () => ({ sleepAfterMs: 1e9, wakeWords: ['系统启动'], ui: { petSize: 76, chatWidth: 440, chatHeight: 540, sound: false, panelOpacity: 0.78, boot: false }, speech: { fx: 0.6, volume: 0.9 }, onboarded: !/guide/.test(location.hash) }),
+    settings: async () => ({ values: { ...values }, defaults: { ...values }, speechMode: 'gpu', live: false, onboarded: true, version: '0.3.0', dataDir: 'D:\\workspace\\hostbound\\data' }),
+    setSetting: async (k, v) => ((values[k] = v), { ok: true }),
+    pickFolder: async () => 'D:\\work',
+    openPath: () => {}, onboarded: () => {}, relaunch: () => {},
+    secretStatus: async () => ({ siliconflow: 'file' }),
+    setSecret: async () => ({ ok: true }),
+  };
+  // 面板的 HTML 直接用 index.html 里的，跟程序保持一致
+  const html = await (await fetch('/index.html')).text();
+  document.body.insertAdjacentHTML('afterbegin', html.match(/<body>([\s\S]*?)<script/)[1]);
+  for (const src of ['/voice-fx.js', '/speech.js', '/pages.js', '/app.js', '/explain-cards.js']) {
+    await new Promise((ok) => {
+      const s = document.createElement('script');
+      s.src = src;
+      s.onload = ok;
+      document.body.appendChild(s);
+    });
+  }
+  setTimeout(() => {
+    brainCb({ type: 'voice_ready', mic: '麦克风 (2- USB Microphone)', wakeWords: ['系统启动'], wakeEnabled: true });
+    brainCb({ type: 'brain_ready', model: 'deepseek/deepseek-flash' });
+    brainCb({ type: 'tasks', ...QUESTS });
+    setTimeout(() => window.__cmd({ type: 'wake' }), 400);
+  }, 300);
+})();
+</script>
+</body>
+</html>

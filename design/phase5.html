@@ -1,0 +1,245 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>阶段 5 设计稿</title>
+<link rel="stylesheet" href="kit.css">
+<style>
+  .fr > .l2 { background: rgba(7, 12, 36, .78); }
+  .fr > .l4 { background: rgba(16, 28, 70, .2); }
+  .fr > .l1, .fr > .l3 { --w: 2px; clip-path: polygon(evenodd,
+    var(--c) 0, calc(100% - var(--c)) 0, 100% var(--c), 100% calc(100% - var(--c)), calc(100% - var(--c)) 100%, var(--c) 100%, 0 calc(100% - var(--c)), 0 var(--c), var(--c) 0,
+    calc(var(--w) + var(--c)) var(--w), var(--w) calc(var(--w) + var(--c)), var(--w) calc(100% - var(--w) - var(--c)), calc(var(--w) + var(--c)) calc(100% - var(--w)),
+    calc(100% - var(--w) - var(--c)) calc(100% - var(--w)), calc(100% - var(--w)) calc(100% - var(--w) - var(--c)), calc(100% - var(--w)) calc(var(--w) + var(--c)),
+    calc(100% - var(--w) - var(--c)) var(--w), calc(var(--w) + var(--c)) var(--w)); }
+  .fr > .l3 { --w: 1px; }
+  .note { max-width: 1180px; margin: 10px auto 0; font-size: 13px; color: var(--muted); line-height: 1.8; }
+  .note b { color: #cfe0ff; }
+
+  /* 流程 */
+  .flowline { max-width: 1180px; margin: 30px auto 0; display: grid; grid-template-columns: 1fr 40px 1.2fr 40px 1fr 40px 1.2fr; align-items: center; }
+  .flowline .arrow { text-align: center; color: var(--cyan); font-size: 22px; text-shadow: 0 0 8px var(--cyan); }
+  .flowline .card .ct { font-size: 12.5px; line-height: 1.7; }
+  .flowline .card .hd { font-size: 13.5px; }
+  .tagline { display: inline-block; font-size: 11px; padding: 0 6px; margin: 2px 4px 2px 0; border: 1px solid rgba(255,217,122,.5); color: var(--gold); }
+
+  .two { max-width: 1180px; margin: 40px auto 0; display: grid; grid-template-columns: 440px 1fr; gap: 34px; align-items: start; }
+  .nav { display: flex; gap: 2px; margin: -4px 0 10px; border-bottom: 1px solid rgba(95,230,255,.18); }
+  .nav span { padding: 4px 11px; font-size: 12.5px; color: var(--muted); border-bottom: 2px solid transparent; margin-bottom: -1px; }
+  .nav span.on { color: #fff; border-color: var(--g1); text-shadow: 0 0 8px var(--g1); background: linear-gradient(0deg, color-mix(in srgb, var(--g1) 18%, transparent), transparent); }
+  .nav span.new::after { content: "新"; font-size: 9.5px; color: var(--gold); margin-left: 3px; vertical-align: super; }
+  .memline { font: 12px/1.6 Consolas, "Microsoft YaHei UI", monospace; color: #c9b8ff; display: flex; gap: 8px; align-items: baseline; }
+  .memline::before { content: "◆"; color: var(--violet); text-shadow: 0 0 6px var(--violet); }
+  .memline a { color: var(--cyan); cursor: pointer; margin-left: 4px; }
+  .memline .r { margin-left: auto; white-space: nowrap; }
+
+  /* 记忆页 */
+  .mempage { max-width: 1180px; margin: 40px auto 0; }
+  .mempage .fr { width: 820px; }
+  .mempage .fr > .body { height: 560px; display: flex; flex-direction: column; padding: 40px 22px 18px; }
+  .mtools { display: flex; gap: 8px; align-items: center; margin-bottom: 10px; }
+  .mtools .field { flex: 1; padding: 4px 10px; font-size: 12.5px; }
+  .mgrid { display: grid; grid-template-columns: 120px 1fr 210px; gap: 14px; flex: 1; min-height: 0; }
+  .mgroups { display: flex; flex-direction: column; gap: 2px; border-right: 1px solid rgba(95,230,255,.15); padding-right: 8px; }
+  .mgroups span { padding: 5px 9px; font-size: 12.5px; color: var(--muted); cursor: pointer; display: flex; clip-path: polygon(6px 0, 100% 0, calc(100% - 6px) 100%, 0 100%); }
+  .mgroups span small { margin-left: auto; color: var(--dim); font-family: Consolas, monospace; }
+  .mgroups span.on { color: #fff; background: color-mix(in srgb, var(--g1) 20%, transparent); text-shadow: 0 0 6px var(--g1); }
+  .mgroups .sub { padding-left: 18px; }
+  .mgroups .lbl { font-size: 11px; color: var(--gold); letter-spacing: .14em; padding: 8px 9px 2px; }
+  .mlist { overflow-y: auto; padding-right: 4px; }
+  .mhead { font-size: 11.5px; color: var(--muted); margin-bottom: 6px; display: flex; }
+  .mhead b { color: #fff; font-weight: 600; margin-right: 8px; }
+  .mhead .r { margin-left: auto; }
+  .me { display: grid; grid-template-columns: 1fr auto; gap: 4px 10px; padding: 7px 8px; margin-bottom: 5px; background: rgba(0,10,40,.45); border-left: 2px solid var(--violet); font-size: 13px; }
+  .me .t { color: #fff; line-height: 1.6; }
+  .me .m { grid-column: 1; font-size: 11px; color: var(--dim); }
+  .me .m a { color: var(--cyan); cursor: pointer; }
+  .me .ops { grid-row: 1 / span 2; grid-column: 2; display: flex; gap: 8px; align-items: center; color: var(--muted); font-size: 12px; }
+  .me .ops span { cursor: pointer; }
+  .me .ops span:hover { color: #fff; }
+  .me.hit { border-left-color: var(--gold); }
+  .me .score { font: 10.5px Consolas, monospace; color: var(--gold); }
+  .mjournal { border-left: 1px solid rgba(95,230,255,.15); padding-left: 10px; overflow-y: auto; }
+  .mjournal .h { font-size: 12px; color: var(--gold); letter-spacing: .14em; margin-bottom: 6px; }
+  .mj { font-size: 12px; line-height: 1.6; padding: 5px 0; border-bottom: 1px dashed rgba(95,230,255,.15); }
+  .mj .w { font: 11px Consolas, monospace; color: var(--dim); }
+  .mj .k { font-size: 10.5px; padding: 0 5px; margin-right: 4px; border: 1px solid; }
+  .mj .k.add { color: var(--green); border-color: rgba(109,255,190,.5); }
+  .mj .k.upd { color: var(--cyan); border-color: rgba(95,230,255,.5); }
+  .mj .k.del { color: var(--red); border-color: rgba(255,90,114,.5); }
+  .mj a { color: var(--cyan); cursor: pointer; font-size: 11.5px; }
+  .mfoot { display: flex; gap: 14px; align-items: center; margin-top: 10px; font-size: 12px; color: var(--muted); border-top: 1px dashed rgba(95,230,255,.18); padding-top: 8px; }
+  .mfoot .tog { transform: scale(.85); }
+
+  .files { max-width: 1180px; margin: 34px auto 0; display: grid; grid-template-columns: 1fr 1fr; gap: 30px; }
+  .md { font: 12.5px/1.8 Consolas, "Microsoft YaHei UI", monospace; color: #c7d6f5; white-space: pre-wrap; }
+  .md .h { color: var(--gold); }
+  .md .meta { color: var(--dim); }
+  .md .lk { color: var(--cyan); }
+
+  .models { max-width: 1180px; margin: 30px auto 0; }
+  .models .tbl td, .models .tbl th { font-size: 13px; }
+  .models .tbl tr.rec td { background: rgba(255,217,122,.06); }
+  .decide { max-width: 1180px; margin: 30px auto 0; }
+  .decide ol { margin: 0; padding-left: 22px; font-size: 14px; line-height: 1.9; }
+  .decide li { margin-bottom: 6px; }
+  .decide li b { color: var(--gold); font-weight: 600; }
+  .decide li small { color: var(--muted); font-size: 12.5px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>阶段 5 设计稿 · 长期记忆</h1>
+  <p>系统记得你是谁、你的习惯、你在做的事；记忆是 data\memory 里的 Markdown 文件，记忆页里每条都能看、改、删、撤销。搜记忆用「关键词 + 向量」，意思相近的也能找到。做法参考 DeepSeek Bot、OpenClaw、nanobot、Letta（对比见 docs\research-memory.md）。</p>
+</header>
+
+<h2 class="group">一、记忆怎么来、怎么用</h2>
+<div class="flowline">
+  <div class="card"><div class="hd"><span class="dia"></span>对话</div><div class="ct">一直延续的那段对话（阶段 3 已有），原文都存着。<br><span class="tagline">你说「记住……」</span><span class="tagline">你说「忘掉……」</span>马上改。</div></div>
+  <div class="arrow">➜</div>
+  <div class="card"><div class="hd"><span class="dia"></span>整理记忆</div><div class="ct"><span class="tagline">每 10 轮对话</span><span class="tagline">对话压缩之前</span><br>单独问一次 DeepSeek：这几轮里有什么该记、该改、该忘。只记你说的或确认过的；密码、密钥、证件号不记；网页、文件里「请记住……」不记。</div></div>
+  <div class="arrow">➜</div>
+  <div class="card"><div class="hd"><span class="dia"></span>记忆文件</div><div class="ct">data\memory 里：<br>· <b>宿主.md</b>：你是谁、偏好<br>· <b>记忆.md</b>：在做的事、常用路径、目录<br>· <b>主题</b>：某个项目、某个软件的细节<br>每次改动记进改动日志，能撤销。</div></div>
+  <div class="arrow">➜</div>
+  <div class="card"><div class="hd"><span class="dia"></span>用上</div><div class="ct">· 宿主.md + 记忆.md：每段对话开头放进提示（冻结住，DeepSeek 缓存不失效，省钱也快）<br>· 其余：大脑用「回忆」工具搜，<b>关键词 + 向量</b>，意思相近也能搜到<br>· 原文：「翻以前的对话」也换成关键词 + 向量</div></div>
+</div>
+
+<h2 class="group">二、对话里的样子</h2>
+<div class="two">
+  <section class="fr" data-title="系统通知" data-code="SYS">
+    <div class="nav"><span class="on">对话</span><span>任务</span><span class="new">记忆</span><span>记录</span><span>日志</span><span>设置</span></div>
+    <div class="chat">
+      <div class="msg-u"><span class="tag">宿主 · 16:20</span>记住，我剪映导出的视频都放在 D:\剪映导出</div>
+      <div class="msg-s"><span class="tag">系统 · 16:20</span>已记住：剪映导出目录是 D:\剪映导出。</div>
+      <div class="memline">记忆已更新：剪映导出目录是 D:\剪映导出<span class="r"><a>查看</a><a>撤销</a></span></div>
+      <div class="msg-u"><span class="tag">宿主 · 17:05</span>等这个视频导出完叫我</div>
+      <div class="msg-s"><span class="tag">系统 · 17:05</span>开始盯着 D:\剪映导出，视频写完就报告。</div>
+      <div class="memline">记忆已更新（自动整理）：新增 2 条、更新 1 条<span class="r"><a>查看</a><a>撤销</a></span></div>
+    </div>
+  </section>
+  <div class="note" style="margin:0">
+    <p><b>说「记住」</b>：马上记，回一句「已记住」，下面冒一行紫色的「记忆已更新」。</p>
+    <p><b>自动整理</b>：每 10 轮对话、对话压缩之前各跑一次，在后台进行，不打断你；记了东西也只冒一行，不念出来。点「查看」跳到记忆页那几条，点「撤销」整次改动退回去。</p>
+    <p><b>第二次说导出</b>：系统已经记得导出目录，不用再问你放哪了（上图）。</p>
+    <p><b>说「忘掉……」</b>：删掉那条，同样冒一行能撤销。</p>
+  </div>
+</div>
+
+<h2 class="group">三、记忆页（面板新页签）</h2>
+<div class="mempage">
+  <section class="fr" data-title="系统记忆" data-code="MEMORY">
+    <div class="nav"><span>对话</span><span>任务</span><span class="on new">记忆</span><span>记录</span><span>日志</span><span>设置</span></div>
+    <div class="mtools"><div class="field">⌕ 搜记忆（意思相近的也能搜到，比如搜「视频放哪」）<span class="caret"></span></div><span class="btn sm">+ 加一条</span><span class="btn ghost sm">现在整理一次</span></div>
+    <div class="mgrid">
+      <div class="mgroups" id="groups">
+        <div class="lbl">常驻</div>
+        <span class="on" data-g="host">宿主<small>6</small></span>
+        <span data-g="mem">记忆<small>9</small></span>
+        <div class="lbl">主题</div>
+        <span class="sub" data-g="jy">剪映<small>4</small></span>
+        <span class="sub" data-g="live">直播<small>3</small></span>
+        <span class="sub" data-g="hb">Hostbound 项目<small>5</small></span>
+      </div>
+      <div class="mlist" id="mlist"></div>
+      <div class="mjournal">
+        <div class="h">最近改动</div>
+        <div class="mj"><span class="w">17:12 自动整理</span><br><span class="k add">新增</span>在 B站 和抖音发视频、直播<br><span class="k upd">更新</span>直播用抖音直播伴侣，B站直播姬还没装<br><a>撤销这次</a></div>
+        <div class="mj"><span class="w">16:20 宿主说</span><br><span class="k add">新增</span>剪映导出目录是 D:\剪映导出<br><a>撤销这次</a></div>
+        <div class="mj"><span class="w">昨天 21:40 自动整理</span><br><span class="k del">删掉</span>「用 OBS 推流」（宿主说现在只用来录制）<br><a>撤销这次</a></div>
+      </div>
+    </div>
+    <div class="mfoot"><span>自动整理</span><span class="tog on"></span><span>上次整理：17:12 · 下次：再聊 6 轮或对话压缩前</span><span style="margin-left:auto">常驻记忆 1,830 / 6,000 字</span></div>
+  </section>
+  <p class="note">左边按文件分组（常驻的两个 + 各个主题），中间是每一条：<b>改</b>（直接在原地改字）、<b>删</b>、<b>来源</b>（点了跳到学到这条的那次对话）。右边是改动日志，每次改动都能整次撤销。上面搜索框搜的时候，中间换成搜索结果，按相关程度排（关键词和意思都算）。也可以用记事本直接改 data\memory 里的文件，系统会自己重新读。</p>
+</div>
+
+<h2 class="group">四、文件长什么样（Agent Memory Repo 格式）</h2>
+<div class="files">
+  <div class="card"><div class="hd"><span class="dia"></span>data\memory\宿主.md<small style="margin-left:auto;font:11px Consolas;color:var(--muted)">常驻 · 上限 2000 字</small></div>
+    <div class="ct md"><span class="h"># 宿主</span>
+- 称呼：宿主 <span class="meta">[source: 2026-10-14 对话; added: 2026-10-14]</span>
+- 在 B站 和抖音发视频、直播 <span class="meta">[source: 2026-10-15 17:10; added: 2026-10-15]</span>
+- 直播用抖音直播伴侣；OBS 只用来录制 <span class="meta">[source: 2026-10-15 15:02; added: 2026-10-15]</span>
+- 不喜欢系统说话带语气词 <span class="meta">[source: 2026-10-14 20:11; added: 2026-10-14]</span></div></div>
+  <div class="card"><div class="hd"><span class="dia"></span>data\memory\记忆.md<small style="margin-left:auto;font:11px Consolas;color:var(--muted)">常驻 · 上限 4000 字</small></div>
+    <div class="ct md"><span class="h"># 记忆</span>
+- 剪映导出目录是 D:\剪映导出 <span class="meta">[source: 2026-10-15 16:20; added: 2026-10-15]</span>
+- 正在做桌面助手 Hostbound，在 D:\workspace\hostbound <span class="meta">[source: …; added: 2026-10-15]</span>
+
+<span class="h">## 目录</span>
+- <span class="lk">[[主题/剪映]]</span> 剪辑、导出、常用操作
+- <span class="lk">[[主题/直播]]</span> 直播间、推流、开播习惯
+- <span class="lk">[[主题/Hostbound 项目]]</span></div></div>
+</div>
+<p class="note">一条一行，末尾标来源和日期，能用记事本直接改。常驻的两个文件超了上限时，整理记忆会自动把细节挪进主题文件，目录里留一个链接。</p>
+
+<h2 class="group">五、向量检索怎么做</h2>
+<div class="models card"><div class="ct">
+  <p style="margin:0 0 8px">用一个「嵌入模型」把每条记忆、每句以前的对话变成一串数字，意思相近的数字也相近。搜的时候关键词和意思各算一个分，合起来排序（OpenClaw、MemOS 也是这么混合的）。DeepSeek 没有这个接口，<b>用你的硅基流动 BAAI/bge-m3</b>（智源出的多语言模型，中文效果好，1024 维）：不用下载、不占你电脑的内存。</p>
+  <table class="tbl">
+    <tr><th>项</th><th>怎么做</th></tr>
+    <tr class="rec"><td>接口</td><td>硅基流动 <span class="mono">/v1/embeddings</span>，模型 <span class="mono">BAAI/bge-m3</span>（跟 OpenAI 一样的格式，以后换别家也只改地址和模型名）</td></tr>
+    <tr><td>密钥</td><td>你自己在<b>设置 · 大脑</b>里粘进去，存在 <span class="mono">data\secrets.json</span>（开源时不上传），之后只显示「已配置」，系统不再显示出来；也认环境变量 <span class="mono">SILICONFLOW_API_KEY</span></td></tr>
+    <tr><td>发出去的内容</td><td>要算向量的文字：每条记忆；如果「翻以前的对话」也用向量，还有以前对话的原文。算完只把数字存在本地 <span class="mono">data\memory\.index</span>，几千条直接算，不用另装向量数据库</td></tr>
+    <tr><td>断网 / 没配密钥 / 额度用完</td><td>自动退回只用关键词搜，记忆页上标一句「向量检索暂时不可用」，不影响别的功能</td></tr>
+    <tr><td>花费</td><td>一条记忆几十个字，算一次很便宜；以前的对话只在第一次建索引时算一遍，之后只算新的（具体价格以硅基流动后台 bge-m3 的标价为准）</td></tr>
+  </table>
+  <p style="margin:10px 0 0" class="muted">本地模型（Qwen3-Embedding-0.6B，639 MB）留作备选：以后想完全不联网，再换回本地，不用改别的。</p>
+</div></div>
+
+<h2 class="group">六、需要你拍板的（括号里是默认）</h2>
+<div class="decide card"><div class="ct">
+<ol>
+  <li>向量用硅基流动的 BAAI/bge-m3，密钥你自己在设置里粘（<b>已定</b>，不用下载东西）</li>
+  <li>「翻以前的对话」也换成关键词 + 向量？（<b>换</b>：第一次要给以前的对话建索引，后台慢慢做；<b>这样以前对话的原文也会发给硅基流动算向量</b>。不想发就选「只给记忆算向量」，翻对话还是用关键词）</li>
+  <li>记忆页放在哪？（<b>对话 · 任务 · 记忆 · 记录 · 日志 · 设置</b>）</li>
+  <li>自动整理记了东西怎么提示？（<b>对话里冒一行紫色的「记忆已更新」，带「查看」「撤销」，不念出来</b>）</li>
+  <li>常驻记忆多大？（<b>宿主.md 2000 字、记忆.md 4000 字</b>；超了整理时把细节挪进主题文件）</li>
+</ol>
+</div></div>
+<p class="note">已经定了的：自动整理每 10 轮对话和对话压缩前各一次（不按闲置时间）；只记你说的或确认过的；密码、密钥、证件号、银行卡号不记；直播时照常记，但记忆页不会自己弹出；设置里能一键暂停记忆。</p>
+
+<script>
+  document.querySelectorAll('section.fr').forEach((fr) => {
+    const kids = [...fr.childNodes];
+    fr.innerHTML = '<i class="l1"></i><i class="l2"></i><i class="l3"></i><i class="l4"></i>' +
+      `<div class="plate"><span class="wing l"></span><span class="p">${fr.dataset.title}</span><span class="wing r"></span></div><span class="code">${fr.dataset.code}</span><div class="body"></div>`;
+    const body = fr.querySelector('.body');
+    kids.forEach((n) => body.appendChild(n));
+  });
+  const DATA = {
+    host: ['宿主 · 常驻', [
+      ['称呼：宿主', '10/14', '那次对话'],
+      ['在 B站 和抖音发视频、直播', '10/15', '17:10 的对话'],
+      ['直播用抖音直播伴侣；OBS 只用来录制', '10/15', '15:02 的对话'],
+      ['不喜欢系统说话带语气词', '10/14', '20:11 的对话'],
+      ['电脑时间是太平洋时间，不用改', '10/14', '那次对话'],
+      ['按住说话用鼠标侧键或右 Ctrl', '10/14', '那次对话'],
+    ]],
+    mem: ['记忆 · 常驻', [
+      ['剪映导出目录是 D:\\剪映导出', '10/15', '16:20 的对话'],
+      ['正在做桌面助手 Hostbound，在 D:\\workspace\\hostbound', '10/15', '那次对话'],
+      ['常用下载工具是 Chrome，下载到「下载」文件夹', '10/14', '那次对话'],
+    ]],
+    jy: ['主题 · 剪映', [
+      ['剪映专业版装在 D:\\JianyingPro', '10/15', '那次对话'],
+      ['剪映的按钮系统读不出来，只能看截图按坐标点', '10/15', '那次对话'],
+      ['导出一般用 1080P、30 帧', '10/15', '那次对话'],
+      ['剪映导出目录是 D:\\剪映导出（常驻里也有）', '10/15', '16:20 的对话'],
+    ]],
+    live: ['主题 · 直播', [['抖音直播伴侣装在 D:\\Program Files (x86)\\webcast_mate', '10/15', '那次对话'], ['B站直播姬还没装', '10/15', '那次对话'], ['直播时语音唤醒关掉，用按住说话', '10/14', '那次对话']]],
+    hb: ['主题 · Hostbound 项目', [['阶段 1～4 做完了', '10/15', '那次对话'], ['声音用 D 中性机械系统', '10/14', '那次对话'], ['开源前把个人数据都放进 data，不上传', '10/14', '那次对话'], ['API 密钥宿主自己配，系统不碰', '10/14', '那次对话'], ['测试只碰自己开的窗口', '10/14', '那次对话']]],
+  };
+  function show(g) {
+    const [title, rows] = DATA[g];
+    const list = document.getElementById('mlist');
+    list.innerHTML = `<div class="mhead"><b>${title}</b>${rows.length} 条<span class="r">按添加时间</span></div>` +
+      rows.map(([t, d, src]) => `<div class="me"><div class="t">${t}</div><div class="m">${d} 记下 · 来源：<a>${src}</a></div><div class="ops"><span title="改">✎</span><span title="删">✕</span></div></div>`).join('');
+    document.querySelectorAll('#groups span').forEach((s) => s.classList.toggle('on', s.dataset.g === g));
+  }
+  document.querySelectorAll('#groups span').forEach((s) => s.addEventListener('click', () => show(s.dataset.g)));
+  show('host');
+</script>
+</body>
+</html>

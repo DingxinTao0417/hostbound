@@ -1,0 +1,160 @@
+/* 效果层：每块屏幕一个全屏透明窗口，画扫描框、系统光标、点击光圈、输入字幕、按键键帽、全屏通知、扫描屏幕、接管前台的金边 */
+:root {
+  --cyan: #5fe6ff; --blue: #4f7bff; --violet: #b15bff; --pink: #ff5fcf; --gold: #ffd97a; --green: #6dffbe; --red: #ff5a72; --ink: #e9f4ff; --muted: #8fa3c8;
+  --g1: var(--cyan); --g2: var(--blue); --g3: var(--violet); --g4: var(--pink); --glow: rgba(95,230,255,.6); --glow2: rgba(177,91,255,.35);
+}
+.tone-ok { --g1: var(--green); --g2: var(--cyan); --g3: var(--blue); --g4: var(--violet); --glow: rgba(109,255,190,.55); --glow2: rgba(95,230,255,.35); }
+.tone-gold { --g1: #ffd97a; --g2: #ffb35f; --g3: #ff7a59; --g4: #ff5fcf; --glow: rgba(255,217,122,.6); --glow2: rgba(255,122,89,.35); }
+.tone-err { --g1: #ff8a7a; --g2: var(--red); --g3: #c23b6b; --g4: var(--pink); --glow: rgba(255,90,114,.6); --glow2: rgba(255,95,207,.3); }
+* { box-sizing: border-box; }
+html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: transparent; color: var(--ink); pointer-events: none;
+  font-family: "Microsoft YaHei UI", "PingFang SC", "Noto Sans SC", sans-serif; font-size: 14px; }
+
+/* ---------- 扫描框 ---------- */
+.scan { position: absolute; opacity: 0; transition: opacity .25s; }
+.scan.on { opacity: 1; }
+.scan::before { content: ""; position: absolute; inset: 0; border: 1px dashed rgba(95,230,255,.45); }
+.scan .k { position: absolute; width: 18px; height: 18px; border: 0 solid var(--cyan); filter: drop-shadow(0 0 4px var(--cyan)); }
+.scan .k.tl { left: -2px; top: -2px; border-left-width: 3px; border-top-width: 3px; }
+.scan .k.tr { right: -2px; top: -2px; border-right-width: 3px; border-top-width: 3px; }
+.scan .k.bl { left: -2px; bottom: -2px; border-left-width: 3px; border-bottom-width: 3px; }
+.scan .k.br { right: -2px; bottom: -2px; border-right-width: 3px; border-bottom-width: 3px; }
+.scan.scanning .k { animation: kpulse .7s ease-in-out infinite; }
+.scan .sweep { position: absolute; left: 0; right: 0; top: 0; height: 26%; max-height: 220px; opacity: 0; overflow: hidden;
+  background: linear-gradient(180deg, transparent, rgba(95,230,255,.08) 60%, rgba(95,230,255,.28)); border-bottom: 2px solid var(--cyan); box-shadow: 0 6px 14px -4px var(--cyan); }
+.scan .sweep::after { content: ""; position: absolute; inset: 0; background: linear-gradient(rgba(95,230,255,.18) 1px, transparent 1px) 0 0 / 100% 7px; -webkit-mask: linear-gradient(180deg, transparent, #000); }
+.scan.scanning .sweep { animation: sweep 1.3s cubic-bezier(.45,.05,.55,.95) infinite; }
+.scan.locked .k { border-color: var(--gold); filter: drop-shadow(0 0 4px var(--gold)); }
+.scan.locked::before { border-color: rgba(255,217,122,.35); }
+.tagx { position: absolute; left: -2px; bottom: calc(100% + 6px); display: flex; align-items: center; gap: 7px; white-space: nowrap; max-width: 520px; overflow: hidden;
+  padding: 3px 12px 3px 9px; font-size: 12.5px; color: #fff; text-shadow: 0 0 6px var(--cyan);
+  background: linear-gradient(90deg, #12406a, #0d1f4a); border-left: 2px solid var(--cyan); clip-path: polygon(0 0, 100% 0, calc(100% - 8px) 100%, 0 100%); }
+.tagx .d { width: 7px; height: 7px; flex: none; transform: rotate(45deg); background: var(--cyan); box-shadow: 0 0 6px var(--cyan); animation: blink 1s steps(2) infinite; }
+.tagx .t { overflow: hidden; text-overflow: ellipsis; }
+.tagx small { font: 10.5px Consolas, monospace; color: #cfe8ff; letter-spacing: .08em; flex: none; }
+.scan.tag-in .tagx { bottom: auto; top: 6px; left: 6px; }
+.scan.locked .tagx { background: linear-gradient(90deg, #5a4718, #241f12); border-color: var(--gold); text-shadow: 0 0 6px var(--gold); }
+.scan.locked .tagx .d { background: var(--gold); box-shadow: 0 0 6px var(--gold); animation: none; }
+
+/* ---------- 目标框、系统光标、点击光圈 ---------- */
+.target { position: absolute; border: 1.5px solid var(--gold); box-shadow: 0 0 8px var(--gold), inset 0 0 8px rgba(255,217,122,.3); opacity: 0; transition: opacity .15s; }
+.target.on { opacity: 1; }
+.scur { position: absolute; left: 0; top: 0; width: 20px; height: 20px; margin: -10px 0 0 -10px; opacity: 0; z-index: 5;
+  transition: transform .5s cubic-bezier(.6,0,.2,1), opacity .2s; }
+.scur.on { opacity: 1; }
+.scur.snap { transition: opacity .2s; }
+.scur::before { content: ""; position: absolute; inset: 0; transform: rotate(45deg); border: 2px solid #fff; background: rgba(95,230,255,.35); box-shadow: 0 0 10px var(--cyan), 0 0 22px var(--cyan); }
+.scur::after { content: ""; position: absolute; inset: 7px; transform: rotate(45deg); background: #fff; }
+.scur .lbl { position: absolute; left: 22px; top: 16px; white-space: nowrap; font-size: 12px; padding: 1px 9px; color: #fff; background: rgba(9,15,42,.88); border: 1px solid rgba(95,230,255,.5); }
+.rip { position: absolute; width: 0; height: 0; z-index: 4; }
+.rip::before, .rip::after { content: ""; position: absolute; left: -24px; top: -24px; width: 48px; height: 48px; border-radius: 50%; border: 2px solid var(--gold); box-shadow: 0 0 10px var(--gold); animation: rip .6s ease-out forwards; }
+.rip::after { animation-delay: .12s; opacity: 0; }
+
+/* ---------- 输入字幕、按键键帽 ---------- */
+.typing { position: absolute; display: flex; align-items: center; gap: 8px; padding: 5px 13px; font-size: 13px; color: #fff; white-space: nowrap; max-width: 560px; overflow: hidden; opacity: 0; transition: opacity .2s;
+  background: rgba(9,15,42,.92); border: 1px solid rgba(95,230,255,.55); box-shadow: 0 0 10px rgba(95,230,255,.35); clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px); }
+.typing.on { opacity: 1; }
+.typing .lb { font: 10.5px Consolas, monospace; color: var(--cyan); letter-spacing: .1em; flex: none; }
+.typing .tx { overflow: hidden; text-overflow: ellipsis; }
+.typing .caret { width: 2px; height: 14px; flex: none; background: var(--cyan); box-shadow: 0 0 6px var(--cyan); animation: blink 1s steps(2) infinite; }
+.keycaps { position: absolute; display: flex; gap: 6px; align-items: center; opacity: 0; transform: translate(-50%, 6px); transition: opacity .2s, transform .2s; }
+.keycaps.on { opacity: 1; transform: translate(-50%, 0); }
+.keycaps .key { font: 13px Consolas, monospace; padding: 4px 11px; color: #fff; border: 1px solid rgba(95,230,255,.6); background: rgba(9,15,42,.92); box-shadow: 0 2px 0 rgba(95,230,255,.35); }
+.keycaps .pl { color: var(--cyan); font-weight: 700; }
+
+/* ---------- 全屏通知（系统面板同款框） ---------- */
+.fr { --c: 18px; position: relative; filter: drop-shadow(0 0 5px var(--glow)) drop-shadow(0 0 14px var(--glow2)); }
+.fr > i { position: absolute; clip-path: polygon(var(--c) 0, calc(100% - var(--c)) 0, 100% var(--c), 100% calc(100% - var(--c)), calc(100% - var(--c)) 100%, var(--c) 100%, 0 calc(100% - var(--c)), 0 var(--c)); }
+.fr > .l1 { inset: 0; background: linear-gradient(135deg, var(--g1), var(--g2) 38%, var(--g3) 70%, var(--g4)); }
+.fr > .l2 { inset: 2px; background: rgba(7, 12, 36, .95); }
+.fr > .l3 { inset: 7px; --c: 14px; background: linear-gradient(135deg, var(--g1), var(--g2) 38%, var(--g3) 70%, var(--g4)); opacity: .5; }
+.fr > .l4 { inset: 8px; --c: 14px; background: rgba(16, 28, 70, .2); }
+.fr > .l1, .fr > .l3 { --w: 2px; clip-path: polygon(evenodd,
+  var(--c) 0, calc(100% - var(--c)) 0, 100% var(--c), 100% calc(100% - var(--c)), calc(100% - var(--c)) 100%, var(--c) 100%, 0 calc(100% - var(--c)), 0 var(--c), var(--c) 0,
+  calc(var(--w) + var(--c)) var(--w), var(--w) calc(var(--w) + var(--c)), var(--w) calc(100% - var(--w) - var(--c)), calc(var(--w) + var(--c)) calc(100% - var(--w)),
+  calc(100% - var(--w) - var(--c)) calc(100% - var(--w)), calc(100% - var(--w)) calc(100% - var(--w) - var(--c)), calc(100% - var(--w)) calc(var(--w) + var(--c)),
+  calc(100% - var(--w) - var(--c)) var(--w), calc(var(--w) + var(--c)) var(--w)); }
+.fr > .l3 { --w: 1px; }
+.plate { position: absolute; left: 50%; top: -18px; transform: translateX(-50%); display: flex; align-items: center; z-index: 3; }
+.plate .wing { width: 64px; height: 14px; position: relative; }
+.plate .wing::before { content: ""; position: absolute; left: 0; right: 10px; top: 6px; height: 2px; background: linear-gradient(90deg, transparent, var(--g1)); box-shadow: 0 0 6px var(--g1); }
+.plate .wing.r::before { left: 10px; right: 0; background: linear-gradient(90deg, var(--g4), transparent); box-shadow: 0 0 6px var(--g4); }
+.plate .wing::after { content: ""; position: absolute; top: 2px; width: 9px; height: 9px; border: 2px solid var(--g1); transform: rotate(45deg); }
+.plate .wing.l::after { right: 2px; } .plate .wing.r::after { left: 2px; border-color: var(--g4); }
+.plate .p { position: relative; white-space: nowrap; padding: 6px 34px; font-size: 17px; font-weight: 700; letter-spacing: .14em; color: #fff; text-shadow: 0 0 10px var(--g1), 0 0 20px var(--glow); }
+.plate .p::before, .plate .p::after { content: ""; position: absolute; clip-path: polygon(16px 0, calc(100% - 16px) 0, 100% 50%, calc(100% - 16px) 100%, 16px 100%, 0 50%); }
+.plate .p::before { inset: 0; background: linear-gradient(135deg, var(--g1), var(--g2) 40%, var(--g3) 70%, var(--g4)); z-index: -2; }
+.plate .p::after { inset: 2px; background: linear-gradient(180deg, #18306e, #0b1438); z-index: -1; }
+
+.notice { position: absolute; inset: 0; display: grid; place-items: center; opacity: 0; transition: opacity .3s;
+  background: radial-gradient(ellipse at center, rgba(5,8,23,.55), rgba(5,8,23,.12) 55%, transparent 72%); }
+.notice.on { opacity: 1; }
+.notice .streak { position: absolute; left: 0; right: 0; top: 50%; height: 2px; background: linear-gradient(90deg, transparent, var(--g1), #fff, var(--g4), transparent); box-shadow: 0 0 12px var(--g1); transform: scaleX(0); }
+.notice.on .streak { animation: streak .7s ease-out forwards; }
+.notice .box { width: min(46vw, 520px); transform: scale(.9); }
+.notice.on .box { animation: noticeIn .45s cubic-bezier(.2,1.3,.4,1) forwards; }
+.notice .body { position: relative; padding: 36px 26px 18px; text-align: center; }
+.notice .res { font-size: 22px; font-weight: 700; line-height: 1.6; text-shadow: 0 0 10px var(--g1); word-break: break-all; }
+.notice .meta { margin-top: 6px; font-size: 12.5px; color: var(--muted); letter-spacing: .06em; }
+.notice .life { height: 2px; margin-top: 14px; background: rgba(95,230,255,.18); }
+.notice .life i { display: block; height: 100%; width: 100%; background: var(--g1); box-shadow: 0 0 6px var(--g1); transform-origin: left; }
+.notice.on .life i { animation: life 3s linear forwards; }
+
+/* 角落小提示（直播、全屏程序时代替全屏通知；也用来说「后台打开了某某」） */
+.toast { position: absolute; width: 340px; padding: 9px 13px 9px 15px; font-size: 13px; line-height: 1.5; opacity: 0; transform: translateX(14px); transition: all .3s;
+  background: rgba(9,15,42,.94); border: 1px solid var(--tc, rgba(109,255,190,.55)); border-left: 3px solid var(--tb, var(--green)); box-shadow: 0 0 14px var(--ts, rgba(109,255,190,.3));
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 9px), calc(100% - 9px) 100%, 0 100%); }
+.toast.on { opacity: 1; transform: none; }
+.toast b { color: var(--tb, var(--green)); letter-spacing: .1em; margin-right: 6px; }
+.toast .life { height: 2px; margin-top: 7px; background: rgba(255,255,255,.12); }
+.toast .life i { display: block; height: 100%; background: var(--tb, var(--green)); transform-origin: left; }
+.toast.on .life i { animation: life 4s linear forwards; }
+.toast.err { --tc: rgba(255,90,114,.6); --tb: var(--red); --ts: rgba(255,90,114,.3); }
+.toast.gold { --tc: rgba(255,217,122,.6); --tb: #ffd97a; --ts: rgba(255,217,122,.3); }
+.toast.info { --tc: rgba(95,230,255,.55); --tb: var(--cyan); --ts: rgba(95,230,255,.3); }
+
+/* ---------- 扫描屏幕 ---------- */
+.sscan { position: absolute; inset: 0; opacity: 0; transition: opacity .2s; }
+.sscan.on { opacity: 1; }
+.sscan .bk { position: absolute; width: 90px; height: 90px; border: 0 solid var(--cyan); filter: drop-shadow(0 0 6px var(--cyan)); }
+.sscan .bk.tl { left: 18px; top: 18px; border-left-width: 3px; border-top-width: 3px; }
+.sscan .bk.tr { right: 18px; top: 18px; border-right-width: 3px; border-top-width: 3px; }
+.sscan .bk.bl { left: 18px; bottom: 18px; border-left-width: 3px; border-bottom-width: 3px; }
+.sscan .bk.br { right: 18px; bottom: 18px; border-right-width: 3px; border-bottom-width: 3px; }
+.sscan .band { position: absolute; left: 0; right: 0; top: -30%; height: 30%;
+  background: linear-gradient(180deg, transparent, rgba(95,230,255,.1) 55%, rgba(95,230,255,.3)); border-bottom: 2px solid #fff; box-shadow: 0 4px 18px var(--cyan); }
+.sscan .band::after { content: ""; position: absolute; inset: 0; background: linear-gradient(rgba(95,230,255,.22) 1px, transparent 1px) 0 0 / 100% 8px, linear-gradient(90deg, rgba(95,230,255,.12) 1px, transparent 1px) 0 0 / 22px 100%; -webkit-mask: linear-gradient(180deg, transparent, #000); }
+.sscan.on .band { animation: band 1.4s cubic-bezier(.5,0,.5,1) forwards; }
+.banner { position: absolute; left: 50%; top: 36px; transform: translateX(-50%); padding: 7px 40px; font-size: 15px; font-weight: 700; letter-spacing: .1em; color: #fff; text-shadow: 0 0 8px var(--g1); white-space: nowrap; }
+.banner::before, .banner::after { content: ""; position: absolute; clip-path: polygon(20px 0, calc(100% - 20px) 0, 100% 50%, calc(100% - 20px) 100%, 20px 100%, 0 50%); }
+.banner::before { inset: 0; background: linear-gradient(135deg, var(--g1), var(--g2) 40%, var(--g3) 70%, var(--g4)); z-index: -2; }
+.banner::after { inset: 2px; background: linear-gradient(180deg, #1a2d68, #0c1438); z-index: -1; }
+.banner small { display: block; position: absolute; left: 0; right: 0; top: calc(100% + 6px); text-align: center; font-size: 12px; font-weight: 400; color: #cfe8ff; letter-spacing: .1em; }
+.flash { position: absolute; background: rgba(160,235,255,.28); opacity: 0; }
+.flash.go { animation: flash .5s ease-out; }
+
+/* ---------- 接管前台 ---------- */
+.edge { position: absolute; inset: 0; opacity: 0; transition: opacity .3s; box-shadow: inset 0 0 0 4px var(--gold), inset 0 0 30px rgba(255,217,122,.55); }
+.edge.on { opacity: 1; animation: edgepulse 1.2s ease-in-out infinite; }
+.tbanner { position: absolute; left: 50%; top: 14px; transform: translateX(-50%) translateY(-8px); opacity: 0; transition: all .3s; white-space: nowrap; display: flex; align-items: center; gap: 10px;
+  padding: 7px 20px; font-size: 13.5px; color: #fff; background: rgba(40,28,6,.94); border: 1px solid var(--gold); box-shadow: 0 0 14px rgba(255,217,122,.45);
+  clip-path: polygon(10px 0, calc(100% - 10px) 0, 100% 50%, calc(100% - 10px) 100%, 10px 100%, 0 50%); }
+.tbanner.on { opacity: 1; transform: translateX(-50%); }
+.tbanner b { color: var(--gold); letter-spacing: .12em; }
+.tbanner .muted { color: var(--muted); }
+.tbanner .key { font: 11.5px Consolas, monospace; padding: 1px 7px; border: 1px solid rgba(255,217,122,.6); }
+.tbanner.back { border-color: var(--green); background: rgba(6,36,24,.94); box-shadow: 0 0 14px rgba(109,255,190,.4); }
+.tbanner.back b { color: var(--green); }
+.count3 { position: absolute; display: grid; place-items: center; font: 700 72px Consolas, monospace; color: var(--gold); text-shadow: 0 0 18px var(--gold); opacity: 0; transition: opacity .15s; }
+.count3.on { opacity: 1; }
+
+@keyframes blink { 50% { opacity: .2; } }
+@keyframes kpulse { 50% { filter: drop-shadow(0 0 10px var(--cyan)); } }
+@keyframes sweep { 0% { top: -26%; opacity: 0; } 10% { opacity: 1; } 90% { opacity: 1; } 100% { top: 100%; opacity: 0; } }
+@keyframes rip { from { transform: scale(.25); opacity: 1; } to { transform: scale(1.7); opacity: 0; } }
+@keyframes noticeIn { 0% { transform: scale(.88); filter: brightness(2.4); } 100% { transform: none; filter: none; } }
+@keyframes streak { 0% { transform: scaleX(0); opacity: 1; } 70% { opacity: 1; } 100% { transform: scaleX(1); opacity: 0; } }
+@keyframes life { to { transform: scaleX(0); } }
+@keyframes band { to { top: 100%; } }
+@keyframes flash { 0% { opacity: 1; } 100% { opacity: 0; } }
+@keyframes edgepulse { 50% { box-shadow: inset 0 0 0 4px var(--gold), inset 0 0 46px rgba(255,217,122,.75); } }

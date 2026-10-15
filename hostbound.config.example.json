@@ -1,0 +1,50 @@
+{
+  "model": {
+    "provider": "deepseek",
+    "id": "deepseek-flash",
+    "thinking": "low"
+  },
+  "timezone": "",
+  "voice": {
+    "wakeEnabled": true,
+    "wakeWords": [
+      {
+        "text": "系统启动",
+        "tokens": "x ì t ǒng q ǐ d òng"
+      }
+    ],
+    "stopWords": [
+      {
+        "text": "系统停止",
+        "tokens": "x ì t ǒng t íng zh ǐ"
+      }
+    ],
+    "kwsThreshold": 0.25,
+    "kwsScore": 1.5,
+    "endSilence": 0.8,
+    "listenTimeoutMs": 7000
+  },
+  "conversation": {
+    "enabled": true,
+    "windowMs": 30000,
+    "filter": true
+  },
+  "voiceConfirm": true,
+  "speech": {
+    "mode": "cpu",
+    "fx": 0.6,
+    "volume": 0.9,
+    "maxChars": 60,
+    "headphones": false
+  },
+  "hotkeys": {
+    "wake": "Control+Alt+T",
+    "stop": "Control+Alt+X",
+    "pushToTalk": [
+      "Mouse5",
+      "RightCtrl"
+    ],
+    "appraise": "Control+Alt+J"
+  },
+  "sleepAfterMs": 45000
+}

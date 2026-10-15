@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>讲解窗口预览（假数据）</title>
+<link rel="stylesheet" href="/explainer/explainer.css">
+</head>
+<body>
+<!-- 在普通浏览器里预览真实的讲解窗口代码（app/renderer/explainer 下的 explainer.js、样式、Mermaid）。
+     后台换成假的：积木按时间一块块送进来，「播放」会假装边念边指。用法：node tools/serve-ui.cjs → http://localhost:5178/design/explainer-preview.html -->
+<div id="app"></div>
+<script>
+(() => {
+  const PAGE = {
+    id: 'demo-1', kind: 'explain', title: '系统是怎么听懂宿主说话的', at: Date.now() - 60_000, no: 2, total: 3, depth: 'plain',
+    crumb: [], done: false, versions: { plain: { blocks: [], done: false } },
+  };
+  const BLOCKS = [
+    { id: 'b1', kind: 'summary', text: '系统听懂宿主要过五关：唤醒词 → 断句 → 识别 → 大脑 → 开口。前三关和开口都在本机跑，不联网；只有「大脑」这一关把文字发给 DeepSeek。' },
+    { id: 'b2', kind: 'diagram', title: '一张图看全程', mermaid: 'flowchart LR\n  mic["麦克风"] --> kws["唤醒词"]\n  kws -->|听到才收音| vad["断句"]\n  vad -->|停 0.8 秒| asr["识别"]\n  asr -->|文字| brain["大脑 · DeepSeek"]\n  brain -->|回复| tts["开口"]\n  tts --> spk["扬声器"]\n  subgraph cloud["联网"]\n    brain\n  end' },
+    { id: 'b3', kind: 'steps', title: '五关分别干什么', items: [
+      { title: '唤醒词', text: '一直在听，只认「系统启动」，听到了才开始收音', say: '第一关，唤醒词。系统一直在听，但只认系统启动这四个字。', nodes: ['mic', 'kws'] },
+      { title: '断句', text: '宿主停顿 0.8 秒，就算这句话说完了', say: '第二关，断句。宿主停顿零点八秒，就算说完了。', nodes: ['vad'] },
+      { title: '识别', text: 'SenseVoice 把这句话转成文字', say: '第三关，识别。把声音转成文字，到这里都在本机。', nodes: ['asr'] },
+      { title: '大脑', text: 'pi + DeepSeek 想怎么回、要不要动手干活', say: '第四关，大脑。这是唯一要联网的一步。', nodes: ['brain'] },
+      { title: '开口', text: 'Qwen3-TTS 约 0.5 秒出声', say: '第五关，开口。大约零点五秒出声。', nodes: ['tts', 'spk'] },
+    ] },
+    { id: 'b4', kind: 'analogy', text: '像前台接待：先竖着耳朵等人叫自己名字（唤醒词），等对方把话说完（断句），记在本子上（识别），再打电话问经理（大脑），最后开口回话（开口）。' },
+    { id: 'b5', kind: 'table', title: '开口有两种声音', rows: [['', '显卡', 'CPU'], ['音质', '最好', '同一个音色，稍慢'], ['占显卡', '占', '不占'], ['什么时候用', '平时', '打游戏、显卡被占用时自动换过来']] },
+    { id: 'b6', kind: 'sim', title: '断句要等多久', html: '<style>body{padding:14px;font:14px "Microsoft YaHei UI"}input{width:70%}b{color:#ffd97a}</style><div>停顿多久算说完：<input id=r type=range min=0.2 max=2 step=0.1 value=0.8> <b id=v>0.8 秒</b></div><p id=o></p><script>const gaps=[0.5,1.0,0.4];function f(){const t=+r.value;v.textContent=t.toFixed(1)+" 秒";const n=1+gaps.filter(g=>g>=t).length;o.textContent="这段话会被切成 "+n+" 句"}r.oninput=f;f()<\/script>' },
+    { id: 'b7', kind: 'diagram', title: '故意写错的图（看报错怎么显示）', mermaid: 'flowchart LR\n  A["开始" --> B' },
+  ];
+  let cb = null;
+  const sent = [];
+  window.__sent = sent;
+  const emit = (m) => cb && cb(m);
+  // 假的边念边指
+  const items = [{ say: BLOCKS[0].text, step: null, title: '结论' }, ...BLOCKS[2].items.map((it, k) => ({ say: it.say, step: { block: 'b3', index: k, nodes: it.nodes }, title: it.title }))];
+  const narr = { i: 0, status: 'paused', timer: null };
+  function narrState(full) {
+    const it = items[narr.i];
+    const stepNo = it.step ? it.step.index + 1 : 0;
+    emit({ op: 'narr', page: PAGE.id, version: 'plain', status: narr.status, i: narr.i, n: items.length, step: it.step, stepNo, steps: 5, title: it.title, say: it.say, full });
+  }
+  function narrPlay() {
+    clearTimeout(narr.timer);
+    narr.status = 'playing';
+    narrState(false);
+    narr.timer = setTimeout(() => {
+      if (narr.i < items.length - 1) {
+        narr.i++;
+        narrPlay();
+      } else {
+        narr.status = 'done';
+        narrState(true);
+      }
+    }, 2600);
+  }
+  window.xw = {
+    on: (f) => (cb = f),
+    send: (m) => {
+      sent.push(m);
+      console.log('→ 大脑', m);
+      if (m.op === 'ready') {
+        emit({ op: 'show', page: JSON.parse(JSON.stringify(PAGE)), version: 'plain', total: 3, assets: '/' });
+        BLOCKS.forEach((b, k) => setTimeout(() => emit({ op: 'block', page: PAGE.id, version: 'plain', block: b }), 300 + k * 450));
+        setTimeout(() => emit({ op: 'done', page: PAGE.id, version: 'plain' }), 300 + BLOCKS.length * 450 + 200);
+      }
+      if (m.op === 'narr') {
+        if (m.cmd === 'play') narr.status === 'playing' ? (clearTimeout(narr.timer), (narr.status = 'paused'), narrState(true)) : narrPlay();
+        if (m.cmd === 'next' || m.cmd === 'prev' || m.cmd === 'goto' || m.cmd === 'redo') {
+          narr.i = Math.max(0, Math.min(items.length - 1, m.cmd === 'goto' ? m.i : m.cmd === 'redo' ? narr.i : narr.i + (m.cmd === 'next' ? 1 : -1)));
+          narrPlay();
+        }
+      }
+    },
+  };
+})();
+</script>
+<script src="/explainer/vendor/mermaid.min.js"></script>
+<script src="/explainer/explainer.js"></script>
+</body>
+</html>

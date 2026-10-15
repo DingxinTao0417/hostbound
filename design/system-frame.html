@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>系统面板样例</title>
+<style>
+  :root {
+    --cyan: #5fe6ff; --blue: #4f7bff; --violet: #b15bff; --pink: #ff5fcf;
+    --ink: #e9f4ff; --muted: #8fa3c8; --panel: rgba(9, 15, 42, .93); --panel2: rgba(16, 28, 70, .85);
+    --grad: linear-gradient(135deg, var(--cyan) 0%, var(--blue) 38%, var(--violet) 70%, var(--pink) 100%);
+    --grad-h: linear-gradient(90deg, var(--cyan), var(--blue) 45%, var(--violet) 75%, var(--pink));
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 36px 24px 70px; color: var(--ink);
+    font-family: "Microsoft YaHei UI", "PingFang SC", "Noto Sans SC", sans-serif;
+    background: #050817;
+    background-image:
+      linear-gradient(rgba(80,140,255,.07) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(80,140,255,.07) 1px, transparent 1px),
+      radial-gradient(ellipse at 30% 20%, rgba(60,120,255,.25), transparent 55%),
+      radial-gradient(ellipse at 80% 70%, rgba(200,80,255,.18), transparent 50%);
+    background-size: 28px 28px, 28px 28px, auto, auto;
+  }
+  .note { color: var(--muted); font-size: 13px; margin: 0 0 26px; }
+  .replay { float: right; background: #141d3a; color: var(--ink); border: 1px solid #34426a; border-radius: 6px; padding: 6px 14px; cursor: pointer; font: inherit; font-size: 13px; }
+  h2 { font-size: 16px; font-weight: 600; color: #b9c8ea; margin: 40px 0 18px; }
+
+  /* ---------- 切角双线框：最外层渐变当描边，里面一层深色，再一层细渐变线，再一层深色 ---------- */
+  .fr { --c: 22px; position: relative; filter: drop-shadow(0 0 5px rgba(95,230,255,.65)) drop-shadow(0 0 16px rgba(177,91,255,.35)); }
+  .fr > .l1, .fr > .l2, .fr > .l3, .fr > .l4 { position: absolute; clip-path: polygon(var(--c) 0, calc(100% - var(--c)) 0, 100% var(--c), 100% calc(100% - var(--c)), calc(100% - var(--c)) 100%, var(--c) 100%, 0 calc(100% - var(--c)), 0 var(--c)); }
+  .fr > .l1 { inset: 0; background: var(--grad); }
+  .fr > .l2 { inset: 2px; background: #070c24; }
+  .fr > .l3 { inset: 7px; --c: 18px; background: var(--grad); opacity: .55; }
+  .fr > .l4 { inset: 8px; --c: 18px; background: var(--panel); }
+  .fr > .body { position: relative; padding: 46px 30px 30px; }
+  /* 四个角上的亮色角标 */
+
+  /* ---------- 顶部六边形标题牌 + 两侧翅膀 ---------- */
+  .plate { position: absolute; left: 50%; top: -22px; transform: translateX(-50%); display: flex; align-items: center; gap: 0; z-index: 3; }
+  .plate .wing { width: 120px; height: 14px; position: relative; }
+  .plate .wing::before { content: ""; position: absolute; left: 0; right: 10px; top: 6px; height: 2px; background: var(--grad-h); box-shadow: 0 0 6px var(--cyan); }
+  .plate .wing.r::before { left: 10px; right: 0; background: linear-gradient(90deg, var(--violet), var(--pink)); box-shadow: 0 0 6px var(--pink); }
+  .plate .wing::after { content: ""; position: absolute; top: 2px; width: 10px; height: 10px; border: 2px solid var(--cyan); transform: rotate(45deg); }
+  .plate .wing.l::after { right: 2px; } .plate .wing.r::after { left: 2px; border-color: var(--pink); }
+  .plate .p { position: relative; white-space: nowrap; padding: 9px 46px; font-size: 24px; font-weight: 700; letter-spacing: .12em; color: #fff;
+              text-shadow: 0 0 10px var(--cyan), 0 0 22px rgba(95,230,255,.6); }
+  .plate .p::before, .plate .p::after { content: ""; position: absolute; clip-path: polygon(18px 0, calc(100% - 18px) 0, 100% 50%, calc(100% - 18px) 100%, 18px 100%, 0 50%); }
+  .plate .p::before { inset: 0; background: var(--grad); z-index: -2; }
+  .plate .p::after { inset: 2px; background: linear-gradient(180deg, #18306e, #0b1438); z-index: -1; }
+
+  /* ---------- 子卡片：小切角、菱形图标标题栏 ---------- */
+  .card { --c: 12px; position: relative; padding: 0; filter: drop-shadow(0 0 4px rgba(95,230,255,.45)); }
+  .card > .b1, .card > .b2 { position: absolute; clip-path: polygon(var(--c) 0, 100% 0, 100% calc(100% - var(--c)), calc(100% - var(--c)) 100%, 0 100%, 0 var(--c)); }
+  .card > .b1 { inset: 0; background: linear-gradient(135deg, rgba(95,230,255,.9), rgba(79,123,255,.6) 50%, rgba(177,91,255,.7)); }
+  .card > .b2 { inset: 1.5px; background: var(--panel2); }
+  .card.warn { filter: drop-shadow(0 0 6px rgba(255,95,207,.6)); }
+  .card.warn > .b1 { background: linear-gradient(135deg, #ff9ae0, var(--pink) 50%, var(--violet)); }
+  .card.warn > .b2 { background: rgba(48, 12, 52, .88); }
+  .card .in { position: relative; }
+  .card .hd { display: flex; align-items: center; gap: 10px; padding: 8px 14px; font-size: 16px; font-weight: 700; letter-spacing: .06em;
+              background: linear-gradient(90deg, rgba(95,230,255,.18), transparent 70%); border-bottom: 1px solid rgba(95,230,255,.35); }
+  .card.warn .hd { background: linear-gradient(90deg, rgba(255,95,207,.25), transparent 70%); border-color: rgba(255,95,207,.45); }
+  .dia { width: 12px; height: 12px; transform: rotate(45deg); border: 2px solid #ffd97a; box-shadow: 0 0 6px #ffd97a; flex: none; }
+  .dia::after { content: ""; display: block; margin: 2px; width: 4px; height: 4px; background: #ffd97a; }
+  .card.warn .dia { border-color: #ff9ae0; box-shadow: 0 0 6px var(--pink); }
+  .card.warn .dia::after { background: #ff9ae0; }
+  .card .hd .sub { margin-left: auto; font-size: 12px; font-weight: 400; color: var(--muted); letter-spacing: .1em; font-family: Consolas, monospace; }
+  .card .ct { padding: 12px 16px 14px; font-size: 14px; line-height: 1.75; }
+  .kv { display: grid; grid-template-columns: auto 1fr; gap: 3px 14px; }
+  .kv span:nth-child(odd) { color: var(--muted); }
+  .ok { color: #7dffb8; text-shadow: 0 0 6px rgba(125,255,184,.6); }
+  .gold { color: #ffd97a; text-shadow: 0 0 6px rgba(255,217,122,.6); font-weight: 700; }
+  .bar { height: 9px; margin: 8px 0 4px; background: rgba(0,10,40,.8); border: 1px solid rgba(95,230,255,.5); clip-path: polygon(5px 0, 100% 0, calc(100% - 5px) 100%, 0 100%); }
+  .bar i { display: block; height: 100%; width: 58%; background: var(--grad-h); box-shadow: 0 0 10px var(--cyan); animation: bar 1.8s ease-out both; }
+  .steps { margin: 6px 0 0; padding: 0; list-style: none; font-size: 13px; }
+  .steps li { padding: 2px 0; color: #c7d6f5; } .steps li::before { content: "▸ "; color: var(--cyan); }
+  .steps li.done::before { content: "✓ "; color: #7dffb8; }
+  .steps li.now { color: #fff; } .steps li.now::before { content: "◆ "; color: #ffd97a; animation: blink 1s steps(2) infinite; }
+  .log { font-family: Consolas, "Microsoft YaHei UI", monospace; font-size: 12.5px; color: #a9bde6; line-height: 1.8; }
+  .log b { color: var(--cyan); font-weight: 400; }
+  .skills { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .sk { display: flex; align-items: center; gap: 8px; padding: 7px 10px; background: rgba(95,230,255,.08); border: 1px solid rgba(95,230,255,.3);
+        clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px); font-size: 13px; }
+  .sk svg { width: 22px; height: 22px; flex: none; filter: drop-shadow(0 0 4px var(--cyan)); }
+  .btns { display: flex; gap: 12px; margin-top: 12px; }
+  .btn { flex: 1; text-align: center; padding: 7px 0; font-weight: 700; font-size: 14px; letter-spacing: .2em; cursor: pointer; color: #fff;
+         background: linear-gradient(90deg, rgba(255,95,207,.55), rgba(177,91,255,.55)); clip-path: polygon(10px 0, calc(100% - 10px) 0, 100% 50%, calc(100% - 10px) 100%, 10px 100%, 0 50%); }
+  .btn.ghost { background: rgba(255,255,255,.08); }
+
+  /* ---------- 底部两头尖横幅 ---------- */
+  .banner { position: relative; margin: 26px auto 0; width: fit-content; padding: 11px 54px; font-size: 18px; font-weight: 700; letter-spacing: .08em; color: #fff;
+            text-shadow: 0 0 8px var(--cyan); display: flex; align-items: center; gap: 12px; filter: drop-shadow(0 0 8px rgba(95,230,255,.6)); }
+  .banner::before, .banner::after { content: ""; position: absolute; clip-path: polygon(24px 0, calc(100% - 24px) 0, 100% 50%, calc(100% - 24px) 100%, 24px 100%, 0 50%); }
+  .banner::before { inset: 0; background: var(--grad); z-index: -2; }
+  .banner::after { inset: 2px; background: linear-gradient(180deg, #1a2d68, #0c1438); z-index: -1; }
+  .banner svg { width: 24px; height: 24px; filter: drop-shadow(0 0 5px #ffd97a); }
+
+  /* 角落电路装饰线 */
+  .circuit { position: absolute; pointer-events: none; opacity: .55; }
+
+  /* ---------- 布局 ---------- */
+  .full { max-width: 980px; margin: 40px auto 0; }
+  .grid { display: grid; grid-template-columns: 1.15fr 1fr; gap: 20px; }
+  .col { display: grid; gap: 18px; align-content: start; }
+  .small-row { display: flex; flex-wrap: wrap; gap: 46px 40px; align-items: flex-start; justify-content: center; margin-top: 30px; }
+  .toast { width: 380px; }
+  .toast .fr > .body { padding: 40px 22px 20px; }
+  .toast .plate .p { font-size: 17px; padding: 6px 34px; }
+  .toast .plate .wing { width: 60px; }
+  .toast .plate { top: -17px; }
+  .toast .msg { font-size: 15px; line-height: 1.8; text-align: center; }
+  .toast .banner { font-size: 15px; padding: 8px 36px; margin-top: 16px; }
+
+  /* 系统核心（待机图标） */
+  .core { width: 86px; height: 86px; position: relative; filter: drop-shadow(0 0 8px var(--cyan)) drop-shadow(0 0 16px rgba(177,91,255,.5)); animation: breathe 2.8s ease-in-out infinite; }
+  .core::before, .core::after { content: ""; position: absolute; border-radius: 50%; }
+  .core::before { inset: 0; background: var(--grad); }
+  .core::after { inset: 3px; background: radial-gradient(circle, #2a4cb0 0, #0a1236 70%); }
+  .core i { position: absolute; inset: 26px; z-index: 1; transform: rotate(45deg); border: 2px solid #fff; box-shadow: 0 0 10px var(--cyan), inset 0 0 8px var(--cyan); }
+  .core i::after { content: ""; position: absolute; inset: 7px; background: #fff; box-shadow: 0 0 10px var(--cyan); }
+  .core-cap { text-align: center; font-size: 12px; color: var(--muted); margin-top: 12px; }
+
+  /* 动画 */
+  .pop { animation: pop .55s cubic-bezier(.2,1.3,.4,1) both; }
+  .pop2 { animation: pop .55s .12s cubic-bezier(.2,1.3,.4,1) both; }
+  .pop3 { animation: pop .55s .24s cubic-bezier(.2,1.3,.4,1) both; }
+  @keyframes pop { 0% { opacity: 0; transform: scale(.92); filter: brightness(2.5); } 60% { opacity: 1; } 100% { transform: none; filter: none; } }
+  @keyframes bar { from { width: 0; } }
+  @keyframes blink { 50% { opacity: .2; } }
+  @keyframes breathe { 50% { filter: drop-shadow(0 0 14px var(--cyan)) drop-shadow(0 0 26px rgba(255,95,207,.6)); } }
+</style>
+</head>
+<body>
+<button class="replay" onclick="replay()">重放动画</button>
+<p class="note">照参考图的边框风格做的样例：渐变双线切角框、六边形标题牌、菱形图标卡片标题、两头尖的底部横幅。</p>
+
+<h2>一、完整系统面板（叫醒后展开）</h2>
+<div class="full pop">
+  <div class="fr">
+    <div class="l1"></div><div class="l2"></div><div class="l3"></div><div class="l4"></div>
+    
+    <svg class="circuit" style="left:18px;bottom:16px" width="120" height="40"><path d="M0 38 H40 L52 26 H90 M60 26 L70 16 H118" stroke="#5fe6ff" fill="none" stroke-width="1.2"/><circle cx="118" cy="16" r="2.5" fill="#5fe6ff"/></svg>
+    <svg class="circuit" style="right:18px;top:18px" width="120" height="40"><path d="M120 2 H80 L68 14 H30 M60 14 L50 24 H2" stroke="#ff5fcf" fill="none" stroke-width="1.2"/><circle cx="2" cy="24" r="2.5" fill="#ff5fcf"/></svg>
+    <div class="plate"><span class="wing l"></span><span class="p">系统面板</span><span class="wing r"></span></div>
+    <div class="body">
+      <div class="grid">
+        <div class="col">
+          <div class="card pop2"><div class="b1"></div><div class="b2"></div><div class="in">
+            <div class="hd"><span class="dia"></span>状态<span class="sub">STATUS</span></div>
+            <div class="ct kv"><span>宿主</span><span class="ok">在线</span><span>大脑</span><span>DeepSeek V4.1 Flash</span><span>听觉</span><span>麦克风已连接</span><span>模式</span><span>普通（直播模式关）</span></div>
+          </div></div>
+          <div class="card pop3"><div class="b1"></div><div class="b2"></div><div class="in">
+            <div class="hd"><span class="dia"></span>当前任务<span class="sub">58%</span></div>
+            <div class="ct">【整理桌面截图】<div class="bar"><i></i></div>
+              <ul class="steps"><li class="done">读取桌面文件列表</li><li class="done">新建「截图归档」文件夹</li><li class="now">移动截图 7 / 12</li><li>汇报结果</li></ul></div>
+          </div></div>
+        </div>
+        <div class="col">
+          <div class="card warn pop2"><div class="b1"></div><div class="b2"></div><div class="in">
+            <div class="hd"><span class="dia"></span>警告<span class="sub">AUTH</span></div>
+            <div class="ct">检测到高危操作：<b style="color:#ff9ae0">删除 12 个文件</b><br>宿主是否授权执行？
+              <div class="btns"><span class="btn">授权</span><span class="btn ghost">拒绝</span></div></div>
+          </div></div>
+          <div class="card pop3"><div class="b1"></div><div class="b2"></div><div class="in">
+            <div class="hd"><span class="dia"></span>技能<span class="sub">SKILLS</span></div>
+            <div class="ct skills">
+              <div class="sk"><svg viewBox="0 0 24 24" fill="none" stroke="#5fe6ff" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3.5 3 14.5 0 18M12 3c-3 3.5-3 14.5 0 18"/></svg>操作网页</div>
+              <div class="sk"><svg viewBox="0 0 24 24" fill="none" stroke="#5fe6ff" stroke-width="1.8"><rect x="3" y="4" width="18" height="13" rx="1.5"/><path d="M8 21h8M12 17v4"/></svg>操作软件</div>
+              <div class="sk"><svg viewBox="0 0 24 24" fill="none" stroke="#5fe6ff" stroke-width="1.8"><path d="M4 6l6 6-6 6M12 18h8"/></svg>执行命令</div>
+              <div class="sk"><svg viewBox="0 0 24 24" fill="none" stroke="#5fe6ff" stroke-width="1.8"><path d="M14 3H6a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8z"/><path d="M14 3v5h5"/></svg>读写文件</div>
+            </div>
+          </div></div>
+          <div class="card pop3"><div class="b1"></div><div class="b2"></div><div class="in">
+            <div class="hd"><span class="dia"></span>系统日志<span class="sub">LOG</span></div>
+            <div class="ct log"><b>10:21</b> 叮！检测到宿主呼唤<br><b>10:21</b> 任务已接收：整理桌面截图<br><b>10:22</b> 等待宿主授权…</div>
+          </div></div>
+        </div>
+      </div>
+      <div class="banner pop3"><svg viewBox="0 0 24 24" fill="none" stroke="#ffd97a" stroke-width="1.8"><path d="M4 10h16v4H4zM6 14v6h12v-6M12 10v10M12 10C10 6 6.5 6 7 8.5S12 10 12 10zM12 10c2-4 5.5-4 5-1.5S12 10 12 10z"/></svg>叮！任务完成 · 奖励：摸鱼时间 +3 分钟</div>
+    </div>
+  </div>
+</div>
+
+<h2>二、小号通知弹窗（干活时挂在桌面上，不挡视线）</h2>
+<div class="small-row">
+  <div class="toast pop"><div class="fr" style="--c:16px"><div class="l1"></div><div class="l2"></div><div class="l3"></div><div class="l4"></div>
+    <div class="plate"><span class="wing l"></span><span class="p">系统通知</span><span class="wing r"></span></div>
+    <div class="body"><div class="msg">叮！系统已启动<br>宿主，请下达指令</div></div></div></div>
+
+  <div class="toast pop2"><div class="fr" style="--c:16px"><div class="l1"></div><div class="l2"></div><div class="l3"></div><div class="l4"></div>
+    <div class="plate"><span class="wing l"></span><span class="p">任务执行中</span><span class="wing r"></span></div>
+    <div class="body"><div class="msg" style="text-align:left">【整理桌面截图】<div class="bar"><i></i></div><ul class="steps"><li class="now">移动截图 7 / 12</li></ul></div></div></div></div>
+
+  <div class="toast pop3"><div class="fr" style="--c:16px"><div class="l1"></div><div class="l2"></div><div class="l3"></div><div class="l4"></div>
+    <div class="plate"><span class="wing l"></span><span class="p">任务完成</span><span class="wing r"></span></div>
+    <div class="body"><div class="msg">桌面上 12 张截图已归档到「截图归档」</div>
+      <div class="banner"><svg viewBox="0 0 24 24" fill="none" stroke="#ffd97a" stroke-width="1.8"><path d="M4 10h16v4H4zM6 14v6h12v-6M12 10v10M12 10C10 6 6.5 6 7 8.5S12 10 12 10zM12 10c2-4 5.5-4 5-1.5S12 10 12 10z"/></svg>奖励：摸鱼时间 +3 分钟</div></div></div></div>
+</div>
+
+<h2>三、待机时挂在屏幕角落的系统核心</h2>
+<div class="small-row" style="justify-content:flex-start;padding-left:20px">
+  <div><div class="core"><i></i></div><div class="core-cap">会呼吸发光，点一下或喊唤醒词展开</div></div>
+</div>
+
+<script>
+  function replay() {
+    document.querySelectorAll('.pop, .pop2, .pop3, .bar i').forEach((el) => {
+      el.style.animation = 'none'; void el.offsetWidth; el.style.animation = '';
+    });
+  }
+</script>
+</body>
+</html>

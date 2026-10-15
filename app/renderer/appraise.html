@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'">
+  <title>Hostbound 鉴定</title>
+  <link rel="stylesheet" href="appraise.css">
+</head>
+<body>
+  <!-- 鉴定术：定格的画面上选窗口 / 拖框，扫描，出【鉴定结果】卡；全屏扫描时给每个窗口挂标签 -->
+  <img id="frozen" alt="">
+  <div id="dim"></div>
+  <div id="hole" class="hidden"></div>
+  <div id="lab" class="hidden"></div>
+  <div id="reg" class="hidden"><span class="size"></span><i class="h tl"></i><i class="h tr"></i><i class="h bl"></i><i class="h br"></i></div>
+  <div id="tool" class="hidden">
+    <button class="go" id="t-go">◆ 鉴定</button>
+    <input id="t-ask" placeholder="问一句（可以不填）：值不值得换？" spellcheck="false" autocomplete="off">
+    <button id="t-redo">重选</button>
+    <button id="t-x">✕</button>
+  </div>
+  <div id="hint" class="hidden"></div>
+  <div id="frame" class="hidden"><div class="grid"></div><div class="sweep"></div></div>
+  <div id="card" class="jd hidden"></div>
+  <div id="tags"></div>
+  <div id="fullsweep" class="hidden"></div>
+  <div id="summary" class="jd hidden"></div>
+  <script src="appraise.js"></script>
+</body>
+</html>

@@ -1,0 +1,31 @@
+{
+  "name": "hostbound",
+  "version": "0.3.0",
+  "private": true,
+  "description": "Hostbound（宿主系统）：动漫系统风格的语音唤醒桌面 AI 助手，喊一声「系统启动」，帮宿主操作电脑",
+  "license": "MIT",
+  "main": "app/main.cjs",
+  "scripts": {
+    "start": "electron .",
+    "setup": "node tools/setup-models.mjs",
+    "shortcut": "node tools/make-shortcut.mjs",
+    "brain": "node brain/index.mjs",
+    "pi": "pi"
+  },
+  "dependencies": {
+    "@earendil-works/pi-coding-agent": "^1.2.0",
+    "agent-browser": "^0.39.1",
+    "croner": "^10.0.1",
+    "koffi": "^3.3.3",
+    "node-cpal": "^1.0.0",
+    "open-computer-use": "^1.1.0",
+    "pinyin-pro": "^3.29.5",
+    "sherpa-onnx-node": "^1.13.8",
+    "typebox": "^1.3.37",
+    "uiohook-napi": "^1.5.5",
+    "yaml": "^2.9.0"
+  },
+  "devDependencies": {
+    "electron": "^44.7.2"
+  }
+}

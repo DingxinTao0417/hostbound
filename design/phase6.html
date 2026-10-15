@@ -1,0 +1,287 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>阶段 6 设计稿</title>
+<link rel="stylesheet" href="kit.css">
+<style>
+  .fr > .l2 { background: rgba(7, 12, 36, .78); }
+  .fr > .l4 { background: rgba(16, 28, 70, .2); }
+  .fr > .l1, .fr > .l3 { --w: 2px; clip-path: polygon(evenodd,
+    var(--c) 0, calc(100% - var(--c)) 0, 100% var(--c), 100% calc(100% - var(--c)), calc(100% - var(--c)) 100%, var(--c) 100%, 0 calc(100% - var(--c)), 0 var(--c), var(--c) 0,
+    calc(var(--w) + var(--c)) var(--w), var(--w) calc(var(--w) + var(--c)), var(--w) calc(100% - var(--w) - var(--c)), calc(var(--w) + var(--c)) calc(100% - var(--w)),
+    calc(100% - var(--w) - var(--c)) calc(100% - var(--w)), calc(100% - var(--w)) calc(100% - var(--w) - var(--c)), calc(100% - var(--w)) calc(var(--w) + var(--c)),
+    calc(100% - var(--w) - var(--c)) var(--w), calc(var(--w) + var(--c)) var(--w)); }
+  .fr > .l3 { --w: 1px; }
+  .note { max-width: 1180px; margin: 10px auto 0; font-size: 13px; color: var(--muted); line-height: 1.8; }
+  .note b { color: #cfe0ff; }
+  .flow { max-width: 1180px; margin: 36px auto 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 28px; align-items: start; }
+  .flow .fr > .body { padding: 40px 16px 16px; }
+  .cap2 { margin: 12px 4px 0; font-size: 12.5px; color: var(--muted); line-height: 1.6; }
+  .cap2 b { color: #cfe0ff; margin-right: 6px; }
+  .nav { display: flex; gap: 1px; margin: -4px 0 10px; border-bottom: 1px solid rgba(95,230,255,.18); }
+  .nav span { padding: 4px 9px; font-size: 12px; color: var(--muted); border-bottom: 2px solid transparent; margin-bottom: -1px; white-space: nowrap; }
+  .nav span.on { color: #fff; border-color: var(--g1); text-shadow: 0 0 8px var(--g1); background: linear-gradient(0deg, color-mix(in srgb, var(--g1) 18%, transparent), transparent); }
+  .nav span.new::after { content: "新"; font-size: 9.5px; color: var(--gold); margin-left: 3px; vertical-align: super; }
+  .chat { gap: 8px; }
+  .msg-u, .msg-s { font-size: 13px; }
+
+  /* 技能卡（草稿 / 改进 / 安装报告） */
+  .sk { position: relative; padding: 10px 12px; --c: 10px; font-size: 12.5px; line-height: 1.65; }
+  .sk::before, .sk::after { content: ""; position: absolute; clip-path: polygon(var(--c) 0, 100% 0, 100% calc(100% - var(--c)), calc(100% - var(--c)) 100%, 0 100%, 0 var(--c)); }
+  .sk::before { inset: 0; background: linear-gradient(135deg, #6dffbe, #5fe6ff 50%, #4f7bff); }
+  .sk::after { inset: 1.5px; background: rgba(8, 30, 40, .92); }
+  .sk > * { position: relative; z-index: 1; }
+  .sk .tt { font-size: 11.5px; letter-spacing: .2em; color: var(--green); text-shadow: 0 0 8px rgba(109,255,190,.5); }
+  .sk .nm { font-size: 15px; font-weight: 700; color: #fff; margin: 2px 0 4px; }
+  .sk ol { margin: 4px 0 4px; padding-left: 20px; color: #d6e6ff; }
+  .sk .kv { display: grid; grid-template-columns: auto 1fr; gap: 1px 10px; }
+  .sk .kv > :nth-child(odd) { color: var(--muted); }
+  .sk .btns { margin-top: 8px; }
+  .sk.warn::before { background: linear-gradient(135deg, #ff9ae0, var(--pink) 50%, var(--violet)); }
+  .sk.warn::after { background: rgba(40, 10, 44, .92); }
+  .sk.warn .tt { color: #ff9ae0; text-shadow: none; }
+  .sk.gold::before { background: linear-gradient(135deg, #ffd97a, #ffb35f 50%, #ff7a59); }
+  .sk.gold::after { background: rgba(40, 28, 8, .92); }
+  .sk.gold .tt { color: #ffd97a; }
+  .trig { display: inline-block; font-size: 11.5px; padding: 0 7px; margin: 1px 4px 1px 0; color: #fff; border: 1px solid rgba(109,255,190,.55); background: rgba(109,255,190,.12); }
+  .skline { font: 12px/1.6 Consolas, "Microsoft YaHei UI", monospace; color: #a9f0d0; display: flex; gap: 8px; align-items: baseline; }
+  .skline::before { content: "◆"; color: var(--green); text-shadow: 0 0 6px var(--green); }
+  .skline a { color: var(--cyan); margin-left: 6px; cursor: pointer; }
+  .skline .r { margin-left: auto; white-space: nowrap; }
+  .stepbar { display: flex; flex-wrap: wrap; gap: 3px; margin: 0 0 8px; }
+  .stepbar span { padding: 2px 11px 2px 9px; font-size: 11.5px; color: var(--muted); background: rgba(95,230,255,.07); clip-path: polygon(0 0, calc(100% - 7px) 0, 100% 50%, calc(100% - 7px) 100%, 0 100%, 7px 50%); }
+  .stepbar span.done { color: var(--green); background: rgba(109,255,190,.13); }
+  .stepbar span.done::before { content: "✓ "; }
+  .stepbar span.now { color: #fff; background: linear-gradient(90deg, rgba(255,217,122,.38), rgba(255,217,122,.14)); }
+  .stepbar span.now::before { content: "◆ "; color: var(--gold); }
+  .toolline { font: 12px/1.6 Consolas, "Microsoft YaHei UI", monospace; color: #b9cbec; }
+  .toolline .o { color: var(--green); } .toolline .n { color: var(--gold); }
+
+  .row2 { max-width: 1180px; margin: 36px auto 0; display: grid; grid-template-columns: 440px 1fr; gap: 34px; align-items: start; }
+
+  /* 技能页 */
+  .skpage { max-width: 1180px; margin: 40px auto 0; }
+  .skpage .fr { width: 860px; }
+  .skpage .fr > .body { height: 560px; display: flex; flex-direction: column; padding: 40px 22px 18px; }
+  .sktools { display: flex; gap: 8px; align-items: center; margin-bottom: 10px; }
+  .sktools .field { flex: 1; padding: 4px 10px; font-size: 12.5px; }
+  .pend { font-size: 11.5px; color: #ffd97a; border: 1px solid rgba(255,217,122,.5); padding: 1px 8px; cursor: pointer; }
+  .skgrid { display: grid; grid-template-columns: 300px 1fr; gap: 14px; flex: 1; min-height: 0; }
+  .sklist { overflow-y: auto; padding-right: 4px; border-right: 1px solid rgba(95,230,255,.15); }
+  .ski { padding: 8px 10px; margin-bottom: 6px; background: rgba(0,10,40,.45); border-left: 2px solid var(--green); cursor: pointer; font-size: 13px; }
+  .ski.on { background: color-mix(in srgb, var(--g1) 14%, transparent); box-shadow: inset 2px 0 0 var(--g1); }
+  .ski.off { opacity: .5; border-left-color: var(--dim); }
+  .ski.na { border-left-color: var(--red); }
+  .ski .n { color: #fff; display: flex; align-items: center; gap: 6px; }
+  .ski .n .tog { margin-left: auto; transform: scale(.8); }
+  .ski .d { font-size: 11.5px; color: var(--muted); margin-top: 2px; }
+  .ski .b { font-size: 10.5px; padding: 0 5px; border: 1px solid; }
+  .b.mine { color: var(--green); border-color: rgba(109,255,190,.5); }
+  .b.trusted { color: var(--cyan); border-color: rgba(95,230,255,.5); }
+  .b.community { color: #ffd97a; border-color: rgba(255,217,122,.5); }
+  .b.na { color: var(--red); border-color: rgba(255,90,114,.5); }
+  .skdetail { overflow-y: auto; padding-right: 4px; font-size: 12.5px; line-height: 1.7; }
+  .skdetail h4 { margin: 0 0 4px; font-size: 15px; color: #fff; display: flex; align-items: center; gap: 8px; }
+  .skdetail h5 { margin: 12px 0 4px; font-size: 12px; color: var(--gold); letter-spacing: .14em; font-weight: 400; }
+  .skdetail .md { font: 12px/1.75 Consolas, "Microsoft YaHei UI", monospace; color: #c7d6f5; white-space: pre-wrap; background: rgba(0,10,40,.45); padding: 8px 10px; border: 1px solid rgba(95,230,255,.18); }
+  .scr { display: flex; gap: 8px; align-items: center; padding: 4px 0; border-bottom: 1px dashed rgba(95,230,255,.15); font-family: Consolas, monospace; font-size: 12px; }
+  .scr .ok2 { color: var(--green); font-family: "Microsoft YaHei UI"; }
+  .scr .chg { color: #ffd97a; font-family: "Microsoft YaHei UI"; }
+
+  .md2 { font: 12.5px/1.8 Consolas, "Microsoft YaHei UI", monospace; color: #c7d6f5; white-space: pre-wrap; }
+  .md2 .h { color: var(--gold); } .md2 .k { color: var(--cyan); } .md2 .dim2 { color: var(--dim); }
+  .decide { max-width: 1180px; margin: 30px auto 0; }
+  .decide ol { margin: 0; padding-left: 22px; font-size: 14px; line-height: 1.9; }
+  .decide li { margin-bottom: 6px; }
+  .decide li b { color: var(--gold); font-weight: 600; }
+  .decide li small { color: var(--muted); font-size: 12.5px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>阶段 6 设计稿 · 技能</h1>
+  <p>把一套固定流程教给系统，以后一句口令跑完。技能用通用的 Agent Skills 格式（一个文件夹 + SKILL.md），pi 原生支持，别人写的也能装。新技能、改技能、装技能，都要你点头才生效，改动能撤销。调研对比见 docs\research-skills.md。</p>
+</header>
+
+<h2 class="group">一、三种教法</h2>
+<div class="flow">
+  <div>
+    <section class="fr" data-title="系统通知" data-code="LEARN">
+      <div class="chat">
+        <div class="msg-u"><span class="tag">宿主</span>系统，学一个技能：每次做新一期，先在 D:\视频 下面建一个用今天日期命名的文件夹，再打开剪映和这个文件夹</div>
+        <div class="msg-s"><span class="tag">系统</span>收到。口令用「开始做新一期」可以吗？文件夹里要不要再建「素材」「成品」两个子文件夹？</div>
+        <div class="msg-u"><span class="tag">宿主</span>可以，要建</div>
+        <div class="sk"><div class="tt">【技能草稿】待你确认</div><div class="nm">开始做新一期</div>
+          <ol><li>在 D:\视频 建文件夹，名字是今天的日期（如 2026-10-15）</li><li>里面建「素材」「成品」</li><li>后台打开剪映专业版</li><li>打开这个新文件夹</li></ol>
+          <div>口令：<span class="trig">开始做新一期</span><span class="trig">做新一期</span></div>
+          <div class="btns"><span class="btn sm">保存</span><span class="btn ghost sm">改一下</span><span class="btn ghost sm">不要了</span></div></div>
+      </div>
+    </section>
+    <p class="cap2"><b>① 口头教</b>说「学一个技能：……」，系统问一两句关键的（口令、细节），写成草稿给你看。点「保存」才生效；「改一下」直接说哪里要改。</p>
+  </div>
+  <div>
+    <section class="fr" data-title="系统通知" data-code="LEARN">
+      <div class="chat">
+        <div class="toolline"><span class="o">✓</span> 运行命令：New-Item D:\视频\2026-10-15</div>
+        <div class="toolline"><span class="o">✓</span> 后台打开：剪映专业版</div>
+        <div class="toolline"><span class="o">✓</span> 打开文件夹</div>
+        <div class="msg-s"><span class="tag">系统</span>已就绪：新一期文件夹建好了，剪映已打开。</div>
+        <div class="msg-u"><span class="tag">宿主</span>把刚才这套做成技能</div>
+        <div class="sk"><div class="tt">【技能草稿】从刚才做的生成</div><div class="nm">开始做新一期</div>
+          <ol><li>在 D:\视频 建今天日期的文件夹</li><li>后台打开剪映专业版</li><li>打开这个新文件夹</li></ol>
+          <div class="muted" style="font-size:11.5px">只留以后用得上的做法，日期这种这次才有的细节换成「今天的日期」</div>
+          <div class="btns"><span class="btn sm">保存</span><span class="btn ghost sm">改一下</span><span class="btn ghost sm">不要了</span></div></div>
+      </div>
+    </section>
+    <p class="cap2"><b>② 从刚才做的生成</b>说「把刚才这套做成技能」，系统从刚才那条指令的过程里提炼步骤（记经验，不记流水账），同样先给你看草稿。</p>
+  </div>
+  <div>
+    <section class="fr" data-title="任务完成" data-code="COMPLETE">
+      <div class="chat">
+        <div class="msg-u"><span class="tag">宿主</span>帮我把这周的视频都传到网盘，再把链接发到群里</div>
+        <div class="toolline"><span class="o">✓</span> ……一共 7 个动作</div>
+        <div class="msg-s"><span class="tag">系统</span>【完成】5 个视频已上传，链接已复制。</div>
+        <div class="skline">刚才这套用了 7 个动作，要存成技能吗？<span class="r"><a>存成技能</a><a>不用</a></span></div>
+      </div>
+    </section>
+    <p class="cap2"><b>③ 系统主动问</b>一条指令用了 5 个动作以上、并且做成了，或者你中途纠正过它的做法，对话里冒一行绿色的提示。不念出来、不自动存；点「不用」以后这类流程不再问。</p>
+  </div>
+</div>
+
+<h2 class="group">二、跑技能 + 技能自己改进</h2>
+<div class="row2">
+  <section class="fr" data-title="任务执行中" data-code="SKILL">
+    <div class="nav"><span class="on">对话</span><span>任务</span><span>记忆</span><span class="new">技能</span><span>记录</span><span>日志</span><span>设置</span></div>
+    <div class="chat">
+      <div class="msg-u"><span class="tag">宿主</span>系统，开始做新一期</div>
+      <div class="stepbar"><span class="done">建文件夹</span><span class="done">建子文件夹</span><span class="now">打开剪映</span><span>打开文件夹</span></div>
+      <div class="toolline"><span class="o">✓</span> 【技能】开始做新一期</div>
+      <div class="toolline"><span class="o">✓</span> 运行命令：New-Item D:\视频\2026-10-16</div>
+      <div class="toolline"><span class="n">◆</span> 后台打开：剪映专业版</div>
+      <div class="msg-s"><span class="tag">系统</span>剪映打开后弹了一个更新提示，已经点了「以后再说」。【完成】新一期已就绪。</div>
+      <div class="sk gold"><div class="tt">【技能改进】待你确认</div><div class="nm">开始做新一期 · 第 3 步</div>
+        <div>加一句：<b>剪映打开后如果弹出更新提示，点「以后再说」</b></div>
+        <div class="muted" style="font-size:11.5px">这次跑的时候遇到了，下次直接处理</div>
+        <div class="btns"><span class="btn sm">改</span><span class="btn ghost sm">不改</span></div></div>
+    </div>
+  </section>
+  <div class="note" style="margin:0">
+    <p><b>怎么叫</b>：说口令（「开始做新一期」，前面带「系统」「帮我」都行）就直接跑，本地认、不用等模型猜；也可以随口描述（「帮我准备新一期的东西」），大脑看技能目录自己挑。</p>
+    <p><b>跑的时候</b>：面板顶上的步骤条就是技能的步骤；每个动作照常显示；删除、覆盖、联网下载这类高危操作照常弹授权。</p>
+    <p><b>自己改进</b>：跑的时候出了错又找到了办法、或者你纠正了它，系统提一个小改动（只改那一步），金色卡片给你看，你点「改」才改。改动记进日志，技能页里能撤销。</p>
+    <p><b>为什么要口令</b>：DeepSeek Flash 有时候「想不起来」用技能（各家都有这问题，Anthropic 专门写了怎么调说明）。口令是保底：说了就一定用。</p>
+  </div>
+</div>
+
+<h2 class="group">三、装别人写好的技能</h2>
+<div class="row2">
+  <section class="fr" data-title="安装检查" data-code="INSTALL">
+    <div class="sk warn"><div class="tt">【安装检查】还没装，等你决定</div><div class="nm">youtube-transcript</div>
+      <div class="kv">
+        <span>来源</span><span>github.com/badlogic/pi-skills（社区，作者是 pi 的作者）</span>
+        <span>会做什么</span><span>给它一个 YouTube 链接，取回视频字幕</span>
+        <span>会运行</span><span>scripts/transcript.js（Node 脚本，35 行）</span>
+        <span>联网</span><span>会，只访问 youtube.com</span>
+        <span>读写文件</span><span>不读不写</span>
+        <span>需要</span><span>先在技能文件夹里运行一次 npm install（会下载 1 个包）</span>
+        <span>Windows</span><span class="c-ok">能用</span>
+        <span>风险</span><span class="c-ok">低：没发现读密码、偷数据、让 AI 干别的事的内容</span>
+      </div>
+      <div class="btns"><span class="btn sm">安装</span><span class="btn ghost sm">先看看文件</span><span class="btn ghost sm">不装</span></div></div>
+  </section>
+  <div class="note" style="margin:0">
+    <p><b>只从你给的地方装</b>：说「装一个技能：github.com/…」或者在技能页贴网址。ClawHub 这类市场今年混进过大批恶意技能（一次审计 2857 个里有 341 个），先不接。</p>
+    <p><b>先隔离检查</b>：下载到隔离区，不加载、不运行。程序先查一遍（脚本、联网、读写哪些文件、要不要密钥、像不像在骗 AI 干别的事），再让模型用大白话写成上面这张报告。</p>
+    <p><b>你点「安装」才装</b>；风险高的标红并说清楚为什么，默认不装。</p>
+    <p><b>脚本内容变了要重新问</b>：装的时候记下每个脚本的指纹，以后脚本被改过（比如更新了技能），跑之前再问你一次。</p>
+    <p><b>用不了的藏起来</b>：只写了 Mac / Linux 的、缺程序的技能，技能页里标红，不放进大脑的目录。</p>
+  </div>
+</div>
+
+<h2 class="group">四、技能页（面板新页签）</h2>
+<div class="skpage">
+  <section class="fr" data-title="系统技能" data-code="SKILLS">
+    <div class="nav"><span>对话</span><span>任务</span><span>记忆</span><span class="on new">技能</span><span>记录</span><span>日志</span><span>设置</span></div>
+    <div class="sktools"><div class="field">⌕ 搜技能</div><span class="btn sm">+ 教一个</span><span class="btn ghost sm">从网址装</span><span class="pend">待确认 2</span></div>
+    <div class="skgrid">
+      <div class="sklist">
+        <div class="ski on"><div class="n">开始做新一期 <span class="b mine">我的</span><span class="tog on"></span></div><div class="d">口令：开始做新一期 · 上次用：今天 10:02</div></div>
+        <div class="ski"><div class="n">准备发布 <span class="b mine">我的</span><span class="tog on"></span></div><div class="d">打开 B 站创作中心上传页 · 上次用：昨天</div></div>
+        <div class="ski"><div class="n">传网盘发链接 <span class="b mine">我的</span><span class="tog on"></span></div><div class="d">刚才对话里存的 · 还没用过</div></div>
+        <div class="ski"><div class="n">youtube-transcript <span class="b trusted">社区·已检查</span><span class="tog on"></span></div><div class="d">取 YouTube 字幕 · 来自 badlogic/pi-skills</div></div>
+        <div class="ski off"><div class="n">brave-search <span class="b community">社区</span><span class="tog"></span></div><div class="d">停用中：需要 Brave 的密钥</div></div>
+        <div class="ski na"><div class="n">vscode-diff <span class="b na">这台电脑用不了</span></div><div class="d">需要 code 命令，没装 VS Code</div></div>
+      </div>
+      <div class="skdetail">
+        <h4>开始做新一期 <span class="b mine">我的</span></h4>
+        <div class="muted">新建当期的文件夹、打开剪映和这个文件夹 · 2026-10-15 口头教的 · 用过 3 次</div>
+        <h5>口令</h5><div><span class="trig">开始做新一期</span><span class="trig">做新一期</span> <a class="c-cyan" style="font-size:12px">+ 加一个</a></div>
+        <h5>步骤（SKILL.md）</h5>
+        <div class="md">1. 在 D:\视频 建一个文件夹，名字是今天的日期（YYYY-MM-DD）
+2. 里面建「素材」「成品」两个子文件夹
+3. 用 open_app 后台打开剪映专业版
+   剪映如果弹出更新提示，点「以后再说」
+4. 用 Start-Process 打开这个新文件夹
+5. 一句话汇报：新一期已就绪</div>
+        <h5>脚本</h5>
+        <div class="scr">scripts\new-episode.ps1 <span class="ok2">✓ 你批准过（10-15）</span></div>
+        <h5>改动记录</h5>
+        <div class="toolline">10-16 第 3 步加了「关更新提示」（你确认的） <a class="c-cyan">撤销</a><br>10-15 新建（口头教）</div>
+        <div class="btns"><span class="btn sm">现在跑一次</span><span class="btn ghost sm">用记事本改</span><span class="btn ghost sm">删除</span></div>
+      </div>
+    </div>
+  </section>
+  <p class="note">左边是所有技能：<b>我的</b>（教的、存的）、<b>社区</b>（装的，标出检查过没有）、<b>这台电脑用不了</b>（标红，大脑看不到）。开关是启用 / 停用。右边是详情：口令、步骤、脚本（批准过没有、内容变没变）、改动记录（能撤销）。「待确认」里是还没批的草稿和改进。删除的技能放进回收区，30 天内能恢复。</p>
+</div>
+
+<h2 class="group">五、文件长什么样</h2>
+<div class="row2" style="grid-template-columns:1fr 1fr">
+  <div class="card"><div class="hd"><span class="dia"></span>data\skills\开始做新一期\SKILL.md</div>
+    <div class="ct md2"><span class="dim2">---</span>
+<span class="k">name</span>: start-new-episode
+<span class="k">description</span>: 开始做新一期视频：新建当期文件夹（素材、成品），后台打开剪映和这个文件夹。宿主说「开始做新一期」「准备做新视频」时用。
+<span class="k">metadata</span>:
+  <span class="k">hostbound</span>:
+    <span class="k">title</span>: 开始做新一期
+    <span class="k">triggers</span>: [开始做新一期, 做新一期]
+    <span class="k">os</span>: [win32]
+    <span class="k">requires</span>: [剪映专业版]
+    <span class="k">source</span>: 口头教 2026-10-15
+<span class="dim2">---</span>
+
+<span class="h"># 开始做新一期</span>
+
+1. 在 D:\视频 建一个文件夹，名字是今天的日期……</div></div>
+  <div class="note" style="margin:0">
+    <p><b>标准格式</b>：上面是 Agent Skills 的标准写法，Claude Code、Codex、OpenClaw、Hermes 都认，以后拿去别的工具也能用。Hostbound 自己的东西（中文名、口令、要求）放在 <span class="mono">metadata.hostbound</span> 里，别的工具会忽略。</p>
+    <p><b>放哪</b>：你的技能在 <span class="mono">data\skills</span>（开源时不上传）；草稿和改进在 <span class="mono">data\skills\.pending</span>；装的在隔离区检查完才挪进来；删掉的在 <span class="mono">.trash</span>。</p>
+    <p><b>大脑看到什么</b>：开头只有每个技能的名字和一句说明（像目录），用到时才读全文，技能多了也不占地方；目录跟着这段对话冻结住，保住 DeepSeek 的缓存，新加的技能下一段对话生效（说口令的马上就能用）。</p>
+  </div>
+</div>
+
+<h2 class="group">六、需要你拍板的（括号里是默认）</h2>
+<div class="decide card"><div class="ct">
+<ol>
+  <li>技能页放哪？（<b>对话 · 任务 · 记忆 · 技能 · 记录 · 日志 · 设置</b>）</li>
+  <li>口令怎么认？（<b>整句就是口令才直接跑</b>，前面可以带「系统」「帮我」「给我」；句子里还有别的要求，比如「开始做新一期，这期叫猫咪」，交给大脑，它会用这个技能并把「猫咪」带进去）</li>
+  <li>跑技能前要不要先念一遍步骤？（<b>不念，直接跑</b>，步骤条显示进度；高危的步骤照常授权）</li>
+  <li>「要存成技能吗」的门槛？（<b>5 个动作以上并且做成了，或者你中途纠正过</b>；同一类流程你说过「不用」就不再问）</li>
+  <li>删掉的技能怎么办？（<b>放回收区，30 天内能恢复</b>）</li>
+  <li>系统自带几个示例技能吗？（<b>不带</b>：技能都是你的流程，空着等你教；技能页里放一句「说『学一个技能：……』试试」）</li>
+</ol>
+</div></div>
+<p class="note">已经定了的：不读你电脑上其他 AI 工具的技能（想要可以手动导入）；「要存成技能吗」只冒一行、不念、不自动存；技能自己改进只提建议，你确认才改；每个技能有口令；只从你给的 GitHub / 网址装，先隔离检查，不接 ClawHub 这类市场；脚本批准一次，内容变了再问。</p>
+
+<script>
+  document.querySelectorAll('section.fr').forEach((fr) => {
+    const kids = [...fr.childNodes];
+    fr.innerHTML = '<i class="l1"></i><i class="l2"></i><i class="l3"></i><i class="l4"></i>' +
+      `<div class="plate"><span class="wing l"></span><span class="p">${fr.dataset.title}</span><span class="wing r"></span></div><span class="code">${fr.dataset.code}</span><div class="body"></div>`;
+    const body = fr.querySelector('.body');
+    kids.forEach((n) => body.appendChild(n));
+  });
+</script>
+</body>
+</html>

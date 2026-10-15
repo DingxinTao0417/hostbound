@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>阶段 4 设计稿</title>
+<link rel="stylesheet" href="kit.css">
+<style>
+  .fr > .l2 { background: rgba(7, 12, 36, .78); }
+  .fr > .l4 { background: rgba(16, 28, 70, .2); }
+  .fr > .l1, .fr > .l3 { --w: 2px; clip-path: polygon(evenodd,
+    var(--c) 0, calc(100% - var(--c)) 0, 100% var(--c), 100% calc(100% - var(--c)), calc(100% - var(--c)) 100%, var(--c) 100%, 0 calc(100% - var(--c)), 0 var(--c), var(--c) 0,
+    calc(var(--w) + var(--c)) var(--w), var(--w) calc(var(--w) + var(--c)), var(--w) calc(100% - var(--w) - var(--c)), calc(var(--w) + var(--c)) calc(100% - var(--w)),
+    calc(100% - var(--w) - var(--c)) calc(100% - var(--w)), calc(100% - var(--w)) calc(100% - var(--w) - var(--c)), calc(100% - var(--w)) calc(var(--w) + var(--c)),
+    calc(100% - var(--w) - var(--c)) var(--w), calc(var(--w) + var(--c)) var(--w)); }
+  .fr > .l3 { --w: 1px; }
+  .note { max-width: 1180px; margin: 10px auto 0; font-size: 13px; color: var(--muted); line-height: 1.8; }
+  .note b { color: #cfe0ff; }
+  .flow { max-width: 1180px; margin: 40px auto 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 30px; align-items: start; }
+  .flow .fr > .body { padding: 40px 18px 18px; }
+  .step-cap { margin: 12px 4px 0; font-size: 12.5px; color: var(--muted); line-height: 1.6; }
+  .step-cap b { color: #cfe0ff; margin-right: 6px; }
+  .nav { display: flex; gap: 2px; margin: -4px 0 10px; border-bottom: 1px solid rgba(95,230,255,.18); }
+  .nav span { padding: 4px 12px; font-size: 12.5px; color: var(--muted); border-bottom: 2px solid transparent; margin-bottom: -1px; }
+  .nav span.on { color: #fff; border-color: var(--g1); text-shadow: 0 0 8px var(--g1); background: linear-gradient(0deg, color-mix(in srgb, var(--g1) 18%, transparent), transparent); }
+  .nav span.new::after { content: "新"; font-size: 9.5px; color: var(--gold); margin-left: 3px; vertical-align: super; }
+
+  /* 限时任务卡（系统流的「任务发布」） */
+  .quest { position: relative; padding: 12px 14px; margin: 8px 0; --c: 10px; }
+  .quest::before, .quest::after { content: ""; position: absolute; clip-path: polygon(var(--c) 0, 100% 0, 100% calc(100% - var(--c)), calc(100% - var(--c)) 100%, 0 100%, 0 var(--c)); }
+  .quest::before { inset: 0; background: linear-gradient(135deg, var(--gold), #ffb35f 50%, #ff7a59); }
+  .quest::after { inset: 1.5px; background: rgba(40, 28, 8, .9); }
+  .quest > * { position: relative; z-index: 1; }
+  .quest .tt { font-size: 12px; letter-spacing: .2em; color: var(--gold); text-shadow: 0 0 8px rgba(255,217,122,.6); }
+  .quest .nm { font-size: 17px; font-weight: 700; color: #fff; margin: 2px 0 4px; }
+  .quest .cd { font: 700 26px Consolas, monospace; color: var(--gold); text-shadow: 0 0 10px rgba(255,217,122,.7); letter-spacing: .06em; }
+  .quest .cd small { font-size: 12px; color: var(--muted); font-weight: 400; margin-left: 8px; letter-spacing: 0; }
+  .quest .meta { font-size: 11.5px; color: var(--muted); }
+  .quest .btns { margin-top: 10px; }
+  .quest.done::before { background: linear-gradient(135deg, var(--green), var(--cyan)); }
+  .quest.done::after { background: rgba(8, 36, 30, .9); }
+  .quest.done .tt, .quest.done .cd { color: var(--green); }
+
+  /* 核心 + 倒计时小牌 */
+  .corewrap { display: flex; flex-direction: column; align-items: center; gap: 6px; margin: 10px 0 4px; }
+  .badge-cd { font: 700 12px Consolas, monospace; color: var(--gold); padding: 1px 9px; border: 1px solid rgba(255,217,122,.6); background: rgba(40,28,8,.85); text-shadow: 0 0 6px rgba(255,217,122,.6); clip-path: polygon(5px 0, 100% 0, calc(100% - 5px) 100%, 0 100%); }
+
+  /* 全屏通知（缩小示意） */
+  .fullnote { position: relative; height: 150px; border: 1px solid rgba(95,230,255,.2); background: linear-gradient(160deg, #1b2440, #10162b); display: grid; place-items: center; overflow: hidden; }
+  .fullnote .inner { text-align: center; }
+  .fullnote .h1 { font-size: 13px; letter-spacing: .4em; color: var(--gold); text-shadow: 0 0 10px var(--gold); }
+  .fullnote .h2 { font-size: 24px; font-weight: 700; color: #fff; text-shadow: 0 0 14px var(--gold); margin: 4px 0; }
+  .fullnote .h3 { font-size: 11.5px; color: var(--muted); }
+  .fullnote::before { content: ""; position: absolute; left: 0; right: 0; top: 50%; height: 2px; background: linear-gradient(90deg, transparent, var(--gold), transparent); opacity: .5; transform: translateY(-48px); }
+
+  /* 任务页 */
+  .taskpage { max-width: 1180px; margin: 40px auto 0; display: grid; grid-template-columns: 760px 1fr; gap: 34px; align-items: start; }
+  .taskpage .fr > .body { height: 520px; display: flex; flex-direction: column; padding: 40px 22px 18px; }
+  .tcols { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; flex: 1; min-height: 0; }
+  .sec { font-size: 12px; color: var(--gold); letter-spacing: .14em; margin: 0 0 4px; display: flex; align-items: center; }
+  .sec small { margin-left: auto; color: var(--dim); letter-spacing: 0; }
+  .ti { display: grid; grid-template-columns: 1fr auto 18px; gap: 8px; align-items: center; padding: 7px 8px; margin-bottom: 6px; font-size: 13px; background: rgba(0,10,40,.45); border-left: 2px solid var(--gold); }
+  .ti.rep { border-left-color: var(--cyan); }
+  .ti.watch { border-left-color: var(--violet); }
+  .ti.off { opacity: .5; border-left-color: var(--dim); }
+  .ti .n { color: #fff; }
+  .ti .s { display: block; font-size: 11px; color: var(--muted); margin-top: 1px; }
+  .ti .c { font: 700 13px Consolas, monospace; color: var(--gold); }
+  .ti.rep .c { color: var(--cyan); font-weight: 400; font-size: 12px; }
+  .ti .x { color: var(--muted); cursor: pointer; text-align: center; }
+  .ti .tog { transform: scale(.85); }
+  .hist { font: 12px/1.75 Consolas, "Microsoft YaHei UI", monospace; color: #a9bde6; }
+  .hist .t { color: var(--dim); margin-right: 8px; }
+
+  /* 角落小提示 */
+  .toasts { max-width: 1180px; margin: 34px auto 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+  .toast { position: relative; padding: 10px 14px; --c: 9px; font-size: 13px; }
+  .toast::before, .toast::after { content: ""; position: absolute; clip-path: polygon(var(--c) 0, 100% 0, 100% calc(100% - var(--c)), calc(100% - var(--c)) 100%, 0 100%, 0 var(--c)); }
+  .toast::before { inset: 0; background: linear-gradient(135deg, var(--g1), var(--g3)); }
+  .toast::after { inset: 1.5px; background: rgba(9, 15, 42, .95); }
+  .toast > * { position: relative; z-index: 1; }
+  .toast .k { font-size: 11px; letter-spacing: .2em; color: var(--g1); }
+  .toast .v { color: #fff; margin: 2px 0; }
+  .toast .m { font-size: 11.5px; color: var(--muted); }
+  .toast.warn { --g1: #ff9ae0; --g3: var(--red); }
+  .toast.ok { --g1: var(--green); --g3: var(--cyan); }
+
+  .tools { max-width: 1180px; margin: 30px auto 0; }
+  .decide { max-width: 1180px; margin: 30px auto 0; }
+  .decide ol { margin: 0; padding-left: 22px; font-size: 14px; line-height: 1.9; }
+  .decide li { margin-bottom: 6px; }
+  .decide li b { color: var(--gold); font-weight: 600; }
+  .decide li small { color: var(--muted); font-size: 12.5px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>阶段 4 设计稿 · 系统任务与主动提醒</h1>
+  <p>「半小时后提醒我喝水」会发布一个【限时任务】，核心下面挂着倒计时，到点叮一声、弹通知、念出来。系统还会盯着下载、电量、导出、OBS 推流，发生了就主动报告。提醒和监测都是程序判断，不调模型，不花钱。</p>
+</header>
+
+<h2 class="group">一、一个提醒的完整流程</h2>
+<div class="flow">
+  <div>
+    <section class="fr" data-title="系统通知" data-code="QUEST">
+      <div class="msg-u" style="margin-bottom:8px"><span class="tag">宿主 · 14:30</span>半小时后提醒我喝水</div>
+      <div class="quest"><div class="tt">【限时任务】已发布</div><div class="nm">补充水分</div><div class="cd">29:59<small>15:00 到点</small></div><div class="meta">到点会叮一声、弹通知、念出来</div></div>
+      <div class="msg-s">任务已发布：补充水分，十五点整提醒宿主。</div>
+    </section>
+    <p class="step-cap"><b>① 发布</b>宿主说完，大脑调一次「建任务」工具（这一步用模型，跟平时下指令一样）。面板里出一张金色的【限时任务】卡。</p>
+  </div>
+  <div>
+    <section class="fr" data-title="系统核心" data-code="IDLE">
+      <div class="corewrap"><div class="core sm"><i></i></div><span class="badge-cd">⏱ 12:08</span></div>
+      <p class="muted center" style="font-size:12.5px;margin:6px 0 0">面板收起后，核心下面挂一个小倒计时<br>（一小时内到点的任务才挂；有好几个就显示最近的那个）</p>
+    </section>
+    <p class="step-cap"><b>② 倒计时</b>到点之前全是程序在数，不调模型。关机重启后任务还在。</p>
+  </div>
+  <div>
+    <div class="fullnote"><div class="inner"><div class="h1">【任务提醒】</div><div class="h2">补充水分</div><div class="h3">15:00 · 限时任务到点</div></div></div>
+    <section class="fr" data-title="任务提醒" data-code="REMIND" style="margin-top:30px">
+      <div class="quest done"><div class="tt">【限时任务】到点</div><div class="nm">补充水分</div><div class="meta">「宿主，该补充水分了。」</div>
+        <div class="btns"><span class="btn sm">知道了</span><span class="btn ghost sm">10 分钟后再提醒</span></div></div>
+    </section>
+    <p class="step-cap"><b>③ 到点</b>叮一声 → 全屏通知（直播时改成角落小提示）→ 念出来 → 面板里一张卡。说「知道了」或「过十分钟再提醒」也行，不用点。</p>
+  </div>
+</div>
+
+<h2 class="group">二、任务页（面板新加一个页签）</h2>
+<div class="taskpage">
+  <section class="fr" data-title="系统任务" data-code="QUESTS">
+    <div class="nav"><span>对话</span><span class="on new">任务</span><span>记录</span><span>日志</span><span>设置</span></div>
+    <div class="tcols">
+      <div>
+        <div class="sec">定时任务<small>3 个</small></div>
+        <div class="ti"><span><span class="n">补充水分</span><span class="s">今天 15:00 · 一次</span></span><span class="c">12:08</span><span class="x">×</span></div>
+        <div class="ti"><span><span class="n">交稿</span><span class="s">明天 09:00 · 一次</span></span><span class="c">18:29:40</span><span class="x">×</span></div>
+        <div class="ti rep"><span><span class="n">该睡觉了</span><span class="s">每天 23:00</span></span><span class="c">下次 今晚 23:00</span><span class="x">×</span></div>
+        <div class="ti rep"><span><span class="n">看一眼 B 站后台数据并汇报</span><span class="s">每周一 10:00 · 到点让系统去做（会用模型）</span></span><span class="c">下次 周一</span><span class="x">×</span></div>
+        <div class="sec" style="margin-top:14px">最近提醒过的</div>
+        <div class="hist"><span class="t">13:58</span>下载完成：obs-studio-32.zip（186 MB）<br><span class="t">12:00</span>【限时任务】吃午饭 · 宿主说「知道了」<br><span class="t">昨天</span>导出完成：vlog-1015.mp4</div>
+      </div>
+      <div>
+        <div class="sec">正在盯着的<small>主动报告</small></div>
+        <div class="ti watch"><span><span class="n">剪映导出完成</span><span class="s">D:\剪映导出 里出现新视频、文件不再变大 · 一次</span></span><span class="c" style="color:var(--violet)">盯着</span><span class="x">×</span></div>
+        <div class="sec" style="margin-top:14px">自带的监测<small>设置里也能开关</small></div>
+        <div class="ti watch"><span><span class="n">下载完成</span><span class="s">下载文件夹出现新文件 · 角落小提示</span></span><span class="tog on"></span><span></span></div>
+        <div class="ti watch"><span><span class="n">电量低</span><span class="s">不插电、低于 20% 和 10% 各报一次 · 念出来</span></span><span class="tog on"></span><span></span></div>
+        <div class="ti watch"><span><span class="n">直播检测</span><span class="s">OBS 开始推流或直播软件开着：自动开直播模式，停了自动关</span></span><span class="tog on"></span><span></span></div>
+      </div>
+    </div>
+  </section>
+  <div class="note" style="margin:0">
+    <p><b>定时任务</b>：一次的显示倒计时，重复的显示下次时间。点 × 或者说「取消喝水提醒」就删。</p>
+    <p><b>两种定时任务</b>：「提醒我……」只是到点提醒，<b>不花钱</b>；「到点帮我……」到点让系统去做那件事，跟你当时说一句指令一样，<b>会用模型</b>，卡片上会标出来。</p>
+    <p><b>正在盯着的</b>：你说「等这个视频导出完叫我」，系统自己建一条监测（盯哪个文件夹、什么算完成），完成时报告，报告完自己撤掉。</p>
+    <p><b>自带的监测</b>：下载完成、电量低、直播检测三个，一直开着，设置里能关。</p>
+    <p>所有任务和监测存在 <span class="mono">data\tasks.json</span>，关机重启后照旧。关机期间错过的提醒，开机后补一次并说明错过了多久。</p>
+  </div>
+</div>
+
+<h2 class="group">三、主动报告长这样（角落小提示）</h2>
+<div class="toasts">
+  <div class="toast ok"><div class="k">下载完成</div><div class="v">obs-studio-32.zip</div><div class="m">186 MB · 下载文件夹 · 13:58</div></div>
+  <div class="toast warn"><div class="k">电量低</div><div class="v">剩余 18%，没插电</div><div class="m">还能用大约 40 分钟 · 念出来：「宿主，电量低于百分之二十。」</div></div>
+  <div class="toast"><div class="k">导出完成</div><div class="v">vlog-1015.mp4</div><div class="m">1.2 GB · D:\剪映导出 · 你让系统盯着的</div></div>
+</div>
+<p class="note">怎么判断「下载 / 导出完成」：文件夹里出现新文件、不是临时文件（.crdownload、.part、.tmp 之类）、并且连续 5 秒大小不变，才算完成。电量用 Windows 自己的电源状态，OBS 推流读 OBS 自己写的日志，都不用装别的东西。</p>
+
+<h2 class="group">四、大脑多了这些工具</h2>
+<div class="tools card"><div class="ct">
+  <div class="row"><span class="mono c-cyan" style="width:150px">task_create</span><span>建定时任务：多久以后 / 几点 / 每天几点 / 每周几……；提醒，还是到点去做</span></div>
+  <div class="row"><span class="mono c-cyan" style="width:150px">watch_create</span><span>建监测：文件夹来新文件、某个文件生成完、某个程序退出；报告一次就撤，还是一直盯着</span></div>
+  <div class="row"><span class="mono c-cyan" style="width:150px">task_list / task_cancel</span><span>列出、取消（定时任务和监测都在里面）</span></div>
+</div></div>
+
+<h2 class="group">五、需要你拍板的（括号里是默认）</h2>
+<div class="decide card"><div class="ct">
+<ol>
+  <li>定时任务只做提醒，还是也能「到点帮我做一件事」？（<b>两种都做</b>：提醒不花钱；你明确说「到点帮我……」才让系统到点去做，会用模型，任务卡上标出来）</li>
+  <li>到点提醒怎么提醒？（<b>叮一声 + 全屏通知 + 念出来 + 面板卡片</b>，卡片上「知道了」「10 分钟后再提醒」；直播时全屏通知改成角落小提示，照样念）</li>
+  <li>核心下面挂倒计时吗？（<b>挂</b>：一小时内到点的才挂，显示最近的那个）</li>
+  <li>自带的三个监测默认开哪些？（<b>都开</b>：下载完成只弹角落小提示、不念；电量低于 20% 和 10% 各念一次；OBS 开始推流自动开直播模式、停了自动关）</li>
+  <li>关机期间错过的提醒怎么办？（<b>开机后补一次</b>，说明错过了多久；重复的任务只补最近一次）</li>
+  <li>怎么判断你在直播？（<b>两条都认</b>：OBS 日志里出现「开始推流」；或者你常用的直播软件开着（B站直播姬、抖音直播伴侣这类，设置里能加）。<br><small>查了你电脑上最近 10 份 OBS 日志：有录制、没有推流记录，所以想确认一下你平时用什么推流。都不用装东西、不用填密码。</small></li>
+  <li>下载 croner 来算「每天 23 点」「每周一 10 点」这类重复时间？（<b>下载</b>：croner 10.0.1，来自 npm（github.com/hexagon/croner），MIT，约 155KB，没有依赖；nanobot 和 OpenClaw 也用它这一类写法）</li>
+</ol>
+</div></div>
+<p class="note">做法参考：HKUDS/nanobot 的定时任务结构（一次 / 每隔多久 / 按规则重复，任务存成一个 JSON 文件，记下次运行时间和运行记录）；OpenClaw 的「条件监测」（发生某件事就触发）。</p>
+
+<script>
+  document.querySelectorAll('section.fr').forEach((fr) => {
+    const kids = [...fr.childNodes];
+    fr.innerHTML = '<i class="l1"></i><i class="l2"></i><i class="l3"></i><i class="l4"></i>' +
+      `<div class="plate"><span class="wing l"></span><span class="p">${fr.dataset.title}</span><span class="wing r"></span></div><span class="code">${fr.dataset.code}</span><div class="body"></div>`;
+    const body = fr.querySelector('.body');
+    kids.forEach((n) => body.appendChild(n));
+  });
+  // 倒计时动起来
+  const cds = [...document.querySelectorAll('.quest:not(.done) .cd, .badge-cd, .ti:not(.rep):not(.watch) .c')];
+  const parse = (t) => t.replace(/[^\d:]/g, '').split(':').map(Number).reduce((a, b) => a * 60 + b, 0);
+  const fmt = (s) => { const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), x = s % 60; return (h ? h + ':' + String(m).padStart(2, '0') : m) + ':' + String(x).padStart(2, '0'); };
+  const state = cds.map((el) => ({ el, s: parse(el.firstChild.textContent), pre: el.classList.contains('badge-cd') ? '⏱ ' : '' }));
+  setInterval(() => state.forEach((x) => { x.s = Math.max(0, x.s - 1); x.el.firstChild.textContent = x.pre + fmt(x.s); }), 1000);
+</script>
+</body>
+</html>

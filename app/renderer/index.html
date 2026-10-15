@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'">
+  <title>Hostbound</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="pages.css">
+  <link rel="stylesheet" href="explain-cards.css">
+</head>
+<body>
+  <!-- 整个窗口铺满屏幕工作区、全透明；只有系统核心和系统面板能点，其余地方点击直接穿到下面的软件 -->
+
+  <!-- 系统面板：切角双线框（四层叠出来）+ 顶部六边形标题牌 -->
+  <div id="bubble" class="fr hit hidden">
+    <i class="l1"></i><i class="l2"></i><i class="l3"></i><i class="l4"></i>
+    <div class="plate"><span class="wing l"></span><span class="p" id="title">系统通知</span><span class="wing r"></span></div>
+    <span class="code" id="code">SYS</span>
+    <button id="close" title="收起（Esc）">×</button>
+    <div class="body">
+      <nav id="nav" class="nav"><span data-p="chat" class="on">对话</span><span data-p="task">任务</span><span data-p="mem">记忆</span><span data-p="skill">技能</span><span data-p="rec">记录</span><span data-p="log">日志</span><span data-p="set">设置</span></nav>
+      <div class="topline"><span id="status"></span><span id="live" class="chip hidden">直播模式 · 语音唤醒已关</span></div>
+      <section class="page on" id="pg-chat" data-page="chat">
+      <div id="wave" class="wave hidden"></div>
+      <div id="steps" class="stepbar hidden"></div>
+      <div id="stepline" class="stepline hidden"><i></i></div>
+      <div id="opv" class="opv hidden"><div class="h"><span class="dia"></span><span id="opv-name"></span><small id="opv-sub"></small></div><div class="tr" id="opv-trail"></div><div class="els hidden" id="opv-els"></div></div>
+      <div id="log"></div>
+      <div id="confirm" class="hidden"></div>
+      <form id="ask">
+        <div class="field"><input id="input" placeholder="输入指令，回车发送" autocomplete="off" spellcheck="false"></div>
+        <button id="stop" type="button" class="btn ghost hidden">停止</button>
+        <button id="send" type="submit" class="btn">发送</button>
+      </form>
+      </section>
+      <section class="page" id="pg-task" data-page="task"></section>
+      <section class="page" id="pg-mem" data-page="mem"></section>
+      <section class="page" id="pg-skill" data-page="skill"></section>
+      <section class="page" id="pg-rec" data-page="rec"></section>
+      <section class="page" id="pg-log" data-page="log"></section>
+      <section class="page" id="pg-set" data-page="set"></section>
+      <section class="page" id="pg-guide" data-page="guide"></section>
+    </div>
+    <div id="grip" title="拖动调整大小"></div>
+  </div>
+
+  <!-- 核心下面的小倒计时：一小时内到点的定时任务 -->
+  <div id="pet-cd" class="hidden"></div>
+
+  <!-- 系统核心：平时挂在屏幕角落，颜色表示状态 -->
+  <div id="pet" class="hit" data-state="idle" title="拖动换位置 · Ctrl+滚轮调大小">
+    <div class="ripple"></div>
+    <div class="core"><i></i></div>
+  </div>
+
+  <script src="voice-fx.js"></script>
+  <script src="speech.js"></script>
+  <script src="pages.js"></script>
+  <script src="app.js"></script>
+  <script src="explain-cards.js"></script>
+</body>
+</html>

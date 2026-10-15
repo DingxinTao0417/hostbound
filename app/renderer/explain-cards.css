@@ -1,0 +1,35 @@
+/* 面板里的讲解卡片：【图解】（打开讲解窗口）、【就地讲解】（暂停 / 上一个 / 下一个）、【教学】（你来做这步 / 跳过） */
+.xc { position: relative; padding: 10px 13px; --c: 10px; align-self: stretch; white-space: normal; }
+.xc::before, .xc::after { content: ""; position: absolute; clip-path: polygon(var(--c) 0, 100% 0, 100% calc(100% - var(--c)), calc(100% - var(--c)) 100%, 0 100%, 0 var(--c)); }
+.xc::before { inset: 0; background: linear-gradient(135deg, var(--cyan), var(--blue) 50%, var(--violet)); }
+.xc::after { inset: 1.5px; background: rgba(10, 20, 58, .92); }
+.xc > * { position: relative; z-index: 1; }
+.xc .tt { font-size: 11.5px; letter-spacing: .2em; color: var(--cyan); text-shadow: 0 0 8px rgba(95,230,255,.6); }
+.xc .nm { font-size: 15.5px; font-weight: 700; color: #fff; margin: 1px 0 3px; }
+.xc .sm { font-size: 13px; color: #d7e4fb; line-height: 1.65; margin-bottom: 3px; }
+.xc .meta { font-size: 11.5px; color: var(--muted); }
+.xc .live { margin-top: 6px; font-size: 12.5px; color: #fff; }
+.xc .live:empty { display: none; }
+.xc .live::before { content: ""; display: inline-block; width: 7px; height: 7px; margin-right: 7px; transform: rotate(45deg); background: var(--gold); box-shadow: 0 0 6px var(--gold); animation: blink 1s steps(2) infinite; }
+.xc .qb { display: flex; gap: 8px; margin-top: 9px; flex-wrap: wrap; }
+.xc .qb .btn { flex: 1; padding: 5px 10px; font-size: 12.5px; letter-spacing: .06em; }
+.xc .say { margin-top: 8px; padding: 7px 10px; font-size: 14px; font-weight: 700; color: #fff; line-height: 1.6; background: linear-gradient(90deg, rgba(255,217,122,.16), transparent); border-left: 3px solid var(--gold); }
+.xc .warn { margin-top: 5px; font-size: 12px; color: #ff9ae0; }
+.xc .warn:empty { display: none; }
+.xc .hintv { margin-top: 6px; font-size: 11.5px; color: var(--muted); }
+.xc ol { list-style: none; margin: 6px 0 0; padding: 0; font-size: 13px; }
+.xc ol li { display: flex; gap: 8px; padding: 2px 6px; color: #9fb0d2; border-left: 2px solid transparent; }
+.xc ol li .n { font: 700 11px Consolas, monospace; color: var(--dim, #5d6f96); width: 16px; flex: none; }
+.xc ol li.on { color: #fff; border-left-color: var(--gold); background: linear-gradient(90deg, rgba(255,217,122,.14), transparent); }
+.xc ol li.on .n { color: var(--gold); }
+.xc ol li.done { color: #c7d6f5; }
+.xc ol li.done .n { color: var(--green); }
+.xc.guide::before { background: linear-gradient(135deg, var(--gold), #ffb35f 50%, var(--cyan)); }
+.xc.guide .tt { color: var(--gold); text-shadow: 0 0 8px rgba(255,217,122,.6); }
+.xc.tutor::before { background: linear-gradient(135deg, #ffd97a, #ffb35f 50%, #ff7a59); }
+.xc.tutor::after { background: rgba(40, 28, 8, .9); }
+.xc.tutor .tt { color: var(--gold); text-shadow: 0 0 8px rgba(255,217,122,.6); }
+.xc.ended::before { background: linear-gradient(135deg, var(--green), var(--cyan)); }
+.xc.ended::after { background: rgba(8, 36, 30, .92); }
+.xc.ended .tt { color: var(--green); }
+.xc.quit { opacity: .7; }

@@ -1,0 +1,317 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>鉴定术设计稿</title>
+<link rel="stylesheet" href="kit.css">
+<style>
+  .fr > .l2 { background: rgba(7, 12, 36, .78); }
+  .fr > .l4 { background: rgba(16, 28, 70, .2); }
+  .fr > .l1, .fr > .l3 { --w: 2px; clip-path: polygon(evenodd,
+    var(--c) 0, calc(100% - var(--c)) 0, 100% var(--c), 100% calc(100% - var(--c)), calc(100% - var(--c)) 100%, var(--c) 100%, 0 calc(100% - var(--c)), 0 var(--c), var(--c) 0,
+    calc(var(--w) + var(--c)) var(--w), var(--w) calc(var(--w) + var(--c)), var(--w) calc(100% - var(--w) - var(--c)), calc(var(--w) + var(--c)) calc(100% - var(--w)),
+    calc(100% - var(--w) - var(--c)) calc(100% - var(--w)), calc(100% - var(--w)) calc(100% - var(--w) - var(--c)), calc(100% - var(--w)) calc(var(--w) + var(--c)),
+    calc(100% - var(--w) - var(--c)) var(--w), calc(var(--w) + var(--c)) var(--w)); }
+  .fr > .l3 { --w: 1px; }
+  .note { max-width: 1180px; margin: 10px auto 0; font-size: 13px; color: var(--muted); line-height: 1.8; }
+  .note b { color: #cfe0ff; }
+  .flow { max-width: 1180px; margin: 36px auto 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 28px; align-items: start; }
+  .flow .fr > .body { padding: 40px 16px 16px; }
+  .cap2 { margin: 12px 4px 0; font-size: 12.5px; color: var(--muted); line-height: 1.6; }
+  .cap2 b { color: #cfe0ff; margin-right: 6px; }
+  .chat { gap: 8px; }
+  .msg-u, .msg-s { font-size: 13px; }
+  .row2 { max-width: 1180px; margin: 30px auto 0; display: grid; grid-template-columns: 560px 560px; justify-content: space-between; gap: 28px; align-items: start; }
+  .row2.scan { grid-template-columns: 680px minmax(300px, 1fr); }
+  @media (max-width: 1220px) { .row2, .row2.scan { grid-template-columns: minmax(0, 680px); justify-content: center; } }
+  .decide { max-width: 1180px; margin: 30px auto 0; }
+  .decide ol { margin: 0; padding-left: 22px; font-size: 14px; line-height: 1.9; }
+  .decide li { margin-bottom: 6px; }
+  .decide li b { color: var(--gold); font-weight: 600; }
+
+  /* ---- 假桌面 ---- */
+  .desk { position: relative; width: 560px; height: 420px; overflow: hidden; border: 1px solid rgba(95,230,255,.25);
+    background: radial-gradient(ellipse at 70% 20%, #3a5a8c, #1b2a48 60%, #121a2e); font-family: "Microsoft YaHei UI", sans-serif; }
+  .desk.tall { height: 470px; }
+  .desk.w680 { width: 680px; }
+  .win { position: absolute; background: #1d2333; border: 1px solid #3a4560; box-shadow: 0 6px 20px rgba(0,0,0,.45); overflow: hidden; }
+  .win .tb { height: 22px; padding: 3px 9px; font-size: 11px; color: #b6c0d8; background: #2b3247; display: flex; gap: 6px; align-items: center; }
+  .win .tb i { margin-left: auto; font-style: normal; color: #7c86a0; letter-spacing: 6px; }
+  .win.light { background: #f3f4f7; border-color: #c9ccd4; }
+  .win.light .tb { background: #e6e8ee; color: #333; }
+  .win .ct2 { padding: 10px; font-size: 12px; color: #c9d2e6; }
+  .win.light .ct2 { color: #222; }
+  /* 游戏背包 */
+  .bag { display: grid; grid-template-columns: repeat(6, 44px); gap: 6px; }
+  .slot { width: 44px; height: 44px; background: #2a2016; border: 1px solid #6b5536; display: grid; place-items: center; }
+  .slot.epic { border-color: #b15bff; box-shadow: inset 0 0 10px rgba(177,91,255,.6); background: #251a33; }
+  .slot svg { width: 34px; height: 34px; }
+  .gtip { position: absolute; width: 150px; padding: 6px 8px; font-size: 11px; line-height: 1.5; color: #e8d9b5; background: rgba(20,14,8,.95); border: 1px solid #8a6a3a; }
+  .gtip b { color: #d39bff; }
+  /* 定格 + 暗下去 */
+  .freeze { position: absolute; inset: 0; background: rgba(0, 6, 22, .55); }
+  .hintbar { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); z-index: 5; white-space: nowrap; padding: 5px 22px; font-size: 12px; color: #dff6ff;
+    background: rgba(8, 18, 48, .92); border: 1px solid rgba(95,230,255,.6); box-shadow: 0 0 12px rgba(95,230,255,.4);
+    clip-path: polygon(12px 0, calc(100% - 12px) 0, 100% 50%, calc(100% - 12px) 100%, 12px 100%, 0 50%); }
+  .hintbar b { color: var(--gold); margin-right: 8px; letter-spacing: .1em; }
+  .hintbar .key { font-size: 10.5px; padding: 0 5px; }
+  .hl { position: absolute; z-index: 3; box-shadow: 0 0 0 2px var(--cyan), 0 0 16px var(--cyan); }
+  .hl.dim, .reg.dim { box-shadow: 0 0 0 2px var(--cyan), 0 0 16px var(--cyan), 0 0 0 2000px rgba(0, 6, 22, .58); }
+  .reg.dim { box-shadow: 0 0 10px var(--gold), 0 0 0 2000px rgba(0, 6, 22, .58); }
+  .hl .lab { position: absolute; left: -2px; top: -24px; padding: 2px 10px; font-size: 11px; color: #001826; font-weight: 700; background: var(--cyan); white-space: nowrap;
+    clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 100%, 0 100%); }
+  .lit { position: absolute; z-index: 2; overflow: hidden; } /* 选中的那块不暗 */
+  .reg { position: absolute; z-index: 3; border: 1.5px solid var(--gold); box-shadow: 0 0 10px var(--gold); }
+  .reg::before, .reg::after { content: ""; position: absolute; width: 8px; height: 8px; border: 2px solid var(--gold); }
+  .reg::before { left: -5px; top: -5px; border-right: 0; border-bottom: 0; }
+  .reg::after { right: -5px; bottom: -5px; border-left: 0; border-top: 0; }
+  .reg .size { position: absolute; left: 0; top: -20px; font: 11px Consolas, monospace; color: var(--gold); white-space: nowrap; }
+  .seltool { position: absolute; z-index: 4; display: flex; gap: 4px; align-items: center; padding: 4px; background: rgba(8, 18, 48, .95); border: 1px solid rgba(95,230,255,.5); }
+  .seltool span { padding: 3px 10px; font-size: 11.5px; color: #cfe0ff; background: rgba(255,255,255,.06); white-space: nowrap; }
+  .seltool span.go { color: #fff; font-weight: 700; background: linear-gradient(90deg, rgba(95,230,255,.55), rgba(177,91,255,.55)); }
+  .seltool .ask { min-width: 150px; color: var(--dim); background: rgba(0,10,40,.8); border: 1px solid rgba(95,230,255,.3); }
+  .cursor { position: absolute; z-index: 6; width: 22px; height: 22px; }
+  .cursor::before, .cursor::after { content: ""; position: absolute; background: var(--cyan); box-shadow: 0 0 6px var(--cyan); }
+  .cursor::before { left: 10px; top: 0; width: 2px; height: 22px; }
+  .cursor::after { top: 10px; left: 0; height: 2px; width: 22px; }
+  /* 扫描 */
+  .sweep { position: absolute; left: 0; right: 0; height: 36px; background: linear-gradient(180deg, transparent, rgba(95,230,255,.35) 85%, var(--cyan)); border-bottom: 2px solid var(--cyan); box-shadow: 0 6px 14px rgba(95,230,255,.6); }
+  .grid-fx { position: absolute; inset: 0; background-image: linear-gradient(rgba(95,230,255,.12) 1px, transparent 1px), linear-gradient(90deg, rgba(95,230,255,.12) 1px, transparent 1px); background-size: 14px 14px; }
+
+  /* ---- 鉴定卡 ---- */
+  .jd { position: absolute; z-index: 5; width: 300px; padding: 10px 13px 11px; --c: 12px; font-size: 12.5px; line-height: 1.65; }
+  .jd.static { position: relative; width: auto; }
+  .jd::before, .jd::after { content: ""; position: absolute; clip-path: polygon(var(--c) 0, 100% 0, 100% calc(100% - var(--c)), calc(100% - var(--c)) 100%, 0 100%, 0 var(--c)); }
+  .jd::before { inset: 0; background: linear-gradient(135deg, var(--cyan), var(--blue) 45%, var(--violet) 75%, var(--pink)); }
+  .jd::after { inset: 1.5px; background: rgba(6, 12, 34, .95); }
+  .jd > * { position: relative; z-index: 1; }
+  .jd .tt { font-size: 11.5px; letter-spacing: .22em; color: var(--cyan); text-shadow: 0 0 8px var(--cyan); display: flex; }
+  .jd .tt small { margin-left: auto; letter-spacing: .1em; color: var(--dim); font: 10.5px Consolas, monospace; }
+  .jd .nm { font-size: 17px; font-weight: 700; color: #fff; margin: 3px 0 4px; display: flex; align-items: center; gap: 8px; }
+  .rar { font-size: 11px; padding: 0 7px; font-weight: 700; letter-spacing: .1em; border: 1px solid; clip-path: polygon(5px 0, 100% 0, calc(100% - 5px) 100%, 0 100%); }
+  .rar.epic { color: #e2b8ff; border-color: #b15bff; background: rgba(177,91,255,.25); box-shadow: 0 0 10px rgba(177,91,255,.6); }
+  .rar.legend { color: #ffd2a0; border-color: #ff9a3a; background: rgba(255,154,58,.22); }
+  .rar.rare { color: #bcd2ff; border-color: #4f7bff; background: rgba(79,123,255,.22); }
+  .rar.fix { color: #ffc4cd; border-color: var(--red); background: rgba(255,90,114,.18); }
+  .jd .kv { grid-template-columns: auto 1fr; gap: 1px 10px; }
+  .jd .kv > :nth-child(odd) { color: var(--muted); white-space: nowrap; }
+  .jd .ev { margin-top: 5px; padding-top: 5px; border-top: 1px dashed rgba(95,230,255,.25); color: #fff; }
+  .jd .ev b { color: var(--gold); font-weight: 400; margin-right: 4px; }
+  .jd .ops { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+  .jd .ops span { padding: 2px 10px; font-size: 11.5px; color: #cfe0ff; background: rgba(255,255,255,.08); clip-path: polygon(6px 0, 100% 0, calc(100% - 6px) 100%, 0 100%); }
+  .jd .ops span.go { color: #fff; background: linear-gradient(90deg, rgba(95,230,255,.5), rgba(177,91,255,.5)); }
+  .jd .line { position: absolute; z-index: 1; height: 1.5px; background: var(--cyan); box-shadow: 0 0 6px var(--cyan); }
+  .voice { margin-top: 6px; font-size: 11px; color: var(--muted); }
+  .voice::before { content: "♪ "; color: var(--green); }
+  /* 系统 Windows 报错框 */
+  .err { font-size: 12px; color: #222; display: flex; gap: 10px; align-items: flex-start; }
+  .err .x { width: 26px; height: 26px; border-radius: 50%; background: #d83b3b; color: #fff; display: grid; place-items: center; font-weight: 700; flex: none; }
+  .err .btn2 { margin-top: 12px; text-align: right; }
+  .err .btn2 span { display: inline-block; padding: 2px 18px; border: 1px solid #888; background: #fff; font-size: 11px; }
+  /* 扫描全屏的标签 */
+  .tag2 { position: absolute; z-index: 4; display: flex; gap: 6px; align-items: center; max-width: 250px; padding: 2px 10px 2px 6px; font-size: 11px; color: #e6f7ff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    background: rgba(6, 16, 44, .92); border: 1px solid rgba(95,230,255,.7); box-shadow: 0 0 10px rgba(95,230,255,.45); clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 100%, 0 100%); }
+  .tag2::before { content: "◆"; color: var(--cyan); text-shadow: 0 0 6px var(--cyan); }
+  .tag2 b { color: var(--cyan); font-weight: 700; }
+  .tag2.priv { border-color: rgba(255,217,122,.7); } .tag2.priv::before { color: var(--gold); } .tag2.priv b { color: var(--gold); }
+  .tag2.block { border-color: rgba(255,90,114,.7); } .tag2.block::before { color: var(--red); } .tag2.block b { color: var(--red); }
+  .masked { position: absolute; inset: 22px 0 0 0; background: repeating-linear-gradient(45deg, #000 0 10px, #111 10px 20px); }
+  .tbl td:first-child { color: #fff; white-space: nowrap; }
+  .entry .big2 { font-size: 13px; line-height: 1.9; }
+</style>
+</head>
+<body>
+<header>
+  <h1>设计稿 · 鉴定术</h1>
+  <p>把屏幕上的任何东西框出来交给系统：游戏装备、网页商品、报错、外文、梗图、软件界面。系统扫一遍，在旁边弹出一张【鉴定结果】，念出名称和一句评价。选法跟微信截图一样：点一个窗口、拖一个框，或者全屏。直播时观众看到的就是「定格 → 扫描 → 鉴定卡」。</p>
+</header>
+
+<h2 class="group">一、怎么进鉴定模式</h2>
+<div class="flow entry">
+  <div>
+    <section class="fr" data-title="快捷键" data-code="HOTKEY">
+      <div class="center" style="padding:14px 0 6px"><span class="key">Ctrl</span> + <span class="key">Alt</span> + <span class="key">J</span></div>
+      <div class="big2 muted center">按一下就进鉴定模式<br>直播模式下也能用（不用喊唤醒词）</div>
+    </section>
+    <p class="cap2"><b>① 快捷键</b>J 是「鉴定」的 J。设置 · 快捷键里能改。托盘菜单也加一项「鉴定」。</p>
+  </div>
+  <div>
+    <section class="fr" data-title="系统通知" data-code="SYS">
+      <div class="chat">
+        <div class="msg-u"><span class="tag">宿主</span>系统，我要鉴定</div>
+        <div class="msg-s"><span class="tag">系统</span>鉴定模式已开启。点窗口、拖框，或者按 F 全屏。</div>
+        <div class="msg-u"><span class="tag">宿主</span>鉴定一下这个窗口</div>
+        <div class="msg-u"><span class="tag">宿主</span>扫描全屏</div>
+      </div>
+    </section>
+    <p class="cap2"><b>② 说出来</b>「我要鉴定」「开启鉴定模式」进选择；「鉴定一下这个窗口」直接鉴定你正在用的窗口；「扫描全屏」直接扫所有屏幕。这几句本地就认，不用等模型。</p>
+  </div>
+  <div>
+    <section class="fr" data-title="鉴定完成" data-code="APPRAISE">
+      <div class="chat">
+        <div class="jd static"><div class="tt">【鉴定结果】<small>APPRAISE</small></div><div class="nm">寒铁长剑 <span class="rar epic">史诗</span></div><div class="muted" style="font-size:11.5px">单手剑 · 攻击 +128 · 暴击 +6%</div></div>
+        <div class="msg-u"><span class="tag">宿主</span>跟我身上那把比呢？</div>
+        <div class="msg-s"><span class="tag">系统</span>你身上那把攻击 +96。这把高出 32 点，建议更换。</div>
+      </div>
+    </section>
+    <p class="cap2"><b>③ 接着问</b>对话里留一张小鉴定卡。接着问的话，系统会带着那张图回答。</p>
+  </div>
+</div>
+
+<h2 class="group">二、选什么：跟微信截图一样</h2>
+<div class="row2">
+  <div>
+    <div class="desk">
+      <div class="win" style="left:380px;top:150px;width:240px;height:200px"><div class="tb">聊天软件<i>— ▢ ✕</i></div></div>
+      <div class="win" style="left:40px;top:60px;width:420px;height:300px">
+        <div class="tb">游戏 · 背包<i>— ▢ ✕</i></div>
+        <div class="ct2"><div class="bag">
+          <div class="slot"></div><div class="slot epic"><svg viewBox="0 0 64 64"><g transform="rotate(45 32 32)"><polygon points="29,8 35,8 32,1" fill="#e9f3ff"/><rect x="29" y="8" width="6" height="32" fill="#cfe3ff"/><rect x="22" y="40" width="20" height="4" fill="#c99a4a"/><rect x="30" y="44" width="4" height="12" fill="#6b4a22"/><circle cx="32" cy="58" r="3" fill="#c99a4a"/></g></svg></div>
+          <div class="slot"></div><div class="slot"></div><div class="slot"></div><div class="slot"></div>
+          <div class="slot"></div><div class="slot"></div><div class="slot"></div><div class="slot"></div><div class="slot"></div><div class="slot"></div>
+        </div></div>
+      </div>
+      <div class="hl dim" style="left:40px;top:60px;width:420px;height:300px"><span class="lab">游戏 · 背包　1280 × 900　点一下鉴定整个窗口</span></div>
+      <div class="hintbar"><b>【鉴定模式】</b>画面已定格 · 点一个窗口 · 拖一个框 · <span class="key">F</span> 全屏 · <span class="key">Esc</span> 退出</div>
+      <div class="cursor" style="left:300px;top:250px"></div>
+    </div>
+    <p class="cap2"><b>点窗口</b>进鉴定模式时先把每块屏幕「定格」（截一张），屏幕变暗，你在定格的画面上选。所以游戏、视频里一闪而过的东西也能框住。鼠标停在哪个窗口上，那个窗口就亮起来，标出名字和大小，点一下就鉴定整个窗口。</p>
+  </div>
+  <div>
+    <div class="desk">
+      <div class="win" style="left:40px;top:60px;width:420px;height:300px">
+        <div class="tb">游戏 · 背包<i>— ▢ ✕</i></div>
+        <div class="ct2"><div class="bag">
+          <div class="slot"></div><div class="slot epic"><svg viewBox="0 0 64 64"><g transform="rotate(45 32 32)"><polygon points="29,8 35,8 32,1" fill="#e9f3ff"/><rect x="29" y="8" width="6" height="32" fill="#cfe3ff"/><rect x="22" y="40" width="20" height="4" fill="#c99a4a"/><rect x="30" y="44" width="4" height="12" fill="#6b4a22"/><circle cx="32" cy="58" r="3" fill="#c99a4a"/></g></svg></div>
+          <div class="slot"></div><div class="slot"></div><div class="slot"></div><div class="slot"></div>
+        </div>
+        <div class="gtip" style="left:110px;top:110px"><b>寒铁长剑</b><br>单手剑　攻击 +128<br>暴击 +6%　耐久 82/100<br>需要等级 35</div></div>
+      </div>
+      <div class="reg dim" style="left:150px;top:90px;width:176px;height:190px"><span class="size">176 × 190</span></div>
+      <div class="seltool" style="left:150px;top:290px"><span class="go">◆ 鉴定</span><span class="ask">问一句：值不值得换？</span><span>重选</span><span>✕</span></div>
+      <div class="hintbar"><b>【鉴定模式】</b>拖好了：回车或双击鉴定 · 拖边角调整 · 右键重选</div>
+    </div>
+    <p class="cap2"><b>拖一个框</b>按住拖出一块区域，松手后下面出一排按钮：「鉴定」（回车、双击也行）、「问一句」（顺便带个问题，比如「值不值得换」「这是什么梗」）、「重选」「✕」。按 <span class="key">F</span> 鉴定鼠标所在的那块屏幕；<span class="key">Esc</span> 或右键退出。每块屏幕都能选。</p>
+  </div>
+</div>
+
+<h2 class="group">三、鉴定结果</h2>
+<div class="row2">
+  <div>
+    <div class="desk tall">
+      <div class="win" style="left:16px;top:50px;width:300px;height:330px">
+        <div class="tb">游戏 · 背包<i>— ▢ ✕</i></div>
+        <div class="ct2"><div class="bag" style="grid-template-columns:repeat(5,44px)">
+          <div class="slot"></div><div class="slot epic"><svg viewBox="0 0 64 64"><g transform="rotate(45 32 32)"><polygon points="29,8 35,8 32,1" fill="#e9f3ff"/><rect x="29" y="8" width="6" height="32" fill="#cfe3ff"/><rect x="22" y="40" width="20" height="4" fill="#c99a4a"/><rect x="30" y="44" width="4" height="12" fill="#6b4a22"/><circle cx="32" cy="58" r="3" fill="#c99a4a"/></g></svg></div>
+          <div class="slot"></div><div class="slot"></div><div class="slot"></div>
+        </div>
+        <div class="gtip" style="left:110px;top:110px"><b>寒铁长剑</b><br>单手剑　攻击 +128<br>暴击 +6%　耐久 82/100<br>需要等级 35</div></div>
+      </div>
+      <div class="reg" style="left:122px;top:80px;width:176px;height:190px;overflow:hidden"><div class="grid-fx"></div><div class="sweep" style="top:120px"></div></div>
+      <div class="jd" style="left:312px;top:64px;width:236px">
+        <div class="tt">【鉴定结果】<small>APPRAISE</small></div>
+        <div class="nm">寒铁长剑 <span class="rar epic">史诗</span></div>
+        <div class="kv"><span>类别</span><span>装备 · 单手剑</span><span>属性</span><span>攻击 +128　暴击 +6%<br>耐久 82/100</span><span>要求</span><span>等级 35</span></div>
+        <div class="ev"><b>评价</b>同等级里的上等货，比你身上那把强一截。</div>
+        <div class="ev" style="border:0;margin-top:0;padding-top:0"><b>建议</b>换。</div>
+        <div class="ops"><span class="go">追问</span><span>复制</span><span>✕</span></div>
+      </div>
+      <div class="voice" style="position:absolute;left:312px;top:388px;width:236px">念：「鉴定完成。寒铁长剑，史诗品质。同等级里的上等货。」</div>
+    </div>
+    <p class="cap2"><b>系统流</b>选中的那块先扫一遍：网格亮起，扫描线从上往下走，系统核心变金色，标题牌换成「鉴定中」。约 2～4 秒后，卡片从框边上展开，一行一行出来，同时念名称和一句评价。卡片停在框旁边，鼠标移上去就一直停着。</p>
+  </div>
+  <div>
+    <div class="desk tall">
+      <div class="win light" style="left:16px;top:50px;width:330px;height:140px">
+        <div class="tb">剪辑软件.exe - 系统错误<i>✕</i></div>
+        <div class="ct2"><div class="err"><span class="x">✕</span><span>由于找不到 MSVCP140.dll，无法继续执行代码。重新安装程序可能会解决此问题。</span></div><div class="err btn2"><span>确定</span></div></div>
+      </div>
+      <div class="hl" style="left:16px;top:50px;width:330px;height:140px"></div>
+      <div class="jd" style="left:228px;top:150px;width:316px">
+        <div class="tt">【鉴定结果】<small>APPRAISE</small></div>
+        <div class="nm">缺少运行库 <span class="rar fix">报错</span></div>
+        <div class="kv"><span>是什么</span><span>程序要用的 VC++ 运行库没装，或者装坏了</span><span>怎么办</span><span>装微软官方的「Visual C++ 2015-2022 运行库」（x64 和 x86 各一个），装完重开软件</span></div>
+        <div class="ops"><span class="go">帮我处理</span><span>追问</span><span>复制</span><span>✕</span></div>
+      </div>
+      <div class="voice" style="position:absolute;left:228px;top:410px;width:316px">念：「鉴定完成。缺少运行库，装上微软的运行库就好。」</div>
+    </div>
+    <p class="cap2"><b>实用</b>报错、文字、代码、网页、商品不评品质，只说「是什么、为什么、怎么办」。「帮我处理」交给系统去做（下载、安装照常弹授权）；软件界面会多一个「在软件上标出来」，直接接就地讲解。</p>
+  </div>
+</div>
+<div class="note">
+  <table class="tbl" style="margin-top:14px">
+    <tr><th>框住的是</th><th>卡片上写什么</th></tr>
+    <tr><td>游戏装备、道具、角色</td><td>名称、品质（普通 / 精良 / 稀有 / 史诗 / 传说）、属性、评价、建议</td></tr>
+    <tr><td>图片、梗图、表情包</td><td>是什么、出处、什么意思（也给品质评级，图个乐）</td></tr>
+    <tr><td>报错、弹窗</td><td>是什么错、为什么、怎么办，能「帮我处理」</td></tr>
+    <tr><td>外文、一段文字</td><td>翻译或者摘要</td></tr>
+    <tr><td>商品页</td><td>是什么、价格、亮点、要注意的、值不值</td></tr>
+    <tr><td>代码</td><td>什么语言、在干什么、有没有明显的问题</td></tr>
+    <tr><td>软件界面</td><td>什么软件、这个界面干什么的，能「在软件上标出来」</td></tr>
+    <tr><td>有真人的图</td><td>只描述（衣服、动作、场景），<b>不说是谁</b></td></tr>
+  </table>
+</div>
+
+<h2 class="group">四、扫描全屏</h2>
+<div class="row2 scan">
+  <div class="desk tall w680">
+    <div class="win" style="left:20px;top:30px;width:300px;height:200px"><div class="tb">浏览器<i>— ▢ ✕</i></div><div class="ct2">视频网站 · 正在播放</div></div>
+    <div class="win" style="left:340px;top:40px;width:300px;height:230px"><div class="tb">剪辑软件<i>— ▢ ✕</i></div><div class="ct2">时间线：3 段素材</div></div>
+    <div class="win" style="left:30px;top:250px;width:250px;height:190px"><div class="tb">聊天软件<i>— ▢ ✕</i></div></div>
+    <div class="win" style="left:300px;top:290px;width:240px;height:160px"><div class="tb">代码编辑器<i>— ▢ ✕</i></div><div class="ct2 mono">index.mjs</div></div>
+    <div class="win" style="left:560px;top:300px;width:110px;height:140px"><div class="tb">网上银行</div><div class="masked"></div></div>
+    <div class="sweep" style="top:330px;opacity:.55"></div>
+    <div class="tag2" style="left:28px;top:60px"><b>浏览器</b>在看视频网站，播放到 12:40</div>
+    <div class="tag2" style="left:348px;top:70px"><b>剪辑软件</b>在剪一期视频，时间线 3 段素材</div>
+    <div class="tag2 priv" style="left:38px;top:280px"><b>聊天软件</b>聊天内容不读</div>
+    <div class="tag2" style="left:308px;top:320px"><b>代码编辑器</b>在改 index.mjs</div>
+    <div class="tag2 block" style="left:470px;top:410px"><b>网上银行</b>禁止操作，已涂黑</div>
+  </div>
+  <div>
+    <div class="jd static">
+      <div class="tt">【全屏扫描】<small>SCAN</small></div>
+      <div class="nm">检测到 5 个窗口</div>
+      <div class="kv"><span>窗口</span><span>浏览器、剪辑软件、聊天软件、代码编辑器</span><span>涂黑</span><span>网上银行（禁止操作，没发给模型）</span></div>
+      <div class="ev"><b>评价</b>宿主正在一边看视频一边剪片，效率尚可。</div>
+      <div class="ops"><span class="go">点标签鉴定那个窗口</span><span>✕</span></div>
+    </div>
+    <p class="cap2" style="margin-top:16px"><b>一次扫完</b>说「扫描全屏」或者在鉴定模式里按 <span class="key">F</span> 两下：扫描线扫过所有屏幕，每个窗口挂一个标签，写一句它在干什么，最后一张汇总卡。点哪个标签就鉴定哪个窗口。每块屏幕截一张图，模型一次给所有窗口写标签。</p>
+    <p class="cap2"><b>直播也放心</b>聊天、邮件软件只标名字，不读内容（金色标签）；禁止操作的软件先涂黑再发给模型（红色标签）；系统自己的面板不截进去。</p>
+  </div>
+</div>
+
+<h2 class="group">五、细节</h2>
+<div class="note">
+  <p><b>谁来看图</b>：DeepSeek V4.1 Flash 自己能看图。鉴定是单独调一次模型，不进对话的上下文，不打断正在干的活。结果卡和一句话记录放进对话；接着问的时候，再把那张图带给大脑。</p>
+  <p><b>发出去的只有选中的那块</b>：定格的整屏截图只留在内存里，选完就扔。发给模型的只有你框住的区域（扫描全屏时是整屏，但涂黑了禁止操作的软件）。系统日志记一笔「鉴定：选了一块 176×190 的区域，发给了模型」，跟看屏幕一样。</p>
+  <p><b>快</b>：选完到出卡的目标是 2～4 秒，扫描动画正好盖住等待。卡片的字边出边显示，先出名称。</p>
+  <p><b>直播</b>：直播模式下快捷键照常能用。鉴定卡画在效果层上，观众看得到；念的话照常走系统音。</p>
+  <p><b>以后可以加</b>：框选时吸附到窗口里的一块（只框住一个按钮、一张图），像微信截图那样；鉴定记录单独一页。</p>
+</div>
+
+<h2 class="group">六、需要你拍板的（括号里是默认）</h2>
+<div class="decide card"><div class="ct">
+<ol>
+  <li>快捷键？（<b>Ctrl+Alt+J</b>，J 是「鉴定」的 J；设置 · 快捷键里能改）</li>
+  <li>进鉴定模式时定格画面吗？（<b>定格</b>，跟微信截图一样，在定格的画面上选）</li>
+  <li>卡片风格？（<b>自动</b>：游戏、角色、图片带品质评级；报错、文字、代码、网页、商品只给实用信息）</li>
+  <li>念多少？（<b>只念名称和一句评价</b>，详细的看卡片）</li>
+  <li>卡片在屏幕上停多久？（<b>30 秒</b>，鼠标移上去就一直停；点 ✕、按 Esc、说「关掉」收起。对话里同时留一份）</li>
+  <li>鉴定过的图存不存？（<b>对话里的鉴定卡存一张小缩略图</b>，放在本地 data 里不上传，设置里能清空）</li>
+  <li>扫描全屏扫哪些？（<b>所有屏幕</b>；聊天、邮件软件只标名字；禁止操作的软件涂黑）</li>
+</ol>
+</div></div>
+<p class="note">已经定了的：有真人的图只描述、不说是谁；发给模型的只有选中的那块；定格的整屏截图不存；「帮我处理」里的危险操作照常授权。</p>
+
+<script>
+  document.querySelectorAll('section.fr').forEach((fr) => {
+    const kids = [...fr.childNodes];
+    fr.innerHTML = '<i class="l1"></i><i class="l2"></i><i class="l3"></i><i class="l4"></i>' +
+      `<div class="plate"><span class="wing l"></span><span class="p">${fr.dataset.title}</span><span class="wing r"></span></div><span class="code">${fr.dataset.code}</span><div class="body"></div>`;
+    const body = fr.querySelector('.body');
+    kids.forEach((n) => body.appendChild(n));
+  });
+</script>
+</body>
+</html>

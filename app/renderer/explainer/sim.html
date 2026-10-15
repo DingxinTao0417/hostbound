@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <!-- 能动手玩的模拟：大脑写的 HTML 关在这里。不能联网、不能引外部文件；外面的 iframe 还加了 sandbox，碰不到讲解窗口 -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; font-src data:">
+  <style>html, body { margin: 0; background: #0a1230; color: #e9f4ff; font-family: "Microsoft YaHei UI", sans-serif; }</style>
+</head>
+<body>
+  <script>
+    addEventListener('message', (e) => {
+      if (window.__loaded || !e.data || typeof e.data.html !== 'string') return;
+      window.__loaded = true;
+      document.open();
+      document.write(e.data.html);
+      document.close();
+    });
+    parent.postMessage({ simReady: true }, '*');
+  </script>
+</body>
+</html>

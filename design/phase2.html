@@ -1,0 +1,734 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>阶段 2 设计稿</title>
+<link rel="stylesheet" href="kit.css">
+<style>
+  /* 跟现在的程序一致：底板半透明，外线、内线是镂空的环 */
+  .fr > .l2 { background: rgba(7, 12, 36, .78); }
+  .fr > .l4 { background: rgba(16, 28, 70, .2); }
+  .fr > .l1, .fr > .l3 { --w: 2px; clip-path: polygon(evenodd,
+    var(--c) 0, calc(100% - var(--c)) 0, 100% var(--c), 100% calc(100% - var(--c)), calc(100% - var(--c)) 100%, var(--c) 100%, 0 calc(100% - var(--c)), 0 var(--c), var(--c) 0,
+    calc(var(--w) + var(--c)) var(--w), var(--w) calc(var(--w) + var(--c)), var(--w) calc(100% - var(--w) - var(--c)), calc(var(--w) + var(--c)) calc(100% - var(--w)),
+    calc(100% - var(--w) - var(--c)) calc(100% - var(--w)), calc(100% - var(--w)) calc(100% - var(--w) - var(--c)), calc(100% - var(--w)) calc(var(--w) + var(--c)),
+    calc(100% - var(--w) - var(--c)) var(--w), calc(var(--w) + var(--c)) var(--w)); }
+  .fr > .l3 { --w: 1px; }
+
+  .sect { max-width: 1180px; margin: 0 auto; }
+  .demo-grid { max-width: 1180px; margin: 22px auto 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(520px, 1fr)); gap: 40px 30px; }
+  .demo h3 { margin: 0 0 10px; font-size: 15px; letter-spacing: .08em; display: flex; align-items: center; gap: 10px; }
+  .demo h3 .no { font: 700 12px Consolas, monospace; color: var(--cyan); padding: 1px 7px; border: 1px solid rgba(95,230,255,.45); }
+  .replay { margin-left: auto; font-size: 12px; color: #cfe0ff; cursor: pointer; padding: 3px 12px; border: 1px solid rgba(95,230,255,.4); background: rgba(95,230,255,.08); }
+  .replay:hover { border-color: var(--cyan); color: #fff; }
+
+  /* ---------- 假桌面 ---------- */
+  .desk { position: relative; aspect-ratio: 16 / 9; overflow: hidden; border: 1px solid rgba(95,230,255,.22); container-type: inline-size;
+    background: radial-gradient(ellipse at 70% 30%, #2a3f6e, transparent 60%), radial-gradient(ellipse at 20% 80%, #3b2a5a, transparent 55%), linear-gradient(160deg, #1b2440, #10162b); }
+  .taskbar { position: absolute; left: 0; right: 0; bottom: 0; height: 5.5%; background: rgba(20,24,38,.92); border-top: 1px solid rgba(255,255,255,.06); display: flex; justify-content: center; align-items: center; gap: .9%; }
+  .taskbar i { width: 2.2%; aspect-ratio: 1; border-radius: 3px; background: rgba(255,255,255,.14); }
+  .win { position: absolute; background: #202020; border: 1px solid rgba(255,255,255,.1); border-radius: 6px; box-shadow: 0 10px 30px rgba(0,0,0,.45); overflow: hidden; font-family: "Segoe UI", "Microsoft YaHei UI", sans-serif; }
+  .win .tb { height: 9%; min-height: 14px; display: flex; align-items: center; padding: 0 4%; font-size: max(9px, 1.05cqw); color: #ddd; background: #1c1c1c; }
+  .win .tb .dots { margin-left: auto; letter-spacing: .4em; color: #999; }
+  /* 计算器 */
+  .calc .disp { height: 20%; display: flex; align-items: flex-end; justify-content: flex-end; padding: 0 6%; font-size: max(16px, 2.6cqw); font-weight: 300; color: #fff; }
+  .calc .keys { position: absolute; left: 3%; right: 3%; top: 31%; bottom: 3%; display: grid; grid-template-columns: repeat(4, 1fr); gap: 2.5%; }
+  .calc .keys b { display: grid; place-items: center; border-radius: 4px; background: #3b3b3b; color: #eee; font-weight: 400; font-size: max(9px, 1.1cqw); }
+  .calc .keys b.op { background: #323232; } .calc .keys b.eq { background: #4cc2ff; color: #002b40; }
+  .calc .keys b.press { background: #5a5a5a; }
+  /* 浏览器 */
+  .browser .tabs2 { height: 7%; background: #1c1c1c; display: flex; align-items: flex-end; padding-left: 2%; }
+  .browser .tabs2 span { height: 78%; width: 26%; background: #303030; border-radius: 5px 5px 0 0; font-size: max(8px, .85cqw); color: #ccc; display: flex; align-items: center; padding-left: 3%; }
+  .browser .addr { height: 7%; display: flex; align-items: center; padding: 0 2%; background: #303030; }
+  .browser .addr span { flex: 1; height: 70%; border-radius: 99px; background: #1f1f1f; color: #bbb; font-size: max(8px, .85cqw); display: flex; align-items: center; padding-left: 2.5%; }
+  .browser .page { position: absolute; left: 0; right: 0; top: 14%; bottom: 0; background: #f4f5f7; }
+  .browser .page .nav { height: 10%; background: #fff; display: flex; align-items: center; gap: 4%; padding-left: 4%; font-size: max(8px, .9cqw); color: #444; }
+  .browser .page .side { position: absolute; left: 3%; top: 15%; width: 20%; bottom: 4%; background: #fff; border-radius: 4px; padding: 3%; font-size: max(8px, .85cqw); color: #555; line-height: 2.2; }
+  .browser .page .main { position: absolute; left: 26%; right: 3%; top: 15%; bottom: 4%; background: #fff; border-radius: 4px; padding: 2.5%; }
+  .browser .seg { display: inline-block; padding: .5% 2.2%; margin-right: 1.5%; border: 1px solid #ddd; border-radius: 3px; font-size: max(8px, .85cqw); color: #555; }
+  .browser .seg.on { border-color: #4cc2ff; color: #0a84c6; }
+  .browser .num { margin-top: 5%; display: grid; grid-template-columns: repeat(3, 1fr); gap: 4%; }
+  .browser .num div { background: #f4f6fa; border-radius: 4px; padding: 6% 8%; font-size: max(8px, .8cqw); color: #777; }
+  .browser .num b { display: block; font-size: max(12px, 1.7cqw); color: #222; }
+  /* 记事本、代码编辑器 */
+  .note .txt, .code .txt { position: absolute; left: 0; right: 0; top: 9%; bottom: 0; padding: 4% 5%; font: max(9px, 1.05cqw)/1.75 Consolas, "Microsoft YaHei UI", monospace; color: #ddd; background: #272727; }
+  .code .txt { background: #1e1e1e; }
+  .code .txt .k { color: #c586c0; } .code .txt .s { color: #ce9178; } .code .txt .c { color: #6a9955; }
+  .code .term { position: absolute; left: 0; right: 0; bottom: 0; height: 34%; background: #181818; border-top: 1px solid #333; padding: 2% 5%; font: max(8px, .95cqw)/1.7 Consolas, monospace; color: #ccc; }
+  .code .term .e { color: #f48771; }
+
+  /* ---------- 系统叠加层 ---------- */
+  .ov { position: absolute; inset: 0; pointer-events: none; }
+  /* 扫描框：四个发光的角 + 虚线边 + 从上往下扫的光带 + 左上角标签 */
+  .scan { position: absolute; opacity: 0; transition: opacity .25s; }
+  .scan.on { opacity: 1; }
+  .scan::before { content: ""; position: absolute; inset: 0; border: 1px dashed rgba(95,230,255,.45); }
+  .scan .k { position: absolute; width: 16px; height: 16px; border: 0 solid var(--cyan); filter: drop-shadow(0 0 4px var(--cyan)); }
+  .scan .k.tl { left: -2px; top: -2px; border-left-width: 3px; border-top-width: 3px; }
+  .scan .k.tr { right: -2px; top: -2px; border-right-width: 3px; border-top-width: 3px; }
+  .scan .k.bl { left: -2px; bottom: -2px; border-left-width: 3px; border-bottom-width: 3px; }
+  .scan .k.br { right: -2px; bottom: -2px; border-right-width: 3px; border-bottom-width: 3px; }
+  .scan.scanning .k { animation: kpulse .7s ease-in-out infinite; }
+  .scan .sweep { position: absolute; left: 0; right: 0; top: 0; height: 26%; opacity: 0;
+    background: linear-gradient(180deg, transparent, rgba(95,230,255,.08) 60%, rgba(95,230,255,.28)); border-bottom: 2px solid var(--cyan); box-shadow: 0 6px 14px -4px var(--cyan); }
+  .scan .sweep::after { content: ""; position: absolute; inset: 0; background: linear-gradient(rgba(95,230,255,.18) 1px, transparent 1px) 0 0 / 100% 7px; mask: linear-gradient(180deg, transparent, #000); }
+  .scan.scanning .sweep { animation: sweep 1.3s cubic-bezier(.45,.05,.55,.95) infinite; }
+  .scan.locked .k { border-color: var(--gold); filter: drop-shadow(0 0 4px var(--gold)); }
+  .scan.locked::before { border-color: rgba(255,217,122,.35); }
+  .tagx { position: absolute; left: -2px; bottom: calc(100% + 6px); display: flex; align-items: center; gap: 7px; white-space: nowrap; padding: 3px 12px 3px 9px; font-size: 12px; color: #fff;
+    background: linear-gradient(90deg, rgba(95,230,255,.38), rgba(79,123,255,.25)); border-left: 2px solid var(--cyan); text-shadow: 0 0 6px var(--cyan);
+    clip-path: polygon(0 0, 100% 0, calc(100% - 8px) 100%, 0 100%); }
+  .tagx .d { width: 7px; height: 7px; transform: rotate(45deg); background: var(--cyan); box-shadow: 0 0 6px var(--cyan); animation: blink 1s steps(2) infinite; }
+  .tagx small { font: 10.5px Consolas, monospace; color: #cfe8ff; letter-spacing: .08em; }
+  .scan.tag-in .tagx { bottom: auto; top: 6px; left: 6px; background: linear-gradient(90deg, #12406a, #0d1f4a); }
+  .scan.locked.tag-in .tagx { background: linear-gradient(90deg, #5a4718, #241f12); }
+  .scan.locked .tagx { background: linear-gradient(90deg, rgba(255,217,122,.35), rgba(255,217,122,.12)); border-color: var(--gold); text-shadow: 0 0 6px var(--gold); }
+  .scan.locked .tagx .d { background: var(--gold); box-shadow: 0 0 6px var(--gold); animation: none; }
+
+  /* 目标框：正要点的元素（金色） */
+  .target { position: absolute; border: 1.5px solid var(--gold); box-shadow: 0 0 8px var(--gold), inset 0 0 8px rgba(255,217,122,.3); opacity: 0; transition: opacity .15s; }
+  .target.on { opacity: 1; }
+  /* 系统光标：发光的菱形，跟宿主的鼠标各走各的 */
+  .scur { position: absolute; width: 18px; height: 18px; margin: -9px 0 0 -9px; opacity: 0; transition: left .5s cubic-bezier(.6,0,.2,1), top .5s cubic-bezier(.6,0,.2,1), opacity .2s; z-index: 5; }
+  .scur.on { opacity: 1; }
+  .scur::before { content: ""; position: absolute; inset: 0; transform: rotate(45deg); border: 2px solid #fff; background: rgba(95,230,255,.35); box-shadow: 0 0 10px var(--cyan), 0 0 22px var(--cyan); }
+  .scur::after { content: ""; position: absolute; inset: 6px; transform: rotate(45deg); background: #fff; }
+  .scur .lbl { position: absolute; left: 20px; top: 14px; white-space: nowrap; font-size: 11.5px; padding: 1px 8px; color: #fff; background: rgba(9,15,42,.85); border: 1px solid rgba(95,230,255,.5); }
+  /* 点击光圈 */
+  .rip { position: absolute; width: 0; height: 0; z-index: 4; }
+  .rip::before, .rip::after { content: ""; position: absolute; left: -22px; top: -22px; width: 44px; height: 44px; border-radius: 50%; border: 2px solid var(--gold); box-shadow: 0 0 10px var(--gold); animation: rip .6s ease-out forwards; }
+  .rip::after { animation-delay: .12s; opacity: 0; }
+  /* 输入字幕 */
+  .typing { position: absolute; display: flex; align-items: center; gap: 8px; padding: 4px 12px; font-size: 12.5px; color: #fff; white-space: nowrap; opacity: 0; transition: opacity .2s;
+    background: rgba(9,15,42,.88); border: 1px solid rgba(95,230,255,.55); box-shadow: 0 0 10px rgba(95,230,255,.35); clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px); }
+  .typing.on { opacity: 1; }
+  .typing .lb { font: 10.5px Consolas, monospace; color: var(--cyan); letter-spacing: .1em; }
+  .typing .caret { width: 2px; height: 14px; background: var(--cyan); box-shadow: 0 0 6px var(--cyan); animation: blink 1s steps(2) infinite; }
+  /* 按键键帽 */
+  .keycaps { position: absolute; display: flex; gap: 6px; align-items: center; opacity: 0; transform: translateY(6px); transition: opacity .2s, transform .2s; }
+  .keycaps.on { opacity: 1; transform: none; }
+  .keycaps .key { font-size: 13px; padding: 4px 11px; background: rgba(9,15,42,.9); }
+  .keycaps .pl { color: var(--cyan); font-weight: 700; }
+
+  /* 面板（演示里的小号系统面板） */
+  .mini { position: absolute; font-size: 12.5px; }
+  .mini .fr { --c: 14px; }
+  .mini .fr > .l3, .mini .fr > .l4 { --c: 11px; }
+  .mini .body { padding: 30px 16px 14px !important; min-height: 0 !important; }
+  .mini .plate .p { font-size: 13.5px; padding: 5px 24px; }
+  .mini .plate .wing { width: 40px; }
+  .mini .plate { top: -14px; }
+  .mini .code { right: 18px !important; top: 11px !important; font-size: 9.5px !important; }
+  .mini .msg { padding: 4px 9px; background: color-mix(in srgb, var(--g1) 12%, transparent); border-left: 2px solid var(--g1); margin-top: 7px; line-height: 1.6; }
+  .mini .msg.u { margin-left: auto; width: fit-content; max-width: 85%; border: 1px solid color-mix(in srgb, var(--g3) 60%, transparent); background: color-mix(in srgb, var(--g3) 28%, transparent); }
+  .mini .msg .cur { display: inline-block; width: 7px; height: 12px; margin-left: 1px; vertical-align: -1px; background: var(--g1); animation: blink .8s steps(1) infinite; }
+  .mini .wv { display: flex; gap: 3px; justify-content: center; align-items: center; height: 22px; margin-top: 6px; }
+  .mini .wv i { width: 3px; background: linear-gradient(180deg, #fff, var(--g2)); box-shadow: 0 0 6px var(--g2); animation: wave .9s ease-in-out infinite; }
+  .dcore { position: absolute; width: 5.2%; aspect-ratio: 1; }
+  .dcore .core { width: 100%; height: 100%; }
+  .dcore .core i { inset: 30%; } .dcore .core i::after { inset: 24%; }
+
+  /* 任务步骤条 */
+  .stepbar { display: flex; flex-wrap: wrap; gap: 3px; margin: 0 0 4px; }
+  .stepbar .st { padding: 3px 13px 3px 11px; font-size: 11.5px; color: var(--muted); background: rgba(95,230,255,.07); white-space: nowrap; transition: all .3s;
+    clip-path: polygon(0 0, calc(100% - 7px) 0, 100% 50%, calc(100% - 7px) 100%, 0 100%, 7px 50%); }
+  .stepbar .st:first-child { clip-path: polygon(0 0, calc(100% - 7px) 0, 100% 50%, calc(100% - 7px) 100%, 0 100%); }
+  .stepbar .st.done { color: var(--green); background: rgba(109,255,190,.13); }
+  .stepbar .st.done::before { content: "✓ "; }
+  .stepbar .st.now { color: #fff; background: linear-gradient(90deg, rgba(255,217,122,.38), rgba(255,217,122,.14)); text-shadow: 0 0 8px var(--gold); }
+  .stepbar .st.now::before { content: "◆ "; color: var(--gold); animation: blink 1s steps(2) infinite; }
+  .stepbar .st.fail { color: #ffd0d8; background: rgba(255,90,114,.2); }
+  .stepbar .st.fail::before { content: "✗ "; color: var(--red); }
+  .stepline { height: 2px; margin: 2px 0 6px; background: rgba(95,230,255,.15); }
+  .stepline i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--green), var(--gold)); box-shadow: 0 0 6px var(--gold); transition: width .4s; }
+
+  /* 操作视图卡片（面板里） */
+  .opv { margin-top: 6px; padding: 6px 9px; background: rgba(0,10,40,.45); border: 1px solid rgba(95,230,255,.28); font-size: 11.5px; }
+  .opv .h { display: flex; align-items: center; gap: 6px; color: #fff; }
+  .opv .h small { margin-left: auto; font: 10px Consolas, monospace; color: var(--muted); }
+  .opv .tr { margin-top: 3px; font: 11px/1.65 Consolas, "Microsoft YaHei UI", monospace; color: #a9bde6; }
+  .opv .tr .o { color: var(--green); } .opv .tr .n { color: var(--gold); } .opv .tr .x { color: var(--dim); }
+
+  /* 全屏系统通知 */
+  .notice { position: absolute; inset: 0; display: grid; place-items: center; opacity: 0; pointer-events: none; transition: opacity .3s; z-index: 8;
+    background: radial-gradient(ellipse at center, rgba(5,8,23,.6), rgba(5,8,23,.15) 60%, transparent 75%); }
+  .notice.on { opacity: 1; }
+  .notice .streak { position: absolute; left: 0; right: 0; top: 50%; height: 2px; background: linear-gradient(90deg, transparent, var(--g1), #fff, var(--g4), transparent); box-shadow: 0 0 12px var(--g1); transform: scaleX(0); }
+  .notice.on .streak { animation: streak .7s ease-out forwards; }
+  .notice .box { width: min(48%, 440px); transform: scale(.9); }
+  .notice.on .box { animation: noticeIn .45s cubic-bezier(.2,1.3,.4,1) forwards; }
+  .notice .box .body { padding: 34px 22px 16px !important; min-height: 0 !important; text-align: center; }
+  .notice .fr > .l2 { background: rgba(7, 12, 36, .95); }
+  .notice .fr > .code { display: none; }
+  .notice .res { font-size: clamp(14px, 1.8cqw, 21px); font-weight: 700; line-height: 1.6; text-shadow: 0 0 10px var(--g1); }
+  .notice .meta { margin-top: 6px; font-size: 11.5px; color: var(--muted); letter-spacing: .06em; }
+  .notice .life { height: 2px; margin-top: 12px; background: rgba(95,230,255,.18); }
+  .notice .life i { display: block; height: 100%; width: 100%; background: var(--g1); box-shadow: 0 0 6px var(--g1); transform-origin: left; }
+  .notice.on .life i { animation: life 3s linear forwards; }
+  /* 角落小提示（直播、全屏游戏时用这个代替全屏通知） */
+  .toast { position: absolute; right: 2%; top: 4%; width: 31%; padding: 8px 12px 8px 14px; font-size: 12px; opacity: 0; transform: translateX(14px); transition: all .3s; z-index: 8;
+    background: rgba(9,15,42,.9); border: 1px solid rgba(109,255,190,.55); border-left: 3px solid var(--green); box-shadow: 0 0 14px rgba(109,255,190,.3);
+    clip-path: polygon(0 0, 100% 0, 100% calc(100% - 9px), calc(100% - 9px) 100%, 0 100%); }
+  .toast.on { opacity: 1; transform: none; }
+  .toast b { color: var(--green); letter-spacing: .1em; margin-right: 6px; }
+  .toast .life { height: 2px; margin-top: 7px; background: rgba(109,255,190,.2); }
+  .toast .life i { display: block; height: 100%; background: var(--green); transform-origin: left; }
+  .toast.on .life i { animation: life 4s linear forwards; }
+
+  /* 看屏幕：整屏扫描 */
+  .sscan { position: absolute; inset: 0; opacity: 0; z-index: 7; transition: opacity .2s; }
+  .sscan.on { opacity: 1; }
+  .sscan .bk { position: absolute; width: 7%; aspect-ratio: 1; border: 0 solid var(--cyan); filter: drop-shadow(0 0 6px var(--cyan)); }
+  .sscan .bk.tl { left: 1.5%; top: 2.5%; border-left-width: 3px; border-top-width: 3px; }
+  .sscan .bk.tr { right: 1.5%; top: 2.5%; border-right-width: 3px; border-top-width: 3px; }
+  .sscan .bk.bl { left: 1.5%; bottom: 8%; border-left-width: 3px; border-bottom-width: 3px; }
+  .sscan .bk.br { right: 1.5%; bottom: 8%; border-right-width: 3px; border-bottom-width: 3px; }
+  .sscan .band { position: absolute; left: 0; right: 0; top: -30%; height: 30%;
+    background: linear-gradient(180deg, transparent, rgba(95,230,255,.1) 55%, rgba(95,230,255,.3)); border-bottom: 2px solid #fff; box-shadow: 0 4px 18px var(--cyan); }
+  .sscan .band::after { content: ""; position: absolute; inset: 0; background: linear-gradient(rgba(95,230,255,.22) 1px, transparent 1px) 0 0 / 100% 8px, linear-gradient(90deg, rgba(95,230,255,.12) 1px, transparent 1px) 0 0 / 22px 100%; mask: linear-gradient(180deg, transparent, #000); }
+  .sscan.on .band { animation: band 1.5s cubic-bezier(.5,0,.5,1) forwards; }
+  .sscan .head { position: absolute; left: 50%; top: 5%; transform: translateX(-50%); }
+  .sscan .head .banner { margin: 0; font-size: 13px; padding: 6px 30px; }
+  .sscan .head small { display: block; text-align: center; margin-top: 6px; font-size: 11px; color: #cfe8ff; letter-spacing: .1em; text-shadow: 0 0 6px var(--cyan); }
+  .flash { position: absolute; inset: 0; background: rgba(160,235,255,.25); opacity: 0; z-index: 6; pointer-events: none; }
+  .flash.go { animation: flash .5s ease-out; }
+
+  @keyframes kpulse { 50% { filter: drop-shadow(0 0 10px var(--cyan)); } }
+  @keyframes sweep { 0% { top: -26%; opacity: 0; } 10% { opacity: 1; } 90% { opacity: 1; } 100% { top: 100%; opacity: 0; } }
+  @keyframes rip { from { transform: scale(.25); opacity: 1; } to { transform: scale(1.7); opacity: 0; } }
+  @keyframes noticeIn { 0% { transform: scale(.88); filter: brightness(2.4); } 100% { transform: none; filter: none; } }
+  @keyframes streak { 0% { transform: scaleX(0); opacity: 1; } 70% { opacity: 1; } 100% { transform: scaleX(1); opacity: 0; } }
+  @keyframes life { to { transform: scaleX(0); } }
+  @keyframes band { to { top: 100%; } }
+  @keyframes flash { 0% { opacity: 1; } 100% { opacity: 0; } }
+
+  /* 金色：申请接管前台 */
+  .tone-gold { --g1: var(--gold); --g2: #ffb35f; --g3: #ff7a59; --g4: var(--pink); --glow: rgba(255,217,122,.6); --glow2: rgba(255,122,89,.35); }
+  /* 宿主正在用的窗口：标题栏亮一点，有闪烁的输入光标 */
+  .win.focus { border-color: rgba(76,194,255,.7); box-shadow: 0 10px 30px rgba(0,0,0,.45), 0 0 0 1px rgba(76,194,255,.35); }
+  .win.focus .tb { background: #262626; color: #fff; }
+  .ucaret { display: inline-block; width: 1.5px; height: 1.1em; vertical-align: -2px; background: #fff; animation: blink 1s steps(1) infinite; }
+  .win.behind { transform: scale(.985); filter: brightness(.82); }
+  .host-tag { position: absolute; font-size: 11px; padding: 1px 8px; color: #9fe0ff; background: rgba(9,15,42,.85); border: 1px solid rgba(76,194,255,.5); white-space: nowrap; }
+  /* 剪辑软件（不接受后台点击的那种） */
+  .editor .tl { position: absolute; left: 0; right: 0; bottom: 0; height: 38%; background: #1a1a1a; border-top: 1px solid #333; }
+  .editor .tl i { position: absolute; height: 18%; border-radius: 3px; }
+  .editor .pv { position: absolute; left: 22%; right: 22%; top: 13%; height: 42%; background: #000; display: grid; place-items: center; color: #555; font-size: max(9px, 1cqw); }
+  .editor .side2 { position: absolute; left: 0; top: 9%; width: 20%; height: 53%; background: #222; }
+  .editor .btn2 { position: absolute; right: 3%; top: 13%; padding: .4% 2%; font-size: max(8px, .85cqw); color: #fff; background: #1f6feb; border-radius: 3px; }
+  /* 申请接管的卡片 */
+  .ask-fg .ringwrap { width: 64px; height: 64px; }
+  .ask-fg .ring { width: 64px; height: 64px; -webkit-mask: radial-gradient(circle, transparent 26px, #000 27px); mask: radial-gradient(circle, transparent 26px, #000 27px); }
+  .ask-fg .ringwrap span { font-size: 16px; }
+  .ask-fg .btns { flex-wrap: nowrap; gap: 6px; }
+  .ask-fg .btn { flex: 1; min-width: 0; font-size: 12px; padding: 5px 6px; letter-spacing: .04em; }
+  /* 接管中：整块屏幕描金边，顶上一条横幅；真鼠标（白色箭头）在动 */
+  .edge { position: absolute; inset: 0; pointer-events: none; opacity: 0; transition: opacity .3s; z-index: 7; box-shadow: inset 0 0 0 3px var(--gold), inset 0 0 26px rgba(255,217,122,.55); }
+  .edge.on { opacity: 1; animation: edgepulse 1.2s ease-in-out infinite; }
+  .tbanner { position: absolute; left: 50%; top: 3%; transform: translateX(-50%) translateY(-8px); opacity: 0; transition: all .3s; z-index: 8; white-space: nowrap; display: flex; align-items: center; gap: 10px;
+    padding: 6px 16px; font-size: 12.5px; color: #fff; background: rgba(40,28,6,.92); border: 1px solid var(--gold); box-shadow: 0 0 14px rgba(255,217,122,.45);
+    clip-path: polygon(10px 0, calc(100% - 10px) 0, 100% 50%, calc(100% - 10px) 100%, 10px 100%, 0 50%); }
+  .tbanner.on { opacity: 1; transform: translateX(-50%); }
+  .tbanner b { color: var(--gold); letter-spacing: .12em; }
+  .tbanner .key { font-size: 11px; padding: 1px 6px; }
+  .tbanner.back { border-color: var(--green); background: rgba(6,36,24,.92); box-shadow: 0 0 14px rgba(109,255,190,.4); }
+  .tbanner.back b { color: var(--green); }
+  .arrow { position: absolute; width: 16px; height: 22px; z-index: 9; opacity: 0; transition: left .45s cubic-bezier(.6,0,.2,1), top .45s cubic-bezier(.6,0,.2,1), opacity .2s; }
+  .arrow.on { opacity: 1; }
+  .count3 { position: absolute; inset: 0; display: grid; place-items: center; z-index: 9; pointer-events: none; font: 700 clamp(30px, 6cqw, 64px) Consolas, monospace; color: var(--gold); text-shadow: 0 0 18px var(--gold); opacity: 0; }
+  .count3.on { opacity: 1; }
+  @keyframes edgepulse { 50% { box-shadow: inset 0 0 0 3px var(--gold), inset 0 0 40px rgba(255,217,122,.75); } }
+
+  .decide { max-width: 1180px; margin: 20px auto 0; }
+  .decide li { margin: 6px 0; font-size: 13.5px; line-height: 1.7; color: #cfe0ff; }
+  .decide li .def { color: var(--green); }
+  @media (max-width: 600px) { .demo-grid { grid-template-columns: 1fr; } body { padding: 20px 14px 60px; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>阶段 2 设计稿 · 看得见的操作 + 看屏幕回答</h1>
+  <p>系统操作电脑时，宿主和观众都能看到它在干什么：扫哪个窗口、点哪里、做到第几步。演示都会自动循环播放，右上角「重播」从头再看。</p>
+</header>
+
+<h2 class="group">一、完整流程：「打开计算器，算一下七加八」</h2>
+<div class="sect demo">
+  <h3><span class="no">00</span>从接到指令到弹出完成通知<span class="replay" data-replay="main">重播</span></h3>
+  <div class="desk" id="main">
+    <div class="win calc" id="m-calc" style="left:16%;top:9%;width:24%;height:72%;opacity:0;transition:opacity .4s">
+      <div class="tb">计算器<span class="dots">— ▢ ✕</span></div>
+      <div class="disp" id="m-disp">0</div>
+      <div class="keys" id="m-keys"></div>
+    </div>
+    <div class="ov">
+      <div class="scan" id="m-scan"><i class="k tl"></i><i class="k tr"></i><i class="k bl"></i><i class="k br"></i><div class="sweep"></div>
+        <div class="tagx"><span class="d"></span><span id="m-tagt">扫描中 · 计算器</span><small id="m-tags">UIA</small></div></div>
+      <div class="target" id="m-target"></div>
+      <div class="scur" id="m-cur"><span class="lbl" id="m-curl">点击</span></div>
+    </div>
+    <div class="mini" style="left:56%;top:14%;width:36%">
+      <div class="fr" id="m-fr"><i class="l1"></i><i class="l2"></i><i class="l3"></i><i class="l4"></i>
+        <div class="plate"><span class="wing l"></span><span class="p" id="m-title">解析指令</span><span class="wing r"></span></div><span class="code" id="m-code">PARSE</span>
+        <div class="body">
+          <div class="stepbar" id="m-steps"><span class="st">打开计算器</span><span class="st">读取界面</span><span class="st">输入 7+8</span><span class="st">汇报结果</span></div>
+          <div class="stepline"><i id="m-line"></i></div>
+          <div class="msg u">打开计算器，算一下七加八</div>
+          <div class="opv" id="m-opv" style="display:none"><div class="h"><span class="dia" style="width:8px;height:8px"></span>计算器<small>后台操作 · 48 个元素</small></div><div class="tr" id="m-trail"></div></div>
+          <div class="msg" id="m-reply" style="display:none"></div>
+          <div class="wv" id="m-wv" style="visibility:hidden"></div>
+        </div>
+      </div>
+    </div>
+    <div class="dcore" style="left:93%;top:80%"><div class="core"><i></i></div></div>
+    <div class="notice" id="m-notice"><div class="streak"></div>
+      <div class="box tone-ok"><div class="fr"><i class="l1"></i><i class="l2"></i><i class="l3"></i><i class="l4"></i>
+        <div class="plate"><span class="wing l"></span><span class="p">任务完成</span><span class="wing r"></span></div><span class="code">COMPLETE</span>
+        <div class="body"><div class="res">七加八等于十五</div><div class="meta">用时 8 秒 · 动作 6 · 授权 0</div><div class="life"><i></i></div></div></div></div>
+    </div>
+    <div class="taskbar"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <p class="cap"><b>00</b>
+    ① 系统先列步骤（步骤条），打开计算器；② 读计算器界面时，窗口外面亮起青色扫描框，光带从上往下扫，标签写着扫的是哪个软件；
+    ③ 读完锁定成金色框，系统光标（发光菱形）从核心飞过去，每点一下冒一个金色光圈，标签写点的是什么；④ 做完光标飞回核心，面板念结果；
+    ⑤ 屏幕中央弹出全屏系统通知，3 秒后自己收起。系统光标只是「演示给你看」：Open Computer Use 在后台点，你自己的鼠标不会被动。</p>
+</div>
+
+<h2 class="group">二、每个效果单独看</h2>
+<div class="demo-grid">
+  <section class="demo">
+    <h3><span class="no">01</span>扫描框 · 软件<span class="replay" data-replay="d1">重播</span></h3>
+    <div class="desk" id="d1">
+      <div class="win calc" style="left:34%;top:9%;width:30%;height:76%"><div class="tb">计算器<span class="dots">— ▢ ✕</span></div><div class="disp">0</div><div class="keys" data-calc></div></div>
+      <div class="ov"><div class="scan" data-scan-of=".calc"><i class="k tl"></i><i class="k tr"></i><i class="k bl"></i><i class="k br"></i><div class="sweep"></div>
+        <div class="tagx"><span class="d"></span><span class="t">扫描中 · 计算器</span><small>UIA</small></div></div></div>
+      <div class="taskbar"><i></i><i></i><i></i><i></i></div>
+    </div>
+    <p class="cap"><b>01</b>读一个软件的界面时出现，读完（约 1 秒）变成金色「已锁定 · 计算器 · 48 个元素」，系统在这个软件里操作期间一直框着，换软件或任务结束就消失。框的位置来自 Open Computer Use 读到的窗口坐标。</p>
+  </section>
+
+  <section class="demo">
+    <h3><span class="no">02</span>扫描框 · 网页<span class="replay" data-replay="d2">重播</span></h3>
+    <div class="desk" id="d2">
+      <div class="win browser" style="left:8%;top:6%;width:62%;height:82%">
+        <div class="tabs2"><span>创作中心 · 数据</span></div><div class="addr"><span>member.bilibili.com/platform/data</span></div>
+        <div class="page"><div class="nav">首页　内容管理　<b style="color:#0a84c6">数据中心</b>　粉丝管理</div>
+          <div class="side">数据概览<br>内容分析<br>粉丝分析</div>
+          <div class="main"><span class="seg">昨天</span><span class="seg on" data-target>近 7 天</span><span class="seg">近 30 天</span>
+            <div class="num"><div>播放量<b>1.2万</b></div><div>新增粉丝<b>86</b></div><div>点赞<b>931</b></div></div></div></div>
+      </div>
+      <div class="ov"><div class="scan" data-scan-of=".browser"><i class="k tl"></i><i class="k tr"></i><i class="k bl"></i><i class="k br"></i><div class="sweep"></div>
+        <div class="tagx"><span class="d"></span><span class="t">扫描中 · 网页</span><small>99 元素</small></div></div>
+        <div class="target"></div><div class="scur"><span class="lbl">点击 · 近 7 天</span></div></div>
+      <div class="taskbar"><i></i><i></i><i></i><i></i></div>
+    </div>
+    <p class="cap"><b>02</b>操作网页时框住系统专用的 Chrome 窗口；正要点的元素先套一个金色框，再点。元素位置来自 agent-browser，换算成屏幕坐标。</p>
+  </section>
+
+  <section class="demo">
+    <h3><span class="no">03</span>输入字幕 + 按键键帽<span class="replay" data-replay="d3">重播</span></h3>
+    <div class="desk" id="d3">
+      <div class="win note" style="left:14%;top:8%;width:56%;height:78%"><div class="tb">无标题 - 记事本<span class="dots">— ▢ ✕</span></div><div class="txt" data-txt></div></div>
+      <div class="ov"><div class="typing" style="left:18%;top:27%"><span class="lb">输入</span><span data-typed></span><span class="caret"></span></div>
+        <div class="keycaps" style="left:36%;top:72%"><span class="key">Ctrl</span><span class="pl">+</span><span class="key">S</span></div></div>
+      <div class="taskbar"><i></i><i></i><i></i><i></i></div>
+    </div>
+    <p class="cap"><b>03</b>系统往软件里打字时，旁边飘一行字幕显示正在输入的内容（太长只显示开头）；按快捷键时在窗口下方亮出键帽。密码框里的输入只显示「••••」。</p>
+  </section>
+
+  <section class="demo">
+    <h3><span class="no">04</span>任务步骤条 + 操作视图<span class="replay" data-replay="d4">重播</span></h3>
+    <div class="desk" id="d4" style="aspect-ratio:16/10">
+      <div class="mini" style="left:4%;top:12%;width:44%">
+        <div class="fr"><i class="l1"></i><i class="l2"></i><i class="l3"></i><i class="l4"></i>
+          <div class="plate"><span class="wing l"></span><span class="p">任务执行中</span><span class="wing r"></span></div><span class="code">RUNNING</span>
+          <div class="body"><div class="stepbar" data-steps><span class="st">打开创作中心</span><span class="st">进入数据中心</span><span class="st">切到近 7 天</span><span class="st">读数据</span><span class="st">汇报</span></div>
+            <div class="stepline"><i></i></div>
+            <div class="opv"><div class="h"><span class="dia" style="width:8px;height:8px"></span>网页 · bilibili.com<small>系统专用 Chrome</small></div>
+              <div class="tr" data-trail></div></div></div></div>
+      </div>
+      <div class="mini" style="left:52%;top:12%;width:44%">
+        <div class="fr tone-err"><i class="l1"></i><i class="l2"></i><i class="l3"></i><i class="l4"></i>
+          <div class="plate"><span class="wing l"></span><span class="p">任务失败</span><span class="wing r"></span></div><span class="code">ERROR</span>
+          <div class="body"><div class="stepbar"><span class="st done">打开剪映</span><span class="st fail">读取界面</span><span class="st">导出视频</span></div>
+            <div class="msg">【失败】剪映的界面读不出按钮（自绘界面），已停止。</div></div></div>
+      </div>
+    </div>
+    <p class="cap"><b>04</b>复杂任务开始时系统先列步骤（3～6 步），面板顶部显示步骤条：做完打勾、正在做的发金光、失败标红；简单的一问一答不显示。
+      下面的「操作视图」实时列出最近几个动作（✓ 做完、◆ 正在做）；点它能展开看读到的元素列表，完整的网页 / 软件操作页放到阶段 3 的页签里。</p>
+  </section>
+
+  <section class="demo">
+    <h3><span class="no">05</span>全屏系统通知 + 角落小提示<span class="replay" data-replay="d5">重播</span></h3>
+    <div class="desk" id="d5">
+      <div class="win code" style="left:6%;top:6%;width:60%;height:80%;opacity:.7"><div class="tb">剪辑工程<span class="dots">— ▢ ✕</span></div><div class="txt"></div></div>
+      <div class="notice"><div class="streak"></div>
+        <div class="box tone-err"><div class="fr"><i class="l1"></i><i class="l2"></i><i class="l3"></i><i class="l4"></i>
+          <div class="plate"><span class="wing l"></span><span class="p">任务失败</span><span class="wing r"></span></div><span class="code">ERROR</span>
+          <div class="body"><div class="res">找不到「剪映」</div><div class="meta">开始菜单和常见安装位置里都没有 · 详情见面板</div><div class="life"><i></i></div></div></div></div></div>
+      <div class="toast"><b>任务完成</b>第 3 期视频已导出到「成品」文件夹<div class="life"><i></i></div></div>
+      <div class="taskbar"><i></i><i></i><i></i><i></i></div>
+    </div>
+    <p class="cap"><b>05</b>任务完成、失败（以后还有提醒到点）时，屏幕中央弹出大号通知：一道光从中间划开，通知框弹出，3 秒后收起，点一下也能收。
+      直播模式或者有全屏程序（游戏、全屏视频）时，改成右上角的小提示，不挡画面。</p>
+  </section>
+
+  <section class="demo">
+    <h3><span class="no">06</span>看屏幕回答<span class="replay" data-replay="d6">重播</span></h3>
+    <div class="desk" id="d6">
+      <div class="win code" style="left:5%;top:6%;width:56%;height:80%"><div class="tb">main.py - VS Code<span class="dots">— ▢ ✕</span></div>
+        <div class="txt"><span class="k">import</span> requests<br><br><span class="k">def</span> fetch(url):<br>&nbsp;&nbsp;&nbsp;&nbsp;<span class="k">return</span> requests.get(url).text<br><br><span class="c"># 取首页</span><br>print(fetch(<span class="s">"https://example.com"</span>))</div>
+        <div class="term">PS D:\demo&gt; python main.py<br><span class="e">ModuleNotFoundError: No module named 'requests'</span></div></div>
+      <div class="ov"><div class="scan" data-scan-of=".code"><i class="k tl"></i><i class="k tr"></i><i class="k bl"></i><i class="k br"></i><div class="sweep"></div>
+        <div class="tagx"><span class="d"></span><span class="t">扫描窗口 · VS Code</span><small>截图</small></div></div></div>
+      <div class="sscan"><i class="bk tl"></i><i class="bk tr"></i><i class="bk bl"></i><i class="bk br"></i><div class="band"></div>
+        <div class="head"><div class="banner">扫描屏幕</div><small>读取整个屏幕…</small></div></div>
+      <div class="flash"></div>
+      <div class="mini" style="left:64%;top:16%;width:33%">
+        <div class="fr"><i class="l1"></i><i class="l2"></i><i class="l3"></i><i class="l4"></i>
+          <div class="plate"><span class="wing l"></span><span class="p" data-title>聆听中</span><span class="wing r"></span></div><span class="code">SCAN</span>
+          <div class="body"><div class="msg u" data-ask>系统，这个报错怎么回事</div><div class="msg" data-ans style="display:none"></div></div></div>
+      </div>
+      <div class="dcore" style="left:93%;top:80%"><div class="core"><i></i></div></div>
+      <div class="taskbar"><i></i><i></i><i></i><i></i></div>
+    </div>
+    <p class="cap"><b>06</b>你说「系统，这个报错怎么回事」「看看我屏幕上这是什么」：默认只截<b>当前窗口</b>（框住它扫一遍）；说「整个屏幕」才截全屏（全屏扫描线从上往下扫）。
+      截图前先把系统自己的面板藏起来，扫完一闪，回答出现在面板里并念出来。截图会发给 DeepSeek 看，只在你开口要求时才截。</p>
+  </section>
+</div>
+
+<h2 class="group">三、跟宿主一起用电脑</h2>
+<div class="demo-grid">
+  <section class="demo">
+    <h3><span class="no">07</span>不抢焦点：你打你的字，它在后面开软件<span class="replay" data-replay="d7">重播</span></h3>
+    <div class="desk" id="d7">
+      <div class="win calc behind" style="left:40%;top:10%;width:24%;height:72%;opacity:0;transition:opacity .4s"><div class="tb">计算器<span class="dots">— ▢ ✕</span></div><div class="disp">0</div><div class="keys" data-calc></div></div>
+      <div class="win note focus" style="left:6%;top:16%;width:46%;height:62%"><div class="tb">剪辑思路.txt - 记事本<span class="dots">— ▢ ✕</span></div><div class="txt"><span data-user></span><span class="ucaret"></span></div></div>
+      <span class="host-tag" style="left:6%;top:80%">宿主正在用 · 键盘焦点一直在这里</span>
+      <div class="ov"><div class="scan" data-scan-of=".calc"><i class="k tl"></i><i class="k tr"></i><i class="k bl"></i><i class="k br"></i><div class="sweep"></div>
+        <div class="tagx"><span class="d"></span><span class="t">扫描中 · 计算器</span><small>后台</small></div></div></div>
+      <div class="toast" style="border-color:rgba(95,230,255,.55);border-left-color:var(--cyan);box-shadow:0 0 14px rgba(95,230,255,.3);right:2%;top:auto;bottom:22%;width:36%"><b style="color:var(--cyan)">后台打开</b>计算器，没有打断你<div class="life"><i style="background:var(--cyan)"></i></div></div>
+      <div class="dcore" style="left:93%;top:80%"><div class="core"><i></i></div></div>
+      <div class="taskbar"><i></i><i></i><i></i><i></i></div>
+    </div>
+    <p class="cap"><b>07</b>Windows 平时会把新打开的窗口顶到最前面、抢走键盘，你正在打的字就会打进新窗口里。系统开软件时改成<b>在你当前窗口后面打开、不激活</b>，
+      然后在后台照常操作（扫描框照样框住它）；核心旁边弹一句「后台打开了计算器」。少数软件启动后会硬抢到最前面，系统发现焦点被抢，马上把焦点还给你刚才在用的窗口。</p>
+  </section>
+
+  <section class="demo">
+    <h3><span class="no">08</span>需要占用前台时先请示<span class="replay" data-replay="d8">重播</span></h3>
+    <div class="desk" id="d8">
+      <div class="win editor" style="left:4%;top:6%;width:58%;height:80%"><div class="tb">剪映 - 第 3 期<span class="dots">— ▢ ✕</span></div>
+        <div class="side2"></div><div class="pv">预览</div><span class="btn2" data-export>导出</span>
+        <div class="tl"><i style="left:4%;top:18%;width:40%;background:#2f7d8f"></i><i style="left:46%;top:18%;width:30%;background:#2f7d8f"></i><i style="left:4%;top:44%;width:62%;background:#8a5a2b"></i><i style="left:4%;top:70%;width:50%;background:#5a3a8a"></i></div></div>
+      <div class="ov"><div class="scan" data-scan-of=".editor"><i class="k tl"></i><i class="k tr"></i><i class="k bl"></i><i class="k br"></i><div class="sweep"></div>
+        <div class="tagx"><span class="d"></span><span class="t">已锁定 · 剪映</span><small>读不出按钮</small></div></div></div>
+      <div class="mini ask-fg" style="left:63%;top:12%;width:35%">
+        <div class="fr tone-gold"><i class="l1"></i><i class="l2"></i><i class="l3"></i><i class="l4"></i>
+          <div class="plate"><span class="wing l"></span><span class="p">申请接管前台</span><span class="wing r"></span></div><span class="code">TAKEOVER</span>
+          <div class="body" data-askbody>
+            <div style="display:flex;gap:10px;align-items:center">
+              <div class="ringwrap"><div class="ring" data-ring style="background:conic-gradient(var(--g1) 0 100%, rgba(255,255,255,.08) 0)"></div><span data-num>30</span></div>
+              <div style="font-size:12px;line-height:1.6"><b class="c-gold">剪映不接受后台点击</b><br>需要用你的鼠标键盘约 5 秒，点「导出」</div>
+            </div>
+            <div class="muted" style="font-size:11px;margin-top:6px">期间请别动；动一下鼠标或按 Esc 立即收回</div>
+            <div class="btns" style="margin-top:8px"><span class="btn" data-allow>允许</span><span class="btn ghost">稍后</span><span class="btn ghost">拒绝</span></div>
+            <div class="muted center" style="font-size:10.5px;margin-top:6px">也可以说：「可以」「等一下」「不行」</div>
+          </div>
+        </div>
+      </div>
+      <div class="edge"></div>
+      <div class="tbanner"><b>系统接管中</b><span data-left>剩余 5 秒</span><span class="muted">动鼠标或按</span><span class="key">Esc</span><span class="muted">立即收回</span></div>
+      <div class="count3">3</div>
+      <svg class="arrow" viewBox="0 0 16 22"><path d="M1 1v17l4.5-4.2 3 6.7 2.7-1.2-3-6.6H14z" fill="#fff" stroke="#000" stroke-width="1.2"/></svg>
+      <div class="dcore" style="left:93%;top:80%"><div class="core"><i></i></div></div>
+      <div class="taskbar"><i></i><i></i><i></i><i></i></div>
+    </div>
+    <p class="cap"><b>08</b>后台点不动的软件（比如剪映这种自己画界面、又不认后台点击的），系统<b>不会直接抢</b>你的鼠标：先在面板里申请，说明要干什么、大约几秒，金色整块提醒，同时念出来。
+      你点「允许」或说「可以」后，倒数 3 秒，屏幕四周亮起金边、顶上一条横幅写着剩余时间；这时动的是你真正的鼠标。期间<b>你一动鼠标或按 Esc，系统立刻停手</b>，把控制权还给你。
+      30 秒没回应就当「稍后」，任务先停在这一步。</p>
+  </section>
+</div>
+
+<h2 class="group">四、需要你拍板的（括号里是默认）</h2>
+<ol class="decide">
+  <li>系统光标要不要？（<span class="def">要</span>：发光菱形从核心飞到目标再点，比只冒光圈更容易看清它在点哪；嫌花可以在设置里关）</li>
+  <li>全屏通知什么时候弹？（<span class="def">只在「干了活」的任务完成或失败时弹</span>：用过工具、或者超过 10 秒的任务；一问一答的闲聊不弹，不然太吵）</li>
+  <li>看屏幕默认截什么？（<span class="def">当前窗口</span>；说「整个屏幕」才截全屏）</li>
+  <li>扫描框、光标、字幕在直播时也照常显示吗？（<span class="def">显示</span>：这正是给观众看的；但输入密码时只显示「••••」）</li>
+</ol>
+<p class="decide muted" style="font-size:12.5px">07「不抢焦点」和 08「需要占用前台时先请示」是 2026-10-14 你同意加进来的，默认开启。</p>
+
+<script>
+  // ---- 小工具 ----
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+  const $ = (s, el = document) => el.querySelector(s);
+  const $$ = (s, el = document) => [...el.querySelectorAll(s)];
+  // 元素在桌面里的位置（百分比无关，按像素算）
+  function rel(el, desk) {
+    const a = el.getBoundingClientRect(), d = desk.getBoundingClientRect();
+    return { x: a.left - d.left, y: a.top - d.top, w: a.width, h: a.height, cx: a.left - d.left + a.width / 2, cy: a.top - d.top + a.height / 2 };
+  }
+  function place(el, r, pad = 0) {
+    Object.assign(el.style, { left: r.x - pad + 'px', top: r.y - pad + 'px', width: r.w + 2 * pad + 'px', height: r.h + 2 * pad + 'px' });
+    // 扫描框的标签平时在框上方；窗口贴着屏幕顶、上面放不下时挪进框里
+    if (el.classList.contains('scan')) el.dataset.tagIn = r.y - pad < 30 ? '1' : '';
+  }
+  // 设 className 时保留「标签在框里」
+  function scanState(el, state) {
+    el.className = 'scan' + (state ? ' ' + state : '') + (el.dataset.tagIn ? ' tag-in' : '');
+  }
+  function ripple(desk, x, y) {
+    const r = document.createElement('i');
+    r.className = 'rip';
+    Object.assign(r.style, { left: x + 'px', top: y + 'px' });
+    desk.querySelector('.ov').appendChild(r);
+    setTimeout(() => r.remove(), 900);
+  }
+  function wave(el, n = 22) {
+    el.innerHTML = '';
+    for (let i = 0; i < n; i++) {
+      const b = document.createElement('i');
+      b.style.setProperty('--h', 6 + Math.round(Math.abs(Math.sin(i * 0.8)) * 14) + 'px');
+      b.style.animationDelay = (i * 0.05).toFixed(2) + 's';
+      el.appendChild(b);
+    }
+  }
+  async function typeInto(el, text, ms = 70, cursor = true) {
+    el.textContent = '';
+    for (const ch of text) {
+      el.textContent += ch;
+      if (cursor) el.innerHTML = el.textContent + '<span class="cur"></span>';
+      await sleep(ms);
+    }
+    el.textContent = text;
+  }
+  const CALC = ['%', 'CE', 'C', '⌫', '7', '8', '9', '×', '4', '5', '6', '−', '1', '2', '3', '+', '±', '0', '.', '='];
+  function fillCalc(keys) {
+    keys.innerHTML = CALC.map((k) => `<b class="${'×−+'.includes(k) || ['%', 'CE', 'C', '⌫'].includes(k) ? 'op' : ''}${k === '=' ? ' eq' : ''}" data-k="${k}">${k}</b>`).join('');
+  }
+  $$('[data-calc]').forEach(fillCalc);
+  fillCalc($('#m-keys'));
+  // 每段演示一个“代”：重播时旧的循环自己停下
+  const gen = {};
+  function runner(id, fn) {
+    const go = async () => {
+      const g = (gen[id] = (gen[id] || 0) + 1);
+      const alive = () => gen[id] === g;
+      while (alive()) {
+        await fn(alive);
+        await sleep(1800);
+      }
+    };
+    $(`[data-replay="${id}"]`)?.addEventListener('click', go);
+    go();
+  }
+  function setSteps(bar, line, i, fail = -1) {
+    $$('.st', bar).forEach((s, k) => (s.className = 'st' + (k === fail ? ' fail' : k < i ? ' done' : k === i ? ' now' : '')));
+    if (line) line.style.width = (Math.min(i, $$('.st', bar).length) / $$('.st', bar).length) * 100 + '%';
+  }
+
+  // ---- 00 完整流程 ----
+  runner('main', async (alive) => {
+    const desk = $('#main');
+    const calc = $('#m-calc'), scan = $('#m-scan'), cur = $('#m-cur'), target = $('#m-target'), disp = $('#m-disp');
+    const steps = $('#m-steps'), line = $('#m-line'), trail = $('#m-trail'), opv = $('#m-opv'), reply = $('#m-reply'), wv = $('#m-wv');
+    const title = (t, c, tone) => { $('#m-title').textContent = t; $('#m-code').textContent = c; $('#m-fr').className = 'fr' + (tone ? ' tone-' + tone : ''); };
+    // 复位
+    calc.style.opacity = 0; scan.className = 'scan'; cur.className = 'scur'; target.className = 'target'; disp.textContent = '0';
+    opv.style.display = 'none'; trail.innerHTML = ''; reply.style.display = 'none'; wv.style.visibility = 'hidden'; $('#m-notice').classList.remove('on');
+    title('解析指令', 'PARSE'); setSteps(steps, line, -1);
+    const core = rel($('#main .dcore'), desk);
+    Object.assign(cur.style, { transition: 'none', left: core.cx + 'px', top: core.cy + 'px' });
+    await sleep(900); if (!alive()) return;
+    title('任务执行中', 'RUNNING'); setSteps(steps, line, 0);
+    await sleep(700); calc.style.opacity = 1; await sleep(600); if (!alive()) return;
+    setSteps(steps, line, 1);
+    place(scan, rel(calc, desk), 6); scanState(scan, 'on scanning'); $('#m-tagt').textContent = '扫描中 · 计算器'; $('#m-tags').textContent = 'UIA';
+    opv.style.display = ''; trail.innerHTML = '<span class="n">◆</span> 读取界面';
+    await sleep(1500); if (!alive()) return;
+    scanState(scan, 'on locked'); $('#m-tagt').textContent = '已锁定 · 计算器'; $('#m-tags').textContent = '48 元素';
+    trail.innerHTML = '<span class="o">✓</span> 读取界面 · 48 个元素';
+    setSteps(steps, line, 2);
+    await sleep(500);
+    cur.style.transition = ''; cur.classList.add('on');
+    const seq = [['7', '七', '7'], ['+', '加', '7 +'], ['8', '八', '7 + 8'], ['=', '等于', '15']];
+    for (const [k, name, show] of seq) {
+      if (!alive()) return;
+      const key = $(`#m-keys [data-k="${k}"]`);
+      const r = rel(key, desk);
+      place(target, r, 2); target.classList.add('on');
+      $('#m-curl').textContent = '点击 · ' + name;
+      Object.assign(cur.style, { left: r.cx + 'px', top: r.cy + 'px' });
+      await sleep(560);
+      ripple(desk, r.cx, r.cy); key.classList.add('press'); disp.textContent = show;
+      trail.innerHTML = trail.innerHTML.replace(/<span class="n">◆<\/span>/g, '<span class="o">✓</span>') + `<br><span class="n">◆</span> 点击 ${name}`;
+      const lines = trail.innerHTML.split('<br>'); if (lines.length > 3) trail.innerHTML = lines.slice(-3).join('<br>');
+      await sleep(260); key.classList.remove('press'); target.classList.remove('on');
+      await sleep(220);
+    }
+    trail.innerHTML = trail.innerHTML.replace(/<span class="n">◆<\/span>/g, '<span class="o">✓</span>');
+    $('#m-curl').textContent = '返回';
+    Object.assign(cur.style, { left: core.cx + 'px', top: core.cy + 'px' });
+    await sleep(520); cur.classList.remove('on'); scan.className = 'scan';
+    setSteps(steps, line, 3); title('任务完成', 'COMPLETE', 'ok');
+    reply.style.display = ''; wv.style.visibility = ''; wave(wv);
+    await typeInto(reply, '【完成】七加八等于十五。', 150);
+    wv.style.visibility = 'hidden'; setSteps(steps, line, 4);
+    await sleep(300); if (!alive()) return;
+    $('#m-notice').classList.add('on');
+    await sleep(3200); $('#m-notice').classList.remove('on');
+    await sleep(800);
+  });
+
+  // ---- 01 扫描框 · 软件 ----
+  runner('d1', async (alive) => {
+    const desk = $('#d1'), scan = $('.scan', desk), win = $('.calc', desk);
+    scan.className = 'scan'; await sleep(500);
+    place(scan, rel(win, desk), 6); scanState(scan, 'on scanning'); $('.t', scan).textContent = '扫描中 · 计算器'; $('small', scan).textContent = 'UIA';
+    await sleep(2600); if (!alive()) return;
+    scanState(scan, 'on locked'); $('.t', scan).textContent = '已锁定 · 计算器'; $('small', scan).textContent = '48 元素';
+    await sleep(2400);
+  });
+
+  // ---- 02 扫描框 · 网页 ----
+  runner('d2', async (alive) => {
+    const desk = $('#d2'), scan = $('.scan', desk), win = $('.browser', desk), target = $('.target', desk), cur = $('.scur', desk), seg = $('[data-target]', desk);
+    scan.className = 'scan'; target.className = 'target'; cur.className = 'scur'; seg.classList.add('on');
+    const start = { x: desk.clientWidth * 0.92, y: desk.clientHeight * 0.85 };
+    Object.assign(cur.style, { transition: 'none', left: start.x + 'px', top: start.y + 'px' });
+    await sleep(500);
+    place(scan, rel(win, desk), 6); scanState(scan, 'on scanning'); $('.t', scan).textContent = '扫描中 · 网页';
+    await sleep(1500); if (!alive()) return;
+    scanState(scan, 'on locked'); $('.t', scan).textContent = '已锁定 · bilibili.com';
+    const r = rel(seg, desk);
+    place(target, r, 3); target.classList.add('on');
+    cur.style.transition = ''; cur.classList.add('on'); Object.assign(cur.style, { left: r.cx + 'px', top: r.cy + 'px' });
+    await sleep(650); ripple(desk, r.cx, r.cy);
+    await sleep(500); target.classList.remove('on'); cur.classList.remove('on');
+    await sleep(1600);
+  });
+
+  // ---- 03 输入字幕 + 键帽 ----
+  runner('d3', async (alive) => {
+    const desk = $('#d3'), txt = $('[data-txt]', desk), typing = $('.typing', desk), typed = $('[data-typed]', typing), keys = $('.keycaps', desk);
+    txt.textContent = ''; typed.textContent = ''; typing.classList.remove('on'); keys.classList.remove('on');
+    await sleep(500); typing.classList.add('on');
+    const text = '明天上午 9 点交第 3 期稿子';
+    for (const ch of text) {
+      if (!alive()) return;
+      typed.textContent += ch; txt.textContent += ch; await sleep(90);
+    }
+    await sleep(500); typing.classList.remove('on');
+    await sleep(300); keys.classList.add('on');
+    await sleep(1400); keys.classList.remove('on');
+    await sleep(800);
+  });
+
+  // ---- 04 步骤条 + 操作视图 ----
+  runner('d4', async (alive) => {
+    const desk = $('#d4'), bar = $('[data-steps]', desk), line = $('.stepline i', desk), trail = $('[data-trail]', desk);
+    const acts = ['open 创作中心', 'click 数据中心', 'click 近 7 天', 'get text 播放量', '汇报'];
+    const shown = [];
+    for (let i = 0; i <= acts.length; i++) {
+      if (!alive()) return;
+      setSteps(bar, line, i);
+      if (i > 0) shown[shown.length - 1] = `<span class="o">✓</span> ${acts[i - 1]}`;
+      if (i < acts.length) shown.push(`<span class="n">◆</span> ${acts[i]}`);
+      trail.innerHTML = shown.slice(-3).join('<br>');
+      await sleep(1100);
+    }
+    await sleep(1200);
+  });
+
+  // ---- 05 全屏通知 + 角落小提示 ----
+  runner('d5', async (alive) => {
+    const desk = $('#d5'), n = $('.notice', desk), t = $('.toast', desk);
+    n.classList.remove('on'); t.classList.remove('on');
+    await sleep(600); n.classList.add('on');
+    await sleep(3300); n.classList.remove('on'); if (!alive()) return;
+    await sleep(900); t.classList.add('on');
+    await sleep(4200); t.classList.remove('on');
+    await sleep(600);
+  });
+
+  // ---- 07 不抢焦点 ----
+  runner('d7', async (alive) => {
+    const desk = $('#d7'), user = $('[data-user]', desk), calc = $('.calc', desk), scan = $('.scan', desk), toast = $('.toast', desk);
+    user.textContent = ''; calc.style.opacity = 0; scan.className = 'scan'; toast.classList.remove('on');
+    const text = '第 3 期剪辑思路：开头先放成品效果，再讲怎么做。中间别超过两分钟……';
+    let i = 0;
+    const typeSome = async (n) => { for (let k = 0; k < n && i < text.length; k++, i++) { if (!alive()) return; user.textContent += text[i]; await sleep(110); } };
+    await typeSome(10);
+    calc.style.opacity = 1; // 计算器在后面打开，记事本保持在前面、保持焦点
+    toast.classList.add('on');
+    await typeSome(6);
+    place(scan, rel(calc, desk), 6); scanState(scan, 'on scanning');
+    await typeSome(14);
+    scanState(scan, 'on locked'); $('.t', scan).textContent = '已锁定 · 计算器';
+    await typeSome(text.length);
+    await sleep(1200); toast.classList.remove('on'); scan.className = 'scan'; $('.t', scan).textContent = '扫描中 · 计算器';
+  });
+
+  // ---- 08 申请接管前台 ----
+  runner('d8', async (alive) => {
+    const desk = $('#d8'), scan = $('.scan', desk), ask = $('.ask-fg', desk), ring = $('[data-ring]', desk), num = $('[data-num]', desk), allow = $('[data-allow]', desk);
+    const edge = $('.edge', desk), banner = $('.tbanner', desk), left = $('[data-left]', desk), c3 = $('.count3', desk), arrow = $('.arrow', desk), exp = $('[data-export]', desk);
+    const reset = () => { edge.classList.remove('on'); banner.className = 'tbanner'; c3.classList.remove('on'); arrow.classList.remove('on'); ask.style.opacity = 1; allow.style.filter = ''; };
+    reset();
+    place(scan, rel($('.editor', desk), desk), 6); scanState(scan, 'on locked');
+    // 倒计时走几秒，宿主点了「允许」
+    for (let t = 30; t >= 26; t--) {
+      if (!alive()) return;
+      num.textContent = t; ring.style.background = `conic-gradient(var(--g1) 0 ${(t / 30) * 100}%, rgba(255,255,255,.08) 0)`;
+      await sleep(500);
+    }
+    allow.style.filter = 'brightness(1.6)'; await sleep(250);
+    ask.style.opacity = .35;
+    for (const n of ['3', '2', '1']) { if (!alive()) return; c3.textContent = n; c3.classList.add('on'); await sleep(450); c3.classList.remove('on'); await sleep(120); }
+    edge.classList.add('on'); banner.classList.add('on');
+    // 真鼠标移过去点「导出」
+    const start = { x: desk.clientWidth * 0.75, y: desk.clientHeight * 0.7 };
+    Object.assign(arrow.style, { transition: 'none', left: start.x + 'px', top: start.y + 'px' });
+    await sleep(30); arrow.style.transition = ''; arrow.classList.add('on');
+    const r = rel(exp, desk);
+    for (let sec = 5; sec >= 1; sec--) {
+      if (!alive()) return;
+      left.textContent = `剩余 ${sec} 秒`;
+      if (sec === 4) Object.assign(arrow.style, { left: r.cx - 3 + 'px', top: r.cy - 2 + 'px' });
+      if (sec === 3) ripple(desk, r.cx, r.cy);
+      await sleep(700);
+    }
+    edge.classList.remove('on'); arrow.classList.remove('on');
+    banner.className = 'tbanner on back'; banner.innerHTML = '<b>已归还控制权</b><span>系统在后台继续</span>';
+    await sleep(1800);
+    banner.className = 'tbanner'; await sleep(400);
+    banner.innerHTML = '<b>系统接管中</b><span data-left>剩余 5 秒</span><span class="muted">动鼠标或按</span><span class="key">Esc</span><span class="muted">立即收回</span>';
+  });
+
+  // ---- 06 看屏幕 ----
+  runner('d6', async (alive) => {
+    const desk = $('#d6'), scan = $('.scan', desk), win = $('.code', desk), ss = $('.sscan', desk), flash = $('.flash', desk);
+    const ask = $('[data-ask]', desk), ans = $('[data-ans]', desk), title = $('[data-title]', desk);
+    const reset = () => { scan.className = 'scan'; ss.classList.remove('on'); ans.style.display = 'none'; title.textContent = '聆听中'; };
+    // 第一遍：当前窗口
+    reset(); ask.textContent = '系统，这个报错怎么回事';
+    await sleep(900); if (!alive()) return;
+    title.textContent = '扫描窗口';
+    place(scan, rel(win, desk), 6); scanState(scan, 'on scanning');
+    await sleep(1500); flash.classList.remove('go'); void flash.offsetWidth; flash.classList.add('go');
+    scan.className = 'scan'; title.textContent = '分析结果';
+    ans.style.display = ''; await typeInto(ans, '【缺少库】程序用到了 requests，但电脑上没装。在终端运行 pip install requests 即可。', 60);
+    await sleep(1800); if (!alive()) return;
+    // 第二遍：整个屏幕
+    reset(); ask.textContent = '看看整个屏幕上有什么';
+    await sleep(900); if (!alive()) return;
+    title.textContent = '扫描屏幕'; ss.classList.remove('on'); void ss.offsetWidth; ss.classList.add('on');
+    await sleep(1600); flash.classList.remove('go'); void flash.offsetWidth; flash.classList.add('go');
+    ss.classList.remove('on'); title.textContent = '分析结果';
+    ans.style.display = ''; await typeInto(ans, '【屏幕内容】左边是 VS Code，main.py 运行报错：缺少 requests 库。', 60);
+    await sleep(1800);
+  });
+</script>
+</body>
+</html>

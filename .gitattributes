@@ -1,0 +1,7 @@
+# 文本文件在仓库里统一用 LF；二进制文件不动
+* text=auto
+*.wav binary
+*.png binary
+*.ico binary
+*.jpg binary
+*.onnx binary

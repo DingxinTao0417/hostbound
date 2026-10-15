@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>系统风格调研</title>
+<style>
+  :root { --bg: #0a0d14; --ink: #e8eef8; --muted: #8a96aa; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 28px 20px 60px; background: var(--bg); color: var(--ink);
+    font-family: "Microsoft YaHei UI", "PingFang SC", "Noto Sans SC", sans-serif;
+    background-image: radial-gradient(circle at 20% 0%, #14203a 0, transparent 45%), radial-gradient(circle at 90% 30%, #1d1430 0, transparent 40%);
+  }
+  h1 { font-size: 22px; font-weight: 600; margin: 0 0 4px; }
+  .lead { color: var(--muted); margin: 0 0 20px; font-size: 14px; }
+  .replay { position: sticky; top: 8px; z-index: 5; float: right; background: #1b2436; color: var(--ink); border: 1px solid #33415c; border-radius: 6px; padding: 6px 14px; cursor: pointer; font: inherit; font-size: 13px; }
+  section { margin: 28px 0 40px; }
+  .tag { display: inline-block; font-size: 12px; padding: 2px 8px; border-radius: 4px; background: #1b2436; color: #9fb3d6; margin-right: 6px; }
+  h2 { font-size: 18px; font-weight: 600; margin: 8px 0 4px; }
+  .desc { color: var(--muted); font-size: 13.5px; line-height: 1.7; margin: 0 0 18px; max-width: 900px; }
+  .row { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 22px; align-items: start; }
+  .cap { color: var(--muted); font-size: 12px; margin: 8px 2px 0; }
+
+  /* ===== A 冷光系统：黑底蓝光、锐利、冷 ===== */
+  .sl { position: relative; padding: 18px 20px 16px; background: rgba(4, 10, 22, .88); border: 1px solid #3cc8ff;
+        box-shadow: 0 0 0 1px rgba(60,200,255,.15), 0 0 18px rgba(60,200,255,.45), inset 0 0 24px rgba(60,200,255,.12);
+        color: #dff6ff; font-family: "Microsoft YaHei UI", sans-serif; animation: sl-open .55s cubic-bezier(.2,.9,.2,1) both; transform-origin: center; }
+  .sl::before, .sl::after { content: ""; position: absolute; width: 14px; height: 14px; border: 2px solid #8fe3ff; }
+  .sl::before { left: -5px; top: -5px; border-right: 0; border-bottom: 0; }
+  .sl::after { right: -5px; bottom: -5px; border-left: 0; border-top: 0; }
+  .sl .hd { display: flex; align-items: center; justify-content: center; gap: 10px; margin: -4px 0 12px; }
+  .sl .hd span { border: 1px solid #3cc8ff; padding: 3px 18px; letter-spacing: .45em; font-size: 14px; text-shadow: 0 0 8px #3cc8ff; }
+  .sl p { margin: 6px 0; font-size: 14.5px; line-height: 1.75; text-shadow: 0 0 6px rgba(60,200,255,.55); text-align: center; }
+  .sl .em { color: #ffffff; font-weight: 600; }
+  .sl .warn { color: #ff5b6b; text-shadow: 0 0 8px rgba(255,80,100,.7); }
+  .sl .list { text-align: left; margin: 10px 8px; font-size: 14px; }
+  .sl .list div { display: flex; justify-content: space-between; border-bottom: 1px dashed rgba(60,200,255,.25); padding: 4px 0; }
+  .sl .btns { display: flex; justify-content: center; gap: 14px; margin-top: 12px; }
+  .sl button { background: transparent; color: #dff6ff; border: 1px solid #3cc8ff; padding: 4px 22px; font: inherit; font-size: 13px; letter-spacing: .2em; cursor: pointer; box-shadow: 0 0 8px rgba(60,200,255,.35); }
+  .sl.red { border-color: #ff4d5e; box-shadow: 0 0 18px rgba(255,77,94,.45), inset 0 0 24px rgba(255,77,94,.12); }
+  .sl.red .hd span { border-color: #ff4d5e; text-shadow: 0 0 8px #ff4d5e; }
+  .sl.red::before, .sl.red::after { border-color: #ff9aa4; }
+  @keyframes sl-open { 0% { transform: scaleX(.02) scaleY(.02); opacity: 0; } 40% { transform: scaleX(1) scaleY(.02); opacity: 1; } 100% { transform: scaleX(1) scaleY(1); } }
+
+  /* ===== B 国产系统流：蓝色玻璃、圆角、【叮】、热闹 ===== */
+  .cn { position: relative; padding: 16px 18px; border-radius: 14px; color: #eaf8ff;
+        background: linear-gradient(160deg, rgba(40,140,255,.38), rgba(10,60,160,.30)); border: 1.5px solid rgba(120,210,255,.85);
+        box-shadow: 0 0 22px rgba(70,170,255,.55), inset 0 0 18px rgba(170,230,255,.25); backdrop-filter: blur(6px);
+        animation: cn-pop .5s cubic-bezier(.3,1.6,.5,1) both; }
+  .cn .ding { font-size: 22px; font-weight: 800; color: #fff; text-shadow: 0 0 10px #59c6ff, 0 0 20px #59c6ff; margin-bottom: 6px; letter-spacing: .05em; }
+  .cn p { margin: 4px 0; font-size: 14.5px; line-height: 1.7; }
+  .cn .k { color: #ffe27a; font-weight: 700; text-shadow: 0 0 6px rgba(255,220,100,.6); }
+  .cn .box { margin-top: 10px; padding: 8px 10px; border-radius: 10px; background: rgba(0,30,80,.35); border: 1px solid rgba(120,210,255,.4); font-size: 13.5px; line-height: 1.8; }
+  .cn .bar { height: 8px; border-radius: 6px; background: rgba(0,20,60,.6); overflow: hidden; margin: 6px 0 2px; border: 1px solid rgba(120,210,255,.5); }
+  .cn .bar i { display: block; height: 100%; width: 62%; background: linear-gradient(90deg, #39b8ff, #9ff0ff); box-shadow: 0 0 10px #59c6ff; animation: cn-bar 1.6s ease-out both; }
+  .cn .btns { display: flex; gap: 10px; margin-top: 12px; }
+  .cn button { flex: 1; border-radius: 999px; border: 1px solid rgba(160,230,255,.9); background: rgba(40,150,255,.55); color: #fff; font: inherit; font-size: 13.5px; font-weight: 700; padding: 6px 0; cursor: pointer; box-shadow: 0 0 10px rgba(90,190,255,.6); }
+  .cn button.no { background: rgba(255,255,255,.08); }
+  .cn .attr { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 14px; font-size: 13.5px; }
+  .cn .attr b { color: #9ff0ff; }
+  @keyframes cn-pop { 0% { transform: scale(.4); opacity: 0; filter: brightness(3); } 70% { transform: scale(1.04); opacity: 1; } 100% { transform: scale(1); filter: none; } }
+  @keyframes cn-bar { from { width: 0; } }
+
+  /* ===== C 全息 HUD：细线、切角、数据流、克制 ===== */
+  .hud { position: relative; padding: 16px 18px 14px; color: #c9fff6; font-family: Consolas, "Microsoft YaHei UI", monospace;
+         background: rgba(0, 30, 30, .55); border: 1px solid rgba(0,255,210,.55);
+         clip-path: polygon(14px 0, 100% 0, 100% calc(100% - 14px), calc(100% - 14px) 100%, 0 100%, 0 14px);
+         animation: hud-in .6s steps(6) both; }
+  .hud .top { display: flex; justify-content: space-between; font-size: 11.5px; letter-spacing: .15em; color: #5ff5d8; border-bottom: 1px solid rgba(0,255,210,.35); padding-bottom: 6px; margin-bottom: 10px; }
+  .hud p { margin: 4px 0; font-size: 14px; line-height: 1.7; }
+  .hud .hl { color: #fff; background: rgba(0,255,210,.15); padding: 0 4px; }
+  .hud .stream { font-size: 11.5px; color: rgba(95,245,216,.65); margin-top: 8px; white-space: pre; overflow: hidden; }
+  .hud .seg { display: flex; gap: 3px; margin-top: 8px; }
+  .hud .seg i { flex: 1; height: 6px; background: rgba(0,255,210,.18); }
+  .hud .seg i.on { background: #2ff3cc; box-shadow: 0 0 6px #2ff3cc; }
+  .hud .btns { display: flex; gap: 8px; margin-top: 10px; }
+  .hud button { background: rgba(0,255,210,.12); color: #c9fff6; border: 1px solid rgba(0,255,210,.6); font: inherit; font-size: 12.5px; padding: 4px 14px; cursor: pointer; letter-spacing: .1em; }
+  .hud.amber { border-color: rgba(255,180,40,.7); background: rgba(40,24,0,.55); color: #ffe7b8; }
+  .hud.amber .top { color: #ffc24a; border-color: rgba(255,180,40,.45); }
+  .hud.amber button { border-color: rgba(255,180,40,.7); background: rgba(255,180,40,.12); color: #ffe7b8; }
+  @keyframes hud-in { 0% { opacity: 0; transform: translateX(-6px); } 30% { opacity: .9; } 45% { opacity: .2; } 60% { opacity: 1; } 100% { opacity: 1; transform: none; } }
+
+  /* 待机时的“系统核心”小图标 */
+  .cores { display: flex; gap: 40px; align-items: center; flex-wrap: wrap; margin-top: 6px; }
+  .core { width: 64px; height: 64px; position: relative; }
+  .core.a { border: 2px solid #3cc8ff; transform: rotate(45deg); box-shadow: 0 0 14px #3cc8ff, inset 0 0 14px rgba(60,200,255,.4); animation: breathe 2.6s ease-in-out infinite; }
+  .core.a::after { content: ""; position: absolute; inset: 18px; background: #8fe3ff; box-shadow: 0 0 12px #8fe3ff; }
+  .core.b { border-radius: 50%; background: radial-gradient(circle, #bff3ff 0, #39b8ff 35%, rgba(20,90,220,.2) 70%); box-shadow: 0 0 26px #39b8ff; animation: breathe 2.2s ease-in-out infinite; }
+  .core.c { clip-path: polygon(25% 3%, 75% 3%, 100% 50%, 75% 97%, 25% 97%, 0 50%); background: rgba(0,255,210,.15); border: 0; animation: breathe 3s ease-in-out infinite; }
+  .core.c::after { content: ""; position: absolute; inset: 0; clip-path: polygon(25% 3%, 75% 3%, 100% 50%, 75% 97%, 25% 97%, 0 50%, 4% 50%, 27% 92%, 73% 92%, 96% 50%, 73% 8%, 27% 8%, 4% 50%, 0 50%); background: #2ff3cc; }
+  @keyframes breathe { 50% { filter: brightness(1.5); opacity: .75; } }
+  .core-cap { font-size: 12px; color: var(--muted); text-align: center; margin-top: 10px; }
+</style>
+</head>
+<body>
+<button class="replay" onclick="replay()">重放动画</button>
+<h1>系统风格调研</h1>
+<p class="lead">三种在动漫、动态漫里最常见的“系统”界面。每种都按助手真实会弹出的面板来做：叫醒、干活、危险操作确认、完成。面板里的文字是按“系统”口吻改写的样例。</p>
+
+<section>
+  <span class="tag">A</span><span class="tag">冷光系统风</span>
+  <h2>暗黑冷光：黑底、蓝色描边发光、锐角四角括号</h2>
+  <p class="desc">近黑色半透明底，细蓝框外发光，标题是框起来、字距拉得很开的「通 知」。文字居中，语气冷、短、像判决书。弹出动画是先横向拉出一条光线，再纵向展开。危险提示整块变红。克制、压迫感强，适合“系统高高在上、宿主被安排”的气氛。原作里系统颜色会随主角成长变化（蓝 → 紫 → 金），可以拿来做“等级”。</p>
+  <div class="row">
+    <div><div class="sl"><div class="hd"><span>通知</span></div><p>系统已启动。</p><p>宿主，请下达<span class="em">指令</span>。</p></div><div class="cap">叫醒</div></div>
+    <div><div class="sl"><div class="hd"><span>任务</span></div><p class="em">【整理桌面截图】</p><div class="list"><div><span>目标</span><span>归档 12 张截图</span></div><div><span>进度</span><span>7 / 12</span></div><div><span>预计用时</span><span>20 秒</span></div></div></div><div class="cap">干活中</div></div>
+    <div><div class="sl red"><div class="hd"><span>警告</span></div><p class="warn">检测到高危操作：删除文件</p><p>是否授权执行？</p><div class="btns"><button>授权</button><button>拒绝</button></div></div><div class="cap">危险操作确认</div></div>
+  </div>
+</section>
+
+<section>
+  <span class="tag">B</span><span class="tag">参考：国产系统流小说、动态漫、短剧</span>
+  <h2>蓝色玻璃：圆角、【叮！】、黄色高亮奖励、进度条、属性面板</h2>
+  <p class="desc">亮蓝色半透明玻璃面板，圆角，外发光很重。每次出现都是一声「叮！」开头，接“检测到宿主……”“任务发布”“奖励”“失败惩罚”这种固定句式，奖励用金黄色高亮。有进度条、属性面板（力量、敏捷……）、【接受】【拒绝】按钮。弹出动画是闪一下白光再“啵”地弹出来。最热闹、最有“爽文”梗感，节目效果最强。</p>
+  <div class="row">
+    <div><div class="cn"><div class="ding">叮！</div><p>检测到宿主呼唤，<span class="k">打工系统</span>已激活。</p><p>请宿主发布任务～</p></div><div class="cap">叫醒</div></div>
+    <div><div class="cn"><div class="ding">任务进行中</div><p>【整理桌面截图】</p><div class="bar"><i></i></div><p style="font-size:12.5px;opacity:.85">已归档 7 / 12</p><div class="box">完成奖励：<span class="k">摸鱼时间 +3 分钟</span><br>失败惩罚：宿主亲自动手</div></div><div class="cap">干活中</div></div>
+    <div><div class="cn"><div class="ding">叮！任务完成</div><div class="attr"><span>效率 <b>+5</b></span><span>摸鱼值 <b>+3</b></span><span>专注力 <b>+1</b></span><span>称号 <b>打工达人</b></span></div><div class="btns"><button>领取奖励</button><button class="no">继续摸鱼</button></div></div><div class="cap">完成</div></div>
+  </div>
+</section>
+
+<section>
+  <span class="tag">C</span><span class="tag">参考：《刀剑神域》、科幻全息界面</span>
+  <h2>全息 HUD：细线、切角、等宽字体、滚动数据流</h2>
+  <p class="desc">青绿色（警告时换琥珀色）细线框，切掉对角的边框，等宽字体，顶栏是英文小字状态码，底下滚着“数据流”。弹出时像信号不稳一样闪两下。最“科技”、最干净，也最不抢眼，适合工作和直播时挂着不打扰。</p>
+  <div class="row">
+    <div><div class="hud"><div class="top"><span>SYS // ONLINE</span><span>v1.0</span></div><p>系统在线。等待宿主指令<span class="hl">_</span></p><div class="stream">&gt; mic.listen() ......... ok
+&gt; link.brain(deepseek) .. ok</div></div><div class="cap">叫醒</div></div>
+    <div><div class="hud"><div class="top"><span>TASK // RUNNING</span><span>58%</span></div><p>整理桌面截图</p><div class="seg"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i><i></i><i></i><i></i></div><div class="stream">&gt; move 截图_0931.png → 截图归档/</div></div><div class="cap">干活中</div></div>
+    <div><div class="hud amber"><div class="top"><span>WARN // AUTH REQUIRED</span><span>LV.3</span></div><p>高危操作：删除 12 个文件</p><div class="btns"><button>授权</button><button>拒绝</button></div></div><div class="cap">危险操作确认</div></div>
+  </div>
+</section>
+
+<section>
+  <span class="tag">待机</span>
+  <h2>平时挂在屏幕角落的“系统核心”（代替原来的马桶）</h2>
+  <p class="desc">不再有角色，平时就是一个会呼吸发光的小图标，叫醒后弹出系统面板。三种风格各一个。</p>
+  <div class="cores">
+    <div><div class="core a"></div><div class="core-cap">A 冷光菱形</div></div>
+    <div><div class="core b"></div><div class="core-cap">B 能量球</div></div>
+    <div><div class="core c"></div><div class="core-cap">C 六边形</div></div>
+  </div>
+</section>
+
+<script>
+  function replay() {
+    document.querySelectorAll('.sl, .cn, .hud, .cn .bar i').forEach((el) => {
+      el.style.animation = 'none';
+      void el.offsetWidth;
+      el.style.animation = '';
+    });
+  }
+</script>
+</body>
+</html>

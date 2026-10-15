@@ -1,0 +1,321 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>系统界面全集</title>
+<link rel="stylesheet" href="kit.css">
+</head>
+<body>
+<header>
+  <h1>系统界面全集</h1>
+  <p>同一套边框组件拓展出来的全部页面。项目名 Hostbound（宿主系统），唤醒词「系统启动」。</p>
+  <nav class="toc" id="toc"></nav>
+</header>
+
+<h2 class="group">一、开机与待机</h2>
+<div class="grid">
+  <section class="page" data-title="开机自检" data-code="BOOT">
+    <div class="boot">
+      <div>&gt; 加载听觉模块 · 唤醒词「系统启动」<span class="ok">完成</span></div>
+      <div>&gt; 加载断句与语音识别<span class="ok">完成</span></div>
+      <div>&gt; 连接大脑 · DeepSeek V4.1 Flash<span class="ok">完成</span></div>
+      <div>&gt; 加载技能 · 网页 / 软件 / 命令 / 文件<span class="ok">完成</span></div>
+      <div>&gt; 安全规则 · 22 条高危操作需授权<span class="ok">完成</span></div>
+      <div class="c-cyan">&gt; 系统自检通过，进入待机<span style="animation:blink 1s steps(2) infinite">_</span></div>
+    </div>
+    <div class="bar"><i style="width:100%"></i></div>
+    <p class="cap"><b>01</b>每次开机先放一遍自检，几秒后收进屏幕角落的系统核心。</p>
+  </section>
+
+  <section class="page" data-title="系统核心" data-code="IDLE">
+    <div style="display:flex;justify-content:space-around;align-items:flex-end;padding:6px 0 4px">
+      <div class="center"><div class="core"><i></i></div><div class="muted" style="font-size:12px;margin-top:10px">待机</div></div>
+      <div class="center"><div class="core" style="--g1:#6dffbe;--g4:#5fe6ff"><i></i></div><div class="muted" style="font-size:12px;margin-top:10px">聆听中</div></div>
+      <div class="center"><div class="core" style="--g1:#ffd97a;--g4:#ff9a5f"><i></i></div><div class="muted" style="font-size:12px;margin-top:10px">执行中</div></div>
+      <div class="center"><div class="core" style="--g1:#ff9ae0;--g4:#ff5a72"><i></i></div><div class="muted" style="font-size:12px;margin-top:10px">等待授权</div></div>
+    </div>
+    <p class="cap"><b>02</b>平时挂在屏幕角落，用颜色区分状态。点一下或喊唤醒词展开；可以拖到任意位置，靠边吸附。</p>
+  </section>
+</div>
+
+<h2 class="group">二、一次任务的完整流程</h2>
+<div class="grid">
+  <section class="page" data-title="聆听中" data-code="LISTEN" data-tone="ok">
+    <div class="center big">宿主，请下达指令</div>
+    <div class="wave" id="wave"></div>
+    <div class="field" style="justify-content:center">帮我把桌面上的截图都整理到一个文件夹里<span class="caret"></span></div>
+    <div class="btns"><span class="btn ghost sm">打字输入</span><span class="btn ghost sm">取消</span></div>
+    <p class="cap"><b>03</b>喊唤醒词以后弹出。中间是实时音量波形，下面实时显示听到的话。</p>
+  </section>
+
+  <section class="page" data-title="指令解析" data-code="PARSE">
+    <div class="card"><div class="hd"><span class="dia"></span>已识别指令</div>
+      <div class="ct big">整理桌面截图</div></div>
+    <div class="card" style="margin-top:14px"><div class="hd"><span class="dia"></span>执行计划<span class="sub">3 STEPS</span></div>
+      <div class="ct"><ul class="steps"><li>找出桌面上的截图文件</li><li>新建「截图归档」文件夹</li><li>把截图移进去</li></ul>
+      <div class="muted" style="font-size:12px;margin-top:6px">需要授权：移动文件</div></div></div>
+    <div class="btns"><span class="btn">开始执行</span><span class="btn ghost">修改</span><span class="btn ghost">取消</span></div>
+    <p class="cap"><b>04</b>复杂任务先给出计划再动手（简单的直接执行，跳过这页）。</p>
+  </section>
+
+  <section class="page" data-title="任务执行中" data-code="RUNNING">
+    <div class="row" style="border:0;padding-top:0"><span class="big">整理桌面截图</span><span class="r mono c-cyan">58%</span></div>
+    <div class="bar"><i style="width:58%"></i></div>
+    <div class="cols" style="margin-top:12px">
+      <div class="card"><div class="hd"><span class="dia"></span>步骤</div><div class="ct"><ul class="steps"><li class="done">找出截图 · 12 张</li><li class="done">新建文件夹</li><li class="now">移动截图 7 / 12</li><li>汇报结果</li></ul></div></div>
+      <div class="card"><div class="hd"><span class="dia"></span>动作<span class="sub">LIVE</span></div><div class="ct log"><span class="i">执行</span> Get-ChildItem *.png<br><span class="i">执行</span> New-Item 截图归档<br><span class="i">执行</span> Move-Item 截图_0931…</div></div>
+    </div>
+    <div class="btns"><span class="btn ghost">停止（Ctrl+Alt+X）</span></div>
+    <p class="cap"><b>05</b>左边是计划里的步骤，右边滚动显示正在执行的每个动作。</p>
+  </section>
+
+  <section class="page" data-title="高危操作授权" data-code="AUTH" data-tone="warn">
+    <div style="display:flex;gap:18px;align-items:center">
+      <div class="ringwrap"><div class="ring" style="background:conic-gradient(var(--g1) 0 66%, rgba(255,255,255,.08) 66% 100%)"></div><span>59</span><small>秒后拒绝</small></div>
+      <div><div class="big c-warn" style="font-weight:700">检测到高危操作：删除文件</div><div class="muted" style="font-size:13px">任务：清理下载文件夹 · 第 2 / 3 步</div></div>
+    </div>
+    <div class="field mono" style="margin-top:14px;font-size:12.5px">Remove-Item "D:\Downloads\*.tmp"  （共 37 个文件）</div>
+    <div class="btns"><span class="btn">授权</span><span class="btn ghost">拒绝</span><span class="btn ghost">本次任务全部授权</span></div>
+    <div class="muted center" style="font-size:12px;margin-top:10px">也可以直接说：「授权」「拒绝」「全部授权」</div>
+    <p class="cap"><b>06</b>整块变粉紫色。倒计时结束默认拒绝。</p>
+  </section>
+
+  <section class="page" data-title="任务完成" data-code="COMPLETE" data-tone="ok">
+    <div class="big center">桌面上 12 张截图已归档到「截图归档」</div>
+    <div class="cols3" style="margin-top:14px">
+      <div class="card center"><div class="ct"><div class="muted" style="font-size:12px">用时</div><div class="big mono">18s</div></div></div>
+      <div class="card center"><div class="ct"><div class="muted" style="font-size:12px">动作</div><div class="big mono">6</div></div></div>
+      <div class="card center"><div class="ct"><div class="muted" style="font-size:12px">授权</div><div class="big mono">1</div></div></div>
+    </div>
+    <div class="btns"><span class="btn">打开文件夹</span><span class="btn ghost">撤销</span><span class="btn ghost">关闭</span></div>
+    <p class="cap"><b>07</b>先说结果，再给几个数字。能撤销的操作给一个撤销按钮。</p>
+  </section>
+
+  <section class="page" data-title="任务失败" data-code="ERROR" data-tone="err">
+    <div class="big c-err" style="font-weight:700">任务中断：找不到「剪映」</div>
+    <div class="card" style="margin-top:12px"><div class="hd"><span class="dia" style="border-color:var(--red);box-shadow:0 0 6px var(--red)"></span>原因</div>
+      <div class="ct">开始菜单和常见安装位置里都没有找到剪映。<ul class="steps" style="margin-top:6px"><li class="done">搜索开始菜单</li><li class="fail">搜索 C:\Program Files</li></ul></div></div>
+    <div class="card" style="margin-top:12px"><div class="hd"><span class="dia"></span>建议</div><div class="ct">告诉系统剪映装在哪个位置，或者先手动打开一次剪映。</div></div>
+    <div class="btns"><span class="btn">重试</span><span class="btn ghost">换个办法</span><span class="btn ghost">放弃</span></div>
+    <p class="cap"><b>08</b>说清楚卡在哪一步、为什么，再给一个建议。</p>
+  </section>
+</div>
+
+<h2 class="group">三、对话与操作视图</h2>
+<div class="grid">
+  <section class="page wide" data-title="系统面板" data-code="OVERVIEW">
+    <div class="cols" style="grid-template-columns:1.1fr 1fr 1fr">
+      <div class="card"><div class="hd"><span class="dia"></span>状态<span class="sub">STATUS</span></div>
+        <div class="ct kv"><span>宿主</span><span class="c-ok">在线</span><span>大脑</span><span>DeepSeek V4.1 Flash</span><span>听觉</span><span>麦克风已连接</span><span>模式</span><span>普通</span><span>运行</span><span class="mono">02:14:36</span></div></div>
+      <div class="card"><div class="hd"><span class="dia"></span>当前任务<span class="sub">58%</span></div>
+        <div class="ct">整理桌面截图<div class="bar"><i style="width:58%"></i></div><ul class="steps"><li class="now">移动截图 7 / 12</li></ul></div></div>
+      <div class="card"><div class="hd"><span class="dia"></span>今日<span class="sub">TODAY</span></div>
+        <div class="ct kv"><span>完成任务</span><span class="mono">14</span><span>失败</span><span class="mono">1</span><span>授权次数</span><span class="mono">3</span><span>唤醒次数</span><span class="mono">22</span></div></div>
+    </div>
+    <div class="cols" style="margin-top:14px;grid-template-columns:1.1fr 2fr">
+      <div class="card"><div class="hd"><span class="dia"></span>快捷入口</div>
+        <div class="ct"><span class="chip">技能</span><span class="chip">任务记录</span><span class="chip">系统日志</span><span class="chip">设置</span><span class="chip">直播模式</span><span class="chip">安全中心</span></div></div>
+      <div class="card"><div class="hd"><span class="dia"></span>最近动态<span class="sub">LOG</span></div>
+        <div class="ct log"><span class="t">10:21</span> <span class="i">唤醒</span> 检测到宿主呼唤<br><span class="t">10:21</span> <span class="i">任务</span> 已接收：整理桌面截图<br><span class="t">10:22</span> <span class="w">授权</span> 宿主授权：移动文件</div></div>
+    </div>
+    <p class="cap"><b>09</b>总览页：叫醒后点核心图标进入。三列分别是状态、当前任务、今日统计，下面是快捷入口和最近动态。</p>
+  </section>
+
+  <section class="page" data-title="对话" data-code="DIALOG">
+    <div class="chat">
+      <div class="msg-s"><span class="tag">SYSTEM</span>系统已启动。宿主，请下达指令。</div>
+      <div class="msg-u"><span class="tag">宿主</span>帮我看看 B 站热门第一是什么</div>
+      <div class="msg-s"><span class="tag">SYSTEM</span>热门第一：《……》，播放 312 万。需要打开吗？</div>
+      <div class="msg-u"><span class="tag">宿主</span>打开</div>
+    </div>
+    <div class="field" style="margin-top:14px">输入指令，回车发送<span class="caret"></span><span class="r" style="margin-left:auto"><span class="key">Enter</span></span></div>
+    <p class="cap"><b>10</b>完整的对话记录。系统的话靠左带竖线，宿主的话靠右。</p>
+  </section>
+
+  <section class="page" data-title="技能" data-code="SKILLS">
+    <div class="stack">
+      <div class="card"><div class="ct skill"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="#5fe6ff" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3.5 3 14.5 0 18M12 3c-3 3.5-3 14.5 0 18"/></svg><div><b>操作网页 <span class="chip on" style="font-size:11px">已启用</span></b><p>打开网页、读页面、点击、填写。用系统专用的 Chrome，登录状态单独保存。</p></div></div></div>
+      <div class="card"><div class="ct skill"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="#5fe6ff" stroke-width="1.6"><rect x="3" y="4" width="18" height="13" rx="1"/><path d="M8 21h8M12 17v4"/></svg><div><b>操作软件 <span class="chip on" style="font-size:11px">已启用</span></b><p>读取软件界面，按编号点击和输入，尽量在后台完成。</p></div></div></div>
+      <div class="card"><div class="ct skill"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="#5fe6ff" stroke-width="1.6"><path d="M4 6l6 6-6 6M12 18h8"/></svg><div><b>执行命令 <span class="chip on" style="font-size:11px">已启用</span></b><p>用 PowerShell 打开软件、管理文件、查信息。</p></div></div></div>
+      <div class="card"><div class="ct skill"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="#5fe6ff" stroke-width="1.6"><path d="M14 3H6a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8z"/><path d="M14 3v5h5"/></svg><div><b>读写文件 <span class="chip on" style="font-size:11px">已启用</span></b><p>读文件、写新文件、修改已有文件（工作目录外的修改需授权）。</p></div></div></div>
+      <div class="card" style="opacity:.6"><div class="ct skill"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="#8fa3c8" stroke-width="1.6"><path d="M11 5L6 9H3v6h3l5 4zM15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/></svg><div><b>语音播报 <span class="chip" style="font-size:11px">未开放</span></b><p>把回复念出来。以后接上。</p></div></div></div>
+    </div>
+    <p class="cap"><b>11</b>系统会的技能，每个都能单独开关。</p>
+  </section>
+
+  <section class="page" data-title="网页操作" data-code="BROWSER">
+    <div class="field mono" style="font-size:12.5px"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="#5fe6ff" stroke-width="1.6"><path d="M7 11V7a5 5 0 0 1 10 0v4"/><rect x="5" y="11" width="14" height="10" rx="1"/></svg>https://member.bilibili.com/platform/data</div>
+    <div class="cols" style="margin-top:12px">
+      <div class="card"><div class="hd"><span class="dia"></span>页面元素<span class="sub">99</span></div>
+        <div class="ct tree"><span class="n">@e33</span> 链接 首页<br><span class="n">@e41</span> 标签 数据中心<br><span class="hl"><span class="n">@e52</span> 按钮 近 7 天</span><br><span class="n">@e58</span> 文本 播放量 1.2 万<br><span class="n">@e60</span> 文本 新增粉丝 86</div></div>
+      <div class="card"><div class="hd"><span class="dia"></span>操作轨迹</div>
+        <div class="ct log"><span class="o">✓</span> open 创作中心<br><span class="o">✓</span> click @e41 数据中心<br><span class="i">◆</span> click @e52 近 7 天<br><span class="dim">· get text @e58</span></div></div>
+    </div>
+    <p class="cap"><b>12</b>操作网页时的实时视图：当前网址、读到的页面元素（高亮的是正要点的），右边是做过的动作。</p>
+  </section>
+
+  <section class="page" data-title="软件操作" data-code="APP">
+    <div class="row" style="padding-top:0"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="#5fe6ff" stroke-width="1.6"><rect x="5" y="2" width="14" height="20" rx="1"/><path d="M8 6h8M8 10h2M11 10h2M14 10h2M8 14h2M11 14h2M14 14h2"/></svg><span>目标软件：<b>计算器</b></span><span class="r chip on">后台操作</span></div>
+    <div class="cols" style="margin-top:10px">
+      <div class="thumb"><i style="position:absolute;left:8%;right:8%;top:8%;height:18%;background:rgba(255,255,255,.06);border:1px solid rgba(95,230,255,.25)"></i><span class="lbl" style="right:10%;top:11%;font-size:13px;color:#fff">0</span><i style="position:absolute;left:8%;top:34%;width:19%;height:17%;background:rgba(95,230,255,.1);border:1px solid rgba(95,230,255,.25)"></i><i style="position:absolute;left:30%;top:34%;width:19%;height:17%;background:rgba(95,230,255,.1);border:1px solid rgba(95,230,255,.25)"></i><i style="position:absolute;left:52%;top:34%;width:19%;height:17%;background:rgba(95,230,255,.1);border:1px solid rgba(95,230,255,.25)"></i><i style="position:absolute;left:74%;top:34%;width:19%;height:17%;background:rgba(95,230,255,.1);border:1px solid rgba(95,230,255,.25)"></i><i style="position:absolute;left:8%;top:55%;width:19%;height:17%;background:rgba(95,230,255,.1);border:1px solid rgba(95,230,255,.25)"></i><i style="position:absolute;left:30%;top:55%;width:19%;height:17%;background:rgba(95,230,255,.1);border:1px solid rgba(95,230,255,.25)"></i><i style="position:absolute;left:52%;top:55%;width:19%;height:17%;background:rgba(95,230,255,.1);border:1px solid rgba(95,230,255,.25)"></i><i style="position:absolute;left:74%;top:55%;width:19%;height:17%;background:rgba(95,230,255,.1);border:1px solid rgba(95,230,255,.25)"></i><i style="position:absolute;left:8%;top:76%;width:19%;height:17%;background:rgba(95,230,255,.1);border:1px solid rgba(95,230,255,.25)"></i><i style="position:absolute;left:30%;top:76%;width:19%;height:17%;background:rgba(95,230,255,.1);border:1px solid rgba(95,230,255,.25)"></i><i style="position:absolute;left:52%;top:76%;width:19%;height:17%;background:rgba(95,230,255,.1);border:1px solid rgba(95,230,255,.25)"></i><i style="position:absolute;left:74%;top:76%;width:19%;height:17%;background:rgba(95,230,255,.1);border:1px solid rgba(95,230,255,.25)"></i><div class="box" style="left:8%;top:34%;width:19%;height:17%"></div><div class="lbl" style="left:9%;top:52%">#46 七</div></div>
+      <div class="card"><div class="hd"><span class="dia"></span>界面元素<span class="sub">48</span></div>
+        <div class="ct tree"><span class="n">#14</span> 显示 0<br><span class="n">#36</span> 按钮 加<br><span class="hl"><span class="n">#46</span> 按钮 七</span><br><span class="n">#47</span> 按钮 八</div></div>
+    </div>
+    <p class="cap"><b>13</b>操作软件时的实时视图：左边是窗口截图（框出正要点的元素），右边是读到的界面元素。</p>
+  </section>
+</div>
+
+<h2 class="group">四、记录</h2>
+<div class="grid">
+  <section class="page" data-title="任务记录" data-code="HISTORY">
+    <div class="tabs"><span class="on">今天</span><span>本周</span><span>全部</span></div>
+    <table class="tbl">
+      <tr><th>时间</th><th>任务</th><th>结果</th><th>用时</th></tr>
+      <tr><td class="mono dim">10:22</td><td>整理桌面截图</td><td class="c-ok">完成</td><td class="mono">18s</td></tr>
+      <tr><td class="mono dim">10:05</td><td>B 站热门第一是什么</td><td class="c-ok">完成</td><td class="mono">6s</td></tr>
+      <tr><td class="mono dim">09:47</td><td>打开剪映</td><td class="c-err">失败</td><td class="mono">12s</td></tr>
+      <tr><td class="mono dim">09:30</td><td>清理下载文件夹</td><td class="c-warn">已拒绝</td><td class="mono">9s</td></tr>
+      <tr><td class="mono dim">09:12</td><td>计算器算 7 + 8</td><td class="c-ok">完成</td><td class="mono">17s</td></tr>
+    </table>
+    <p class="cap"><b>14</b>做过的每个任务。点一行可以看完整过程，或者让系统再做一遍。</p>
+  </section>
+
+  <section class="page" data-title="系统日志" data-code="LOG">
+    <div class="tabs"><span class="on">全部</span><span>唤醒</span><span>授权</span><span>错误</span></div>
+    <div class="log">
+      <span class="t">10:21:03</span> <span class="i">[唤醒]</span> 检测到唤醒词「系统启动」<br>
+      <span class="t">10:21:07</span> <span class="i">[听觉]</span> 识别：帮我把桌面上的截图都整理…<br>
+      <span class="t">10:21:08</span> <span class="i">[大脑]</span> 计划 3 步，预计用时 20 秒<br>
+      <span class="t">10:21:15</span> <span class="w">[授权]</span> 移动文件 → 宿主授权（语音）<br>
+      <span class="t">10:21:26</span> <span class="o">[完成]</span> 整理桌面截图 · 18s<br>
+      <span class="t">10:24:40</span> <span class="i">[忽略]</span> 「哈哈这个也太好笑了」不是指令<br>
+      <span class="t">10:30:02</span> <span class="e">[错误]</span> 模型服务器超时，已重试 1 次
+    </div>
+    <p class="cap"><b>15</b>更细的运行日志，按类型筛选，排查"为什么没叫醒""为什么没听懂"用。</p>
+  </section>
+</div>
+
+<h2 class="group">五、设置</h2>
+<div class="grid">
+  <section class="page" data-title="设置 · 听觉" data-code="VOICE">
+    <div class="tabs"><span class="on">听觉</span><span>大脑</span><span>安全</span><span>外观</span><span>快捷键</span></div>
+    <div class="row"><span>唤醒词</span><span class="r"><span class="chip on">系统启动</span><span class="chip">+ 添加</span></span></div>
+    <div class="row"><span>停止词</span><span class="r"><span class="chip on">系统停止</span></span></div>
+    <div class="row"><span style="width:90px">唤醒灵敏度</span><div class="slider"><i style="width:55%"></i><b style="left:55%"></b></div><span class="mono" style="width:40px;text-align:right">0.25</span></div>
+    <div class="row"><span style="width:90px">说完等待</span><div class="slider"><i style="width:40%"></i><b style="left:40%"></b></div><span class="mono" style="width:40px;text-align:right">0.8s</span></div>
+    <div class="row"><span>麦克风</span><span class="r field" style="padding:3px 10px">USB 麦克风 ▾</span></div>
+    <div class="row"><span>连续对话</span><span class="r tog on"></span></div>
+    <div class="row"><span>自动忽略不是对系统说的话</span><span class="r tog on"></span></div>
+    <div class="btns"><span class="btn ghost sm">测试唤醒</span></div>
+    <p class="cap"><b>16</b>唤醒词、灵敏度、麦克风这些。灵敏度可以边调边测试。</p>
+  </section>
+
+  <section class="page" data-title="设置 · 大脑" data-code="MODEL">
+    <div class="card"><div class="hd"><span class="dia"></span>当前模型</div>
+      <div class="ct kv"><span>服务商</span><span>DeepSeek</span><span>模型</span><span>V4.1 Flash</span><span>密钥</span><span class="c-ok">已配置</span><span>延迟</span><span class="mono">1.3s</span></div></div>
+    <div class="card" style="margin-top:12px"><div class="hd"><span class="dia"></span>可选</div>
+      <div class="ct"><div class="row"><span>DeepSeek V4.1 Flash</span><span class="r chip on">使用中</span></div><div class="row"><span>DeepSeek V4 Pro</span><span class="r chip">切换</span></div><div class="row dim"><span>Kimi K3</span><span class="r">未配置密钥</span></div><div class="row dim"><span>MiMo-V2.6 Flash</span><span class="r">未配置密钥</span></div></div></div>
+    <div class="row" style="margin-top:8px"><span>思考深度</span><span class="r"><span class="chip">关</span><span class="chip on">低</span><span class="chip">中</span><span class="chip">高</span></span></div>
+    <p class="cap"><b>17</b>换模型、看密钥状态、测延迟。密钥本身不在这里显示和输入。</p>
+  </section>
+
+  <section class="page" data-title="安全中心" data-code="SECURITY" data-tone="warn">
+    <div class="card"><div class="hd"><span class="dia" style="border-color:#ff9ae0;box-shadow:0 0 6px var(--pink)"></span>需要授权的操作</div>
+      <div class="ct"><div class="row"><span>删除、覆盖、移动文件</span><span class="r tog on"></span></div><div class="row"><span>安装或卸载软件</span><span class="r tog on"></span></div><div class="row"><span>关机、修改系统设置</span><span class="r tog on"></span></div><div class="row"><span>联网下载</span><span class="r tog on"></span></div></div></div>
+    <div class="card" style="margin-top:12px"><div class="hd"><span class="dia"></span>禁止操作的软件</div>
+      <div class="ct"><span class="chip">微信</span><span class="chip">网银</span><span class="chip">密码管理器</span><span class="chip">+ 添加</span></div></div>
+    <div class="row" style="margin-top:6px"><span>授权超时</span><span class="r mono">90 秒后默认拒绝</span></div>
+    <p class="cap"><b>18</b>哪些操作要先问宿主、哪些软件系统不许碰。</p>
+  </section>
+
+  <section class="page" data-title="直播模式" data-code="LIVE">
+    <div class="row" style="padding-top:0"><span class="big">直播模式</span><span class="r tog on"></span></div>
+    <div class="card" style="margin-top:8px"><div class="hd"><span class="dia"></span>开启后</div>
+      <div class="ct"><ul class="steps"><li>关闭语音唤醒（说话时不会误触发）</li><li>关闭连续对话</li><li>用快捷键 <span class="key">Ctrl</span>+<span class="key">Alt</span>+<span class="key">T</span> 唤醒，一次听一句</li><li>不读取私信、后台类页面</li></ul></div></div>
+    <div class="row"><span>开播时自动开启（检测到 OBS 推流）</span><span class="r tog"></span></div>
+    <p class="cap"><b>19</b>直播时一键切换。也可以检测到 OBS 推流时自动打开。</p>
+  </section>
+
+  <section class="page" data-title="快捷键" data-code="HOTKEYS">
+    <div class="row"><span>唤醒 / 打字输入</span><span class="r"><span class="key">Ctrl</span>+<span class="key">Alt</span>+<span class="key">T</span></span></div>
+    <div class="row"><span>停止当前任务</span><span class="r"><span class="key">Ctrl</span>+<span class="key">Alt</span>+<span class="key">X</span></span></div>
+    <div class="row"><span>打开系统面板</span><span class="r"><span class="key">Ctrl</span>+<span class="key">Alt</span>+<span class="key">S</span></span></div>
+    <div class="row"><span>切换直播模式</span><span class="r"><span class="key">Ctrl</span>+<span class="key">Alt</span>+<span class="key">L</span></span></div>
+    <div class="row"><span>收起</span><span class="r"><span class="key">Esc</span></span></div>
+    <div class="btns"><span class="btn ghost sm">修改</span><span class="btn ghost sm">恢复默认</span></div>
+    <p class="cap"><b>20</b>全局快捷键，可以改。</p>
+  </section>
+
+  <section class="page" data-title="外观" data-code="APPEARANCE">
+    <div class="muted" style="font-size:12.5px;margin-bottom:8px">配色</div>
+    <div class="cols3" style="grid-template-columns:repeat(4,1fr)">
+      <div><div class="swatch" style="background:linear-gradient(90deg,#5fe6ff,#4f7bff,#b15bff,#ff5fcf);box-shadow:0 0 10px #5fe6ff"></div><div class="center" style="font-size:12px;margin-top:6px">幻彩（默认）</div></div>
+      <div><div class="swatch" style="background:linear-gradient(90deg,#5fe6ff,#3c8cff)"></div><div class="center muted" style="font-size:12px;margin-top:6px">冷蓝</div></div>
+      <div><div class="swatch" style="background:linear-gradient(90deg,#ffe6a0,#ffb347)"></div><div class="center muted" style="font-size:12px;margin-top:6px">暗金</div></div>
+      <div><div class="swatch" style="background:linear-gradient(90deg,#ff8a7a,#c23b6b)"></div><div class="center muted" style="font-size:12px;margin-top:6px">赤红</div></div>
+    </div>
+    <div class="row" style="margin-top:12px"><span style="width:90px">核心大小</span><div class="slider"><i style="width:35%"></i><b style="left:35%"></b></div><span class="mono" style="width:44px;text-align:right">80px</span></div>
+    <div class="row"><span style="width:90px">面板透明度</span><div class="slider"><i style="width:85%"></i><b style="left:85%"></b></div><span class="mono" style="width:44px;text-align:right">94%</span></div>
+    <div class="row"><span>弹出动画</span><span class="r tog on"></span></div>
+    <div class="row"><span>提示音「叮」</span><span class="r tog on"></span></div>
+    <p class="cap"><b>21</b>换配色、调大小和透明度。配色跟着状态变：聆听绿、执行金、授权粉紫、失败红。</p>
+  </section>
+</div>
+
+<h2 class="group">六、其他</h2>
+<div class="grid">
+  <section class="page" data-title="新手引导" data-code="SETUP">
+    <div class="row" style="padding-top:0"><span class="c-ok">✓ 1 连接大脑</span><span class="c-cyan" style="margin:0 auto">◆ 2 设置唤醒词</span><span class="dim">3 试一次</span></div>
+    <div class="bar"><i style="width:50%"></i></div>
+    <div class="big center" style="margin-top:14px">请对着麦克风说三遍唤醒词</div>
+    <div class="center" style="margin:10px 0"><span class="chip on">系统启动</span></div>
+    <div class="cols3" style="margin-top:6px">
+      <div class="card center"><div class="ct c-ok">第 1 遍 ✓</div></div><div class="card center"><div class="ct c-ok">第 2 遍 ✓</div></div><div class="card center"><div class="ct muted">第 3 遍…</div></div>
+    </div>
+    <div class="btns"><span class="btn ghost sm">换一个唤醒词</span><span class="btn ghost sm">跳过</span></div>
+    <p class="cap"><b>22</b>第一次打开时带着走一遍：连接大脑、录唤醒词、试一个任务。</p>
+  </section>
+
+  <section class="page" data-title="关于系统" data-code="ABOUT">
+    <div style="display:flex;gap:20px;align-items:center">
+      <div class="core"><i></i></div>
+      <div><div class="big" style="font-weight:700;letter-spacing:.1em">系统 <span class="mono muted" style="font-size:13px">v0.2.0</span></div><div class="muted" style="font-size:13px">名字待定 · 宿主专属桌面系统</div></div>
+    </div>
+    <div class="card" style="margin-top:16px"><div class="hd"><span class="dia"></span>模块</div>
+      <div class="ct kv"><span>大脑</span><span>pi（Earendil）</span><span>听觉</span><span>sherpa-onnx 本地识别</span><span>网页</span><span>agent-browser</span><span>软件</span><span>Open Computer Use</span><span>界面</span><span>Electron</span></div></div>
+    <p class="cap"><b>23</b>版本和用到的模块。</p>
+  </section>
+</div>
+
+<script>
+  // 给每个页面套上切角双线框和标题牌
+  const toc = document.getElementById('toc');
+  document.querySelectorAll('section.page').forEach((sec, i) => {
+    const cap = sec.querySelector('.cap');
+    const content = [...sec.childNodes].filter((n) => n !== cap);
+    const fr = document.createElement('div');
+    fr.className = 'fr' + (sec.dataset.tone ? ' tone-' + sec.dataset.tone : '');
+    fr.innerHTML = '<i class="l1"></i><i class="l2"></i><i class="l3"></i><i class="l4"></i>' +
+      `<div class="plate"><span class="wing l"></span><span class="p">${sec.dataset.title}</span><span class="wing r"></span></div><span class="code">${sec.dataset.code}</span><div class="body"></div>`;
+    const body = fr.querySelector('.body');
+    content.forEach((n) => body.appendChild(n));
+    sec.prepend(fr);
+    if (sec.dataset.tone) sec.classList.add('tone-' + sec.dataset.tone);
+    sec.id = 'p' + (i + 1);
+    const a = document.createElement('a');
+    a.href = '#p' + (i + 1);
+    a.textContent = String(i + 1).padStart(2, '0') + ' ' + sec.dataset.title;
+    toc.appendChild(a);
+  });
+  // 聆听页的音量波形
+  const wave = document.getElementById('wave');
+  for (let i = 0; i < 28; i++) {
+    const b = document.createElement('i');
+    b.style.setProperty('--h', 14 + Math.round(Math.abs(Math.sin(i * 0.7)) * 46) + 'px');
+    b.style.animationDelay = (i * 0.06).toFixed(2) + 's';
+    wave.appendChild(b);
+  }
+</script>
+</body>
+</html>

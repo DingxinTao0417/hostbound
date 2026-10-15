@@ -1,0 +1,8 @@
+# 显卡版系统声音（voice/server.py）要装的 Python 包。
+# 先按 https://pytorch.org/get-started/locally/ 装 CUDA 版 PyTorch，再运行：
+#   voice\.venv\Scripts\pip install -r voice\requirements-gpu.txt
+faster-qwen3-tts==0.5.4
+transformers==5.15.1
+soundfile
+filelock
+numpy

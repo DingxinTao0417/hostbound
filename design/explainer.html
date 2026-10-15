@@ -1,0 +1,904 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>讲解设计稿</title>
+<link rel="stylesheet" href="kit.css">
+<style>
+  .fr > .l2 { background: rgba(7, 12, 36, .78); }
+  .fr > .l4 { background: rgba(16, 28, 70, .2); }
+  .fr > .l1, .fr > .l3 { --w: 2px; clip-path: polygon(evenodd,
+    var(--c) 0, calc(100% - var(--c)) 0, 100% var(--c), 100% calc(100% - var(--c)), calc(100% - var(--c)) 100%, var(--c) 100%, 0 calc(100% - var(--c)), 0 var(--c), var(--c) 0,
+    calc(var(--w) + var(--c)) var(--w), var(--w) calc(var(--w) + var(--c)), var(--w) calc(100% - var(--w) - var(--c)), calc(var(--w) + var(--c)) calc(100% - var(--w)),
+    calc(100% - var(--w) - var(--c)) calc(100% - var(--w)), calc(100% - var(--w)) calc(100% - var(--w) - var(--c)), calc(100% - var(--w)) calc(var(--w) + var(--c)),
+    calc(100% - var(--w) - var(--c)) var(--w), calc(var(--w) + var(--c)) var(--w)); }
+  .fr > .l3 { --w: 1px; }
+  .note { max-width: 1180px; margin: 10px auto 0; font-size: 13px; color: var(--muted); line-height: 1.8; }
+  .note b { color: #cfe0ff; }
+  .flow { max-width: 1180px; margin: 40px auto 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 30px; align-items: start; }
+  .flow .fr > .body { padding: 40px 18px 18px; }
+  .step-cap { margin: 12px 4px 0; font-size: 12.5px; color: var(--muted); line-height: 1.6; }
+  .step-cap b { color: #cfe0ff; margin-right: 6px; }
+  .tools { max-width: 1180px; margin: 30px auto 0; }
+  .decide { max-width: 1180px; margin: 30px auto 0; }
+  .decide h4 { margin: 14px 0 4px; font-size: 13px; color: var(--cyan); letter-spacing: .16em; font-weight: 700; }
+  .decide h4:first-child { margin-top: 2px; }
+  .decide ol { margin: 0; padding-left: 26px; font-size: 14px; line-height: 1.9; }
+  .decide li { margin-bottom: 6px; }
+  .decide li b { color: var(--gold); font-weight: 600; }
+  .decide li small { color: var(--muted); font-size: 12.5px; }
+  .mk { display: inline-grid; place-items: center; width: 18px; height: 18px; border-radius: 50%; background: var(--gold); color: #1a1200; font: 700 11px Consolas, monospace;
+        box-shadow: 0 0 8px rgba(255,217,122,.7); flex: none; vertical-align: middle; font-style: normal; }
+  .legend { display: grid; gap: 13px; font-size: 13px; line-height: 1.7; color: var(--muted); align-content: start; }
+  .legend .it { display: flex; gap: 10px; align-items: flex-start; }
+  .legend .it b { display: block; color: #cfe0ff; font-weight: 600; }
+  .legend .btn { justify-self: start; }
+
+  /* ---------- 三种讲法 ---------- */
+  .modes { max-width: 1180px; margin: 34px auto 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; }
+  .mode .ct { padding: 12px 16px 14px; }
+  .mode .nm { font-size: 17px; font-weight: 700; color: #fff; letter-spacing: .06em; }
+  .mode .nm small { font: 11px Consolas, monospace; color: var(--muted); font-weight: 400; margin-left: 8px; letter-spacing: .12em; }
+  .mode .say { margin: 8px 0; font-size: 13px; color: #e3dcff; }
+  .mode .say span { display: inline-block; margin: 2px 4px 2px 0; padding: 1px 9px; background: rgba(177,91,255,.18); border: 1px solid rgba(177,91,255,.5); }
+  .mode p { margin: 0; font-size: 13px; color: #c7d6f5; line-height: 1.75; }
+  .mode .use { margin-top: 8px; font-size: 12px; color: var(--muted); }
+
+  /* ---------- 面板里的图解卡 ---------- */
+  .xcard { position: relative; padding: 11px 14px 12px; margin: 8px 0 0; --c: 10px; }
+  .xcard::before, .xcard::after { content: ""; position: absolute; clip-path: polygon(var(--c) 0, 100% 0, 100% calc(100% - var(--c)), calc(100% - var(--c)) 100%, 0 100%, 0 var(--c)); }
+  .xcard::before { inset: 0; background: linear-gradient(135deg, var(--cyan), var(--blue) 50%, var(--violet)); }
+  .xcard::after { inset: 1.5px; background: rgba(10, 20, 58, .92); }
+  .xcard > * { position: relative; z-index: 1; }
+  .xcard .tt { font-size: 12px; letter-spacing: .2em; color: var(--cyan); text-shadow: 0 0 8px rgba(95,230,255,.6); }
+  .xcard .nm { font-size: 15.5px; font-weight: 700; color: #fff; margin: 3px 0 2px; }
+  .xcard .meta { font-size: 11.5px; color: var(--muted); }
+  .xcard .live { margin-top: 8px; font-size: 12.5px; color: #fff; }
+  .xcard .live i { display: inline-block; width: 7px; height: 7px; margin-right: 6px; transform: rotate(45deg); background: var(--gold); box-shadow: 0 0 6px var(--gold); animation: blink 1s steps(2) infinite; }
+
+  /* ---------- 讲解窗口 ---------- */
+  .xwrap { max-width: 1180px; margin: 46px auto 0; display: grid; grid-template-columns: minmax(0, 1fr) 270px; gap: 30px; align-items: start; }
+  .xwin { transform-origin: 50% 50%; }
+  .xwin.play { animation: unfold .62s cubic-bezier(.2, .8, .2, 1) both; }
+  .xwin > .body { padding: 40px 20px 16px; }
+  .xbar { display: flex; align-items: center; gap: 10px; padding: 0 2px 10px; border-bottom: 1px solid rgba(95,230,255,.2); flex-wrap: wrap; }
+  .xbar .t { font-size: 16px; font-weight: 700; color: #fff; letter-spacing: .04em; }
+  .crumb { font-size: 12px; color: var(--muted); }
+  .crumb b { color: var(--cyan); font-weight: 400; }
+  .xbar .r { margin-left: auto; display: flex; align-items: center; gap: 6px; }
+  .xbar .pg { font: 12px Consolas, monospace; color: var(--muted); padding: 0 4px; }
+  .ib { min-width: 28px; height: 24px; padding: 0 7px; display: inline-grid; place-items: center; border: 1px solid rgba(95,230,255,.38); background: rgba(95,230,255,.07);
+        color: #cfe0ff; font-size: 12px; clip-path: polygon(5px 0, 100% 0, calc(100% - 5px) 100%, 0 100%); white-space: nowrap; cursor: pointer; user-select: none; }
+  .ib:hover { border-color: var(--cyan); color: #fff; }
+  .ib.x { border-color: rgba(255,90,114,.5); color: #ffb3bf; }
+  .seg { display: inline-flex; border: 1px solid rgba(177,91,255,.55); clip-path: polygon(5px 0, 100% 0, calc(100% - 5px) 100%, 0 100%); }
+  .seg span { padding: 2px 10px; font-size: 12px; color: var(--muted); cursor: pointer; user-select: none; }
+  .seg span.on { background: rgba(177,91,255,.35); color: #fff; }
+  .xdoc { height: 520px; overflow: auto; margin-top: 12px; padding: 16px 20px 14px; background: rgba(3, 7, 22, .62); border: 1px solid rgba(95,230,255,.12); position: relative; }
+  .xdoc::-webkit-scrollbar { width: 6px; } .xdoc::-webkit-scrollbar-thumb { background: rgba(95,230,255,.35); }
+  .xdoc h3 { margin: 20px 0 10px; font-size: 13.5px; font-weight: 700; color: var(--cyan); letter-spacing: .16em; display: flex; align-items: center; gap: 8px; }
+  .xdoc h3::before { content: ""; width: 8px; height: 8px; transform: rotate(45deg); border: 1.5px solid var(--cyan); }
+  .xdoc h3 .mk { margin-left: 4px; }
+  .xdoc h3 small { font-size: 11.5px; color: var(--dim); letter-spacing: 0; font-weight: 400; }
+  .tldr { padding: 10px 14px; border-left: 3px solid var(--gold); background: linear-gradient(90deg, rgba(255,217,122,.12), transparent 80%); font-size: 15px; line-height: 1.85; color: #f2f6ff; }
+  .tldr b { color: var(--gold); font-weight: 700; }
+  .fig { position: relative; padding: 8px 4px 2px; background: rgba(9, 18, 50, .55); border: 1px solid rgba(95,230,255,.14); }
+  .fig svg { display: block; width: 100%; height: auto; }
+  .figcap { font-size: 11.5px; color: var(--dim); margin: 4px 6px 4px; }
+  #xsvg .node { cursor: pointer; }
+  #xsvg .node rect { transition: stroke .25s, stroke-width .25s; }
+  #xsvg .node:hover rect { stroke-width: 2; }
+  #xsvg .node.hl rect { stroke: #ffd97a; stroke-width: 2.6; filter: url(#glow); }
+  #xsvg path.hl { stroke: #ffd97a; stroke-width: 2.4; }
+  .toast-x { position: absolute; left: 50%; top: 10px; transform: translateX(-50%); padding: 5px 14px; font-size: 12.5px; color: #fff; background: rgba(9,15,42,.95);
+             border: 1px solid var(--cyan); box-shadow: 0 0 12px rgba(95,230,255,.5); opacity: 0; transition: opacity .2s; pointer-events: none; white-space: nowrap; }
+  .toast-x.on { opacity: 1; }
+  .five { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
+  .five div { padding: 8px 10px; background: rgba(16, 28, 70, .5); border-top: 2px solid var(--cyan); font-size: 12.5px; line-height: 1.65; color: #c7d6f5; transition: background .25s, box-shadow .25s; }
+  .five div.cloud { border-top-color: var(--pink); }
+  .five div.hl { background: rgba(255,217,122,.12); border-top-color: var(--gold); box-shadow: 0 0 12px rgba(255,217,122,.25); color: #fff; }
+  .five b { display: block; font-size: 13.5px; color: #fff; margin-bottom: 2px; }
+  .five b span { font: 700 11px Consolas, monospace; color: var(--cyan); margin-right: 5px; }
+  .five .cloud b span { color: var(--pink); }
+  .analogy { position: relative; padding: 10px 14px; border-left: 3px solid var(--violet); background: linear-gradient(90deg, rgba(177,91,255,.13), transparent 80%); font-size: 14px; line-height: 1.85; color: #e3dcff; margin-top: 40px; }
+  .analogy mark { background: rgba(95,230,255,.3); color: #fff; padding: 1px 0; }
+  .selbub { position: absolute; left: 30%; top: -36px; display: flex; gap: 2px; align-items: center; padding: 3px; background: rgba(9,15,42,.96); border: 1px solid var(--cyan); box-shadow: 0 0 10px rgba(95,230,255,.45); white-space: nowrap; }
+  .selbub span { padding: 2px 10px; font-size: 12px; color: #cfe0ff; }
+  .selbub span:nth-of-type(2) { color: #fff; background: rgba(95,230,255,.18); }
+  .selbub .mk { margin: 0 4px 0 2px; padding: 0; color: #1a1200; }
+  .xdoc .tbl td:first-child { color: var(--muted); }
+  .narr { display: flex; align-items: center; gap: 8px; margin-top: 10px; padding: 7px 10px; background: rgba(9,15,42,.7); border: 1px solid rgba(255,217,122,.35); }
+  .narr .sub { flex: 1; min-width: 0; font-size: 13.5px; color: #fff; line-height: 1.6; min-height: 22px; }
+  .narr .sub .caret { display: inline-block; width: 2px; height: 14px; margin-left: 2px; vertical-align: -2px; background: var(--gold); box-shadow: 0 0 6px var(--gold); animation: blink 1s steps(2) infinite; }
+  .narr .st { font: 11.5px Consolas, monospace; color: var(--gold); white-space: nowrap; }
+  .ask { display: flex; gap: 10px; align-items: center; margin-top: 10px; }
+  .ask .field { flex: 1; color: var(--dim); }
+  .ask .btn { flex: none; }
+
+  /* 模拟 */
+  .simwrap { max-width: 1180px; margin: 40px auto 0; display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 30px; align-items: start; }
+  .simwrap .fr > .body { padding: 40px 20px 18px; }
+  .sim .wave2 { display: flex; align-items: center; gap: 2px; height: 70px; padding: 0 2px; background: rgba(3,7,22,.6); border: 1px solid rgba(95,230,255,.14); position: relative; }
+  .sim .wave2 i { flex: 1; min-width: 2px; border-radius: 1px; transition: background .2s; }
+  .sim .cut { position: absolute; top: 4px; bottom: 4px; width: 2px; background: var(--gold); box-shadow: 0 0 8px var(--gold); }
+  .sim .cut::after { content: "✂"; position: absolute; top: -2px; left: -6px; font-size: 11px; color: var(--gold); }
+  .sim .ctl { display: flex; align-items: center; gap: 12px; margin: 14px 0 6px; font-size: 13px; }
+  .sim input[type=range] { flex: 1; accent-color: #5fe6ff; }
+  .sim .val { font: 700 16px Consolas, monospace; color: var(--gold); width: 64px; text-align: right; }
+  .sim .out { display: grid; gap: 6px; margin-top: 10px; }
+  .sim .out div { padding: 5px 10px; font-size: 13.5px; border-left: 3px solid; background: rgba(16,28,70,.45); }
+  .sim .verdict { margin-top: 10px; font-size: 13px; color: #c7d6f5; }
+
+  /* ---------- 积木和自检 ---------- */
+  .blocks { max-width: 1180px; margin: 34px auto 0; display: grid; grid-template-columns: 380px minmax(0, 1fr); gap: 30px; align-items: start; }
+  .blocks .fr > .body { padding: 40px 18px 18px; }
+  .bstream { display: grid; gap: 8px; min-height: 300px; align-content: start; }
+  .blk { display: flex; align-items: center; gap: 10px; padding: 8px 10px; background: rgba(16,28,70,.55); border-left: 3px solid var(--cyan); font-size: 13px; opacity: 0; transform: translateY(6px); transition: opacity .35s, transform .35s; }
+  .blk.on { opacity: 1; transform: none; }
+  .blk .tm { margin-left: auto; font: 11px Consolas, monospace; color: var(--muted); }
+  .blk.fig2 { height: 70px; border-left-color: var(--violet); background: linear-gradient(90deg, rgba(177,91,255,.15), rgba(16,28,70,.55)); }
+  .blk.done2 { border-left-color: var(--green); color: var(--green); }
+  .chain { max-width: 1180px; margin: 22px auto 0; display: flex; align-items: stretch; gap: 0; flex-wrap: wrap; }
+  .chain .c { flex: 1; min-width: 180px; padding: 10px 14px; font-size: 13px; line-height: 1.7; color: #c7d6f5; background: rgba(16,28,70,.45); border: 1px solid rgba(95,230,255,.25); }
+  .chain .c b { display: block; color: #fff; font-size: 13.5px; }
+  .chain .a { display: grid; place-items: center; width: 26px; color: var(--cyan); font-size: 16px; }
+
+  /* ---------- 假软件（就地讲解 / 教学用） ---------- */
+  .onscreen { max-width: 1180px; margin: 34px auto 0; display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 30px; align-items: start; }
+  .onscreen .fr > .body { padding: 40px 18px 18px; }
+  .app { position: relative; height: 400px; display: flex; flex-direction: column; background: #1f2128; border: 1px solid #3b3f4c; color: #d9dce5;
+         font: 12px "Microsoft YaHei UI", sans-serif; overflow: hidden; user-select: none; box-shadow: 0 14px 40px rgba(0,0,0,.5); }
+  .atitle { display: flex; justify-content: space-between; padding: 5px 10px; background: #2a2d36; color: #c8ccd8; font-size: 11.5px; }
+  .amenu { padding: 3px 10px; background: #262931; color: #aab0c0; font-size: 11.5px; word-spacing: 10px; border-bottom: 1px solid #343846; }
+  .apreview { flex: 1; margin: 8px 10px 6px; display: grid; place-items: center; color: #6c7488; border: 1px solid #343846; min-height: 100px;
+              background: linear-gradient(135deg, #2e3445, #1a1d26); }
+  .adocks { display: grid; grid-template-columns: 1fr 1fr 1.3fr 1fr; gap: 6px; padding: 0 10px 10px; height: 158px; }
+  .dock { background: #262931; border: 1px solid #343846; display: flex; flex-direction: column; min-width: 0; }
+  .dh { padding: 3px 8px; background: #2d313b; color: #c8ccd8; font-size: 11.5px; }
+  .dl { flex: 1; padding: 4px; min-height: 0; }
+  .dl .it { padding: 3px 6px; color: #c3c8d6; }
+  .dl .it.on { background: #3d5a99; color: #fff; }
+  .df { padding: 3px 6px; border-top: 1px solid #343846; color: #aab0c0; display: flex; gap: 6px; }
+  .df span { padding: 0 3px; }
+  .mrow { padding: 3px 4px 4px; font-size: 11px; color: #aab0c0; }
+  .mrow i { display: block; height: 6px; margin-top: 3px; width: var(--v); background: linear-gradient(90deg, #4fbf6a, #d8c24a 70%, #d0504a); }
+  .ctl2 { display: grid; gap: 4px; padding: 5px; }
+  .cb { padding: 2px 0; text-align: center; background: #33374a; border: 1px solid #444a5e; color: #d9dce5; font-size: 11.5px; }
+  .menu { position: absolute; display: none; z-index: 5; min-width: 120px; padding: 3px 0; background: #2b2e38; border: 1px solid #4a4f62; box-shadow: 0 6px 16px rgba(0,0,0,.5); }
+  .menu div { padding: 4px 14px; color: #d9dce5; }
+  .dialog { position: absolute; display: none; z-index: 6; left: 50%; top: 46%; transform: translate(-50%, -50%); width: 280px; background: #2b2e38; border: 1px solid #4a4f62; box-shadow: 0 10px 30px rgba(0,0,0,.6); }
+  .dialog .dt { padding: 6px 10px; background: #33374a; }
+  .dialog .db { padding: 12px; }
+  .dialog .fake { border: 1px solid #4a4f62; background: #1f2128; padding: 4px 8px; margin: 6px 0 12px; }
+  .dialog .dbtns { display: flex; justify-content: flex-end; gap: 8px; }
+  .dialog .dbtns span { padding: 3px 16px; background: #33374a; border: 1px solid #4a4f62; }
+  .tut .app [data-k] { cursor: pointer; }
+  .tut .capx { display: none; }
+
+  /* 叠在软件上的标注层（跟现在的效果层一样：点不到、不挡你） */
+  .ov { position: absolute; inset: 0; pointer-events: none; z-index: 10; }
+  .spot { position: absolute; box-shadow: 0 0 0 2000px rgba(2, 4, 14, .62); transition: left .45s, top .45s, width .45s, height .45s, opacity .3s; }
+  .tgt { position: absolute; transition: left .45s, top .45s, width .45s, height .45s, opacity .3s; }
+  .tgt::before { content: ""; position: absolute; inset: 0; border: 1px solid rgba(255,217,122,.45); }
+  .tgt .k { position: absolute; width: 12px; height: 12px; border: 0 solid var(--gold); filter: drop-shadow(0 0 4px var(--gold)); }
+  .tgt .k.tl { left: -2px; top: -2px; border-left-width: 3px; border-top-width: 3px; }
+  .tgt .k.tr { right: -2px; top: -2px; border-right-width: 3px; border-top-width: 3px; }
+  .tgt .k.bl { left: -2px; bottom: -2px; border-left-width: 3px; border-bottom-width: 3px; }
+  .tgt .k.br { right: -2px; bottom: -2px; border-right-width: 3px; border-bottom-width: 3px; }
+  .tgt.pulse .k { animation: kp .8s ease-in-out infinite; }
+  .tgt .tagx { position: absolute; left: -2px; bottom: calc(100% + 6px); display: flex; align-items: center; gap: 7px; white-space: nowrap; padding: 2px 12px 2px 9px; font-size: 12px; color: #fff;
+               text-shadow: 0 0 6px var(--gold); background: linear-gradient(90deg, #5a4718, #241f12); border-left: 2px solid var(--gold); clip-path: polygon(0 0, 100% 0, calc(100% - 8px) 100%, 0 100%); }
+  .tgt .tagx .d { width: 7px; height: 7px; transform: rotate(45deg); background: var(--gold); box-shadow: 0 0 6px var(--gold); }
+  .tgt.below .tagx { bottom: auto; top: calc(100% + 6px); }
+  .capx { position: absolute; width: 270px; padding: 7px 12px; font-size: 12.5px; line-height: 1.65; color: #fff; background: rgba(9,15,42,.95); border: 1px solid rgba(95,230,255,.55);
+          box-shadow: 0 0 10px rgba(95,230,255,.35); transition: left .45s, top .45s, opacity .3s; clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px); }
+  .capx .lb { display: block; font: 10.5px Consolas, monospace; color: var(--cyan); letter-spacing: .12em; margin-bottom: 1px; }
+  .num { position: absolute; width: 18px; height: 18px; margin: -7px 0 0 -7px; border-radius: 50%; display: grid; place-items: center; background: var(--gold); color: #1a1200;
+         font: 700 11px Consolas, monospace; box-shadow: 0 0 8px rgba(255,217,122,.7); transition: transform .3s, opacity .3s; }
+  .num.cur { transform: scale(1.35); }
+  .num.later { opacity: .55; }
+  .scur { position: absolute; left: 0; top: 0; width: 20px; height: 20px; margin: -10px 0 0 -10px; opacity: 0; z-index: 5; transition: transform .55s cubic-bezier(.6,0,.2,1), opacity .2s; }
+  .scur.on { opacity: 1; }
+  .scur::before { content: ""; position: absolute; inset: 0; transform: rotate(45deg); border: 2px solid #fff; background: rgba(95,230,255,.35); box-shadow: 0 0 10px var(--cyan), 0 0 22px var(--cyan); }
+  .scur::after { content: ""; position: absolute; inset: 7px; transform: rotate(45deg); background: #fff; }
+  .rip { position: absolute; width: 0; height: 0; z-index: 4; }
+  .rip::before { content: ""; position: absolute; left: -22px; top: -22px; width: 44px; height: 44px; border-radius: 50%; border: 2px solid var(--gold); box-shadow: 0 0 10px var(--gold); animation: rip .6s ease-out forwards; }
+  .hint { position: absolute; padding: 5px 12px; font-size: 12px; color: #fff; white-space: nowrap; background: rgba(60,12,48,.96); border: 1px solid var(--pink); box-shadow: 0 0 10px rgba(255,95,207,.5); opacity: 0; transition: opacity .2s; }
+  .hint.on { opacity: 1; }
+
+  /* 面板（就地讲解 / 教学） */
+  .plist { list-style: none; margin: 4px 0 0; padding: 0; font-size: 13px; }
+  .plist li { display: flex; gap: 8px; padding: 4px 6px; color: #9fb0d2; border-left: 2px solid transparent; }
+  .plist li .n { font: 700 11px Consolas, monospace; color: var(--dim); width: 16px; }
+  .plist li.on { color: #fff; border-left-color: var(--gold); background: linear-gradient(90deg, rgba(255,217,122,.14), transparent); }
+  .plist li.on .n { color: var(--gold); }
+  .plist li.done { color: #c7d6f5; } .plist li.done .n { color: var(--green); }
+  .subbox { margin-top: 10px; padding: 8px 10px; min-height: 64px; font-size: 13px; line-height: 1.7; color: #fff; background: rgba(9,15,42,.7); border: 1px solid rgba(95,230,255,.3); }
+  .subbox .lb { display: block; font: 10.5px Consolas, monospace; color: var(--cyan); letter-spacing: .12em; }
+  .tutor-h { font-size: 12px; letter-spacing: .2em; color: var(--gold); text-shadow: 0 0 8px rgba(255,217,122,.6); }
+  .tutor-t { font-size: 16px; font-weight: 700; color: #fff; margin: 2px 0 8px; }
+  .tsay { margin-top: 10px; padding: 9px 12px; font-size: 15px; font-weight: 700; color: #fff; background: linear-gradient(90deg, rgba(255,217,122,.16), transparent); border-left: 3px solid var(--gold); }
+  .twarn { min-height: 20px; margin-top: 6px; font-size: 12.5px; color: #ff9ae0; }
+  .tdone { display: none; padding: 10px 12px; margin-top: 4px; background: rgba(8, 36, 30, .85); border: 1px solid rgba(109,255,190,.5); font-size: 13px; line-height: 1.75; }
+  .tdone b { color: var(--green); }
+  .tut.finished .tdone { display: block; }
+  .tut.finished .tlive { display: none; }
+
+  .two { max-width: 1180px; margin: 30px auto 0; display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: start; }
+  .two ul { margin: 0; padding-left: 18px; font-size: 13.5px; line-height: 1.85; color: #c7d6f5; }
+  .two li b { color: #fff; font-weight: 600; }
+
+  @keyframes unfold { 0% { transform: scale(.32, .006); opacity: 0; } 35% { transform: scale(1, .006); opacity: 1; } 100% { transform: scale(1, 1); opacity: 1; } }
+  @keyframes kp { 50% { opacity: .35; } }
+  @keyframes rip { from { transform: scale(.3); opacity: 1; } to { transform: scale(1.5); opacity: 0; } }
+  @media (max-width: 1080px) {
+    .flow, .modes, .two { grid-template-columns: 1fr; }
+    .xwrap, .simwrap, .blocks, .onscreen { grid-template-columns: 1fr; }
+    .five { grid-template-columns: repeat(3, 1fr); }
+  }
+  @media (max-width: 640px) {
+    .five { grid-template-columns: 1fr; }
+    .adocks { grid-template-columns: 1fr 1fr; height: auto; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>讲解设计稿 · 画图讲解、就地讲解、手把手教学</h1>
+  <p>系统讲东西有三种方式：讲概念时开一个【讲解窗口】，边画图边念、边念边指；讲屏幕上的软件时，直接在那个软件上标注着讲；想学怎么操作时，在真实软件上一步步带你自己做。</p>
+</header>
+
+<h2 class="group">一、三种讲法</h2>
+<div class="modes">
+  <div class="card mode"><div class="ct">
+    <div class="nm">讲解窗口<small>EXPLAIN</small></div>
+    <div class="say"><span>画图讲讲 TCP</span><span>图解一下</span><span>画个图</span><span>可视化一下</span></div>
+    <p>开一个单独的窗口：结论、主图、分步、比方。系统边念边指，念到哪一步，图上哪一块就亮。图上每一块都能点开深挖，没看懂的地方可以圈出来问。</p>
+    <div class="use">讲概念、原理、流程，跟屏幕上开着什么无关</div>
+  </div></div>
+  <div class="card mode"><div class="ct">
+    <div class="nm">就地讲解<small>POINT OUT</small></div>
+    <div class="say"><span>OBS 这些按钮都是干嘛的</span><span>给我讲讲这个窗口</span></div>
+    <p>不开新窗口，直接在那个软件上标编号、画框，系统光标依次飞到每个按钮上，边指边念。标注层点不到、不挡你，讲完就收起来。</p>
+    <div class="use">讲屏幕上正开着的软件、界面、报错</div>
+  </div></div>
+  <div class="card mode"><div class="ct">
+    <div class="nm">手把手教学<small>TUTOR</small></div>
+    <div class="say"><span>教我在 OBS 里加窗口采集</span><span>带我做一遍</span></div>
+    <p>在真实软件上亮出下一步该点哪，等你自己点对了，再亮下一步。点错了提醒你，卡住了可以让系统做这一步。教完存成一页讲解，以后能翻。</p>
+    <div class="use">想自己学会某个操作，而不是让系统代劳</div>
+  </div></div>
+</div>
+<p class="note">三种说法区分不开时（比如「讲讲剪映导出」），系统先问一句：「宿主要看图解，还是在剪映上直接指给你看？」</p>
+
+<h2 class="group">二、讲解窗口：画图 + 边念边指</h2>
+<div class="flow">
+  <div>
+    <section class="fr tone-ok" data-title="系统面板" data-code="EXEC">
+      <div class="msg-u" style="margin-bottom:10px"><span class="tag">宿主 · 14:32</span>系统，画图给我讲讲你是怎么听懂我说话的</div>
+      <ul class="steps">
+        <li class="done">理解问题</li>
+        <li class="now">绘制图解 · 已出 3 / 5 块</li>
+        <li>边念边讲</li>
+      </ul>
+    </section>
+    <p class="step-cap"><b>① 下指令</b>讲解窗口马上打开：结论不到 1 秒就出来，图和分步写好一块出一块，不用干等。</p>
+  </div>
+  <div>
+    <section class="fr" data-title="系统面板" data-code="LIVE">
+      <div class="msg-s">系统听懂宿主要过五关，前四关都在本机完成。</div>
+      <div class="xcard">
+        <div class="tt">【图解】</div>
+        <div class="nm">系统是怎么听懂宿主说话的</div>
+        <div class="meta">5 步 · 1 张流程图 · 1 张对比表 · 讲解窗口第 2 页</div>
+        <div class="live"><i></i>正在讲第 4 / 5 步：大脑</div>
+      </div>
+    </section>
+    <p class="step-cap"><b>② 边念边指</b>分步一到就开始念。念到哪一步，图上哪一块就亮，分步卡片也同步亮。说「停一下」「下一步」「这步再讲一遍」都行。</p>
+  </div>
+  <div>
+    <section class="fr" data-title="系统面板" data-code="FOLLOW">
+      <div class="msg-u" style="margin-bottom:8px"><span class="tag">宿主 · 14:35 · 点了图上的「大脑」</span>展开讲讲大脑这一块</div>
+      <div class="msg-s">已展开成第 3 页：大脑是怎么决定要不要动手的。</div>
+    </section>
+    <p class="step-cap"><b>③ 接着问</b>三种问法：直接说或者在追问框里打字；点图上任意一块展开；选中没看懂的一段字，点「这里没看懂」。回答都是新的一页，◂ ▸ 翻回去。</p>
+  </div>
+</div>
+
+<div class="xwrap">
+  <section class="fr xwin" id="xwin" data-title="系统讲解" data-code="EXPLAIN · 02/03">
+    <div class="xbar">
+      <span class="mk">1</span>
+      <span class="t">系统是怎么听懂宿主说话的</span>
+      <span class="crumb" id="crumb">全程</span>
+      <span class="r">
+        <span class="mk">2</span><span class="seg" id="dep"><span class="on" data-v="plain">说人话</span><span data-v="pro">专业</span></span>
+        <span class="mk" style="margin-left:6px">3</span><span class="ib">◂</span><span class="pg">2 / 3</span><span class="ib">▸</span>
+        <span class="ib" title="钉在最上面">钉住</span><span class="ib" title="用默认浏览器打开">浏览器打开</span><span class="ib x">×</span>
+      </span>
+    </div>
+
+    <div class="xdoc" id="xdoc">
+      <div class="tldr" id="tldr"></div>
+
+      <h3>一张图看全程 <span class="mk">4</span><small>点任意一块，展开成新的一页</small></h3>
+      <div class="fig">
+        <svg id="xsvg" viewBox="0 0 900 232" xmlns="http://www.w3.org/2000/svg" font-family="Microsoft YaHei UI, sans-serif">
+          <defs>
+            <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#5fe6ff"/></marker>
+            <marker id="arp" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#ff5fcf"/></marker>
+            <filter id="glow" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="3.5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+          </defs>
+          <rect x="8" y="110" width="884" height="114" fill="rgba(95,230,255,.04)" stroke="#5fe6ff" stroke-opacity=".45" stroke-dasharray="6 5"/>
+          <text x="20" y="214" fill="#5fe6ff" font-size="12" letter-spacing="2">本机 · 不联网</text>
+          <rect x="498" y="8" width="200" height="86" fill="rgba(255,95,207,.05)" stroke="#ff5fcf" stroke-opacity=".55" stroke-dasharray="6 5"/>
+          <text x="688" y="26" fill="#ff5fcf" font-size="12" text-anchor="end" letter-spacing="2">联网</text>
+          <g stroke="#5fe6ff" stroke-width="1.6" fill="none" marker-end="url(#ar)">
+            <path d="M124 164 H156"/><path d="M264 164 H296"/><path d="M404 164 H436"/><path d="M744 164 H776"/>
+          </g>
+          <g stroke="#ff5fcf" stroke-width="1.6" fill="none" marker-end="url(#arp)">
+            <path id="e-up" d="M492 140 V54 H526"/><path id="e-down" d="M666 54 H692 V136"/>
+          </g>
+          <g font-size="14" fill="#ffffff" text-anchor="middle">
+            <g class="node" id="n-mic" data-name="麦克风"><rect x="20" y="140" width="104" height="48" fill="#101c46" stroke="#5fe6ff"/><text x="72" y="161">麦克风</text><text x="72" y="178" font-size="10.5" fill="#8fa3c8">宿主说话</text></g>
+            <g class="node" id="n-kws" data-name="唤醒词"><rect x="160" y="140" width="104" height="48" fill="#101c46" stroke="#5fe6ff"/><text x="212" y="161">唤醒词</text><text x="212" y="178" font-size="10.5" fill="#8fa3c8">sherpa KWS</text></g>
+            <g class="node" id="n-vad" data-name="断句"><rect x="300" y="140" width="104" height="48" fill="#101c46" stroke="#5fe6ff"/><text x="352" y="161">断句</text><text x="352" y="178" font-size="10.5" fill="#8fa3c8">Silero VAD</text></g>
+            <g class="node" id="n-asr" data-name="识别"><rect x="440" y="140" width="104" height="48" fill="#101c46" stroke="#5fe6ff"/><text x="492" y="161">识别</text><text x="492" y="178" font-size="10.5" fill="#8fa3c8">SenseVoice</text></g>
+            <g class="node" id="n-brain" data-name="大脑"><rect x="530" y="30" width="136" height="48" fill="#1d1446" stroke="#ff5fcf"/><text x="598" y="51">大脑</text><text x="598" y="68" font-size="10.5" fill="#c9a8ff">pi + DeepSeek</text></g>
+            <g class="node" id="n-tts" data-name="开口"><rect x="640" y="140" width="104" height="48" fill="#101c46" stroke="#5fe6ff"/><text x="692" y="161">开口</text><text x="692" y="178" font-size="10.5" fill="#8fa3c8">Qwen3-TTS</text></g>
+            <g class="node" id="n-spk" data-name="扬声器"><rect x="780" y="140" width="104" height="48" fill="#101c46" stroke="#5fe6ff"/><text x="832" y="161">扬声器</text><text x="832" y="178" font-size="10.5" fill="#8fa3c8">系统音</text></g>
+          </g>
+          <g font-size="10.5" fill="#8fa3c8" text-anchor="middle">
+            <text x="140" y="132">一直在听</text><text x="280" y="132">听到才收音</text><text x="420" y="132">停 0.8 秒</text><text x="470" y="98">文字</text><text x="720" y="98">回复</text><text x="762" y="132">约 0.5 秒</text>
+          </g>
+        </svg>
+        <div class="toast-x" id="xtoast"></div>
+        <div class="figcap">图 1 · 青色在本机，粉色要联网（实际由 Mermaid 画，这里是示意；点一下图上的方块试试）</div>
+      </div>
+
+      <h3>五关分别干什么</h3>
+      <div class="five" id="five">
+        <div><b><span>01</span>唤醒词</b>一直在听，只认「系统启动」，听到了才开始收音</div>
+        <div><b><span>02</span>断句</b>宿主停顿 0.8 秒，就算这句话说完了</div>
+        <div><b><span>03</span>识别</b>SenseVoice 把这句话转成文字</div>
+        <div class="cloud"><b><span>04</span>大脑</b>pi + DeepSeek 想怎么回、要不要动手干活</div>
+        <div><b><span>05</span>开口</b>Qwen3-TTS 约 0.5 秒出声，文字跟着声音出现</div>
+      </div>
+
+      <h3>打个比方</h3>
+      <div class="analogy">
+        <div class="selbub"><span class="mk">6</span><span>这里没看懂</span><span>换个说法</span><span>举个例子</span></div>
+        像前台接待：先竖着耳朵等人叫自己名字（唤醒词），等对方把话说完（断句），记在本子上（识别），再<mark>打电话问经理</mark>（大脑），最后开口回话（开口）。只有「打电话问经理」这一步要连外面。
+      </div>
+
+      <h3>开口有两种声音</h3>
+      <table class="tbl">
+        <tr><th></th><th>显卡</th><th>CPU</th></tr>
+        <tr><td>音质</td><td>最好</td><td>同一个音色，稍慢</td></tr>
+        <tr><td>占显卡</td><td>占</td><td>不占</td></tr>
+        <tr><td>什么时候用</td><td>平时</td><td>打游戏、显卡被占用时自动换过来</td></tr>
+      </table>
+      <p style="margin:14px 0 0;font-size:12.5px;color:var(--dim)">—— 第 2 页完 · ◂ 第 1 页「Electron 透明窗口」 · 第 3 页「大脑是怎么决定要不要动手的」 ▸ ——</p>
+    </div>
+
+    <div class="narr">
+      <span class="mk">5</span>
+      <span class="ib" id="xplay">⏸</span><span class="ib" id="xprev">上一步</span><span class="ib" id="xnext">下一步</span><span class="ib" id="xredo">重讲</span>
+      <span class="sub" id="xsub"></span>
+      <span class="st" id="xst">第 1 / 5 步</span>
+    </div>
+    <div class="ask">
+      <span class="mk">7</span>
+      <div class="field">对这一页接着问……（也可以直接说）<span class="caret"></span></div>
+      <span class="btn sm">发送</span>
+    </div>
+  </section>
+
+  <div class="legend">
+    <div class="it"><span class="mk">1</span><span><b>标题和路径</b>点图展开以后，路径变成「全程 › 大脑」，点路径能跳回去。窗口可以拖、可以拉大小，第一次打开约 960×720，之后记住。</span></div>
+    <div class="it"><span class="mk">2</span><span><b>说人话 / 专业</b>切换会按另一种深浅重写这一页，两个版本都留着，来回切不用等。点一下试试。</span></div>
+    <div class="it"><span class="mk">3</span><span><b>翻页、钉住、浏览器打开、关闭</b>每次讲解是一页。默认不置顶，点「钉住」才浮在最上面。</span></div>
+    <div class="it"><span class="mk">4</span><span><b>点哪问哪</b>图上每一块都能点，点了就把那一块展开成新的一页。</span></div>
+    <div class="it"><span class="mk">5</span><span><b>讲解条</b>系统音念到哪，下面的字幕就走到哪，图上和分步卡片同步亮。可以暂停、上一步、下一步、重讲这一步，用嘴说也行。</span></div>
+    <div class="it"><span class="mk">6</span><span><b>圈哪问哪</b>选中一段字，或者在图上框住一块，弹出「这里没看懂 / 换个说法 / 举个例子」，系统只针对这一块重讲。</span></div>
+    <div class="it"><span class="mk">7</span><span><b>追问框</b>打字等于跟系统说一句话，回答作为新的一页。</span></div>
+    <span class="btn ghost sm" id="replay">▶ 重放展开动画</span>
+  </div>
+</div>
+
+<div class="simwrap">
+  <section class="fr sim" data-title="能动手玩的模拟" data-code="SIM · 断句">
+    <p style="margin:0 0 10px;font-size:13.5px;color:#c7d6f5">宿主说了一段话，中间停顿长短不一。拖动滑块，看系统会把它切成几句。</p>
+    <div class="wave2" id="wave"></div>
+    <div class="ctl"><span>停顿多久算说完</span><input type="range" id="th" min="0.2" max="2" step="0.1" value="0.8"><span class="val" id="thv">0.8 秒</span></div>
+    <div class="out" id="sents"></div>
+    <div class="verdict" id="verdict"></div>
+  </section>
+  <div class="note" style="margin:0">
+    <p><b>什么时候做模拟</b>：大脑觉得「拖一下看变化」比看图更好懂时才做，比如阈值、比例、速度、概率这类。一页最多一个。</p>
+    <p><b>谁写的</b>：只有模拟是大脑自己写的 HTML 和脚本，其他内容都是积木拼出来的。</p>
+    <p><b>安全</b>：模拟关在沙箱里，能跑自己的脚本，但碰不到你的文件、不能联网、不能弹窗。</p>
+    <p>这个模拟真能拖，试试 0.4 秒和 1.5 秒。</p>
+  </div>
+</div>
+
+<h2 class="group">三、积木：大脑交「积木」，窗口负责拼</h2>
+<div class="blocks">
+  <section class="fr" data-title="积木一块块出来" data-code="STREAM">
+    <div class="bstream" id="bstream">
+      <div class="blk">结论<span class="tm">0.8 秒</span></div>
+      <div class="blk fig2">主图（Mermaid 文字 → 画出来）<span class="tm">3 秒</span></div>
+      <div class="blk">分步 · 每步带一段旁白<span class="tm">5 秒</span></div>
+      <div class="blk done2">◆ 开始边念边指<span class="tm">5 秒</span></div>
+      <div class="blk">比方<span class="tm">6.5 秒</span></div>
+      <div class="blk">表格<span class="tm">8 秒</span></div>
+    </div>
+  </section>
+  <div>
+    <table class="tbl">
+      <tr><th style="width:90px">积木</th><th>里面写什么</th><th style="width:170px">谁来画</th></tr>
+      <tr><td class="c-gold">结论</td><td>一两句话。面板里显示、开头念的也是它</td><td>窗口模板</td></tr>
+      <tr><td class="c-gold">图</td><td>流程 / 时序 / 结构，写成 Mermaid 文字；每一块有名字，分步和「点哪问哪」靠它对上</td><td>Mermaid</td></tr>
+      <tr><td class="c-gold">分步</td><td>每步：标题、说明、要念的旁白、对应图上哪一块</td><td>窗口模板</td></tr>
+      <tr><td class="c-gold">比方</td><td>打个比方</td><td>窗口模板</td></tr>
+      <tr><td class="c-gold">表格</td><td>对比优缺点、参数</td><td>窗口模板</td></tr>
+      <tr><td class="c-gold">时间线</td><td>按先后发生了什么</td><td>窗口模板</td></tr>
+      <tr><td class="c-gold">数据图</td><td>几个数比大小</td><td>窗口模板（柱状 / 条形）</td></tr>
+      <tr><td class="c-gold">截图</td><td>就地讲解、教学时截的真实界面，上面可以画框和编号</td><td>窗口模板</td></tr>
+      <tr><td class="c-gold">模拟</td><td>能动手玩的小程序（滑块、按钮）</td><td>大脑自己写，关在沙箱里</td></tr>
+    </table>
+    <p class="note" style="margin-top:12px">跟让大脑写整页 HTML 比：<b>快</b>（只写内容不写样式，token 少很多）；<b>样式永远统一</b>；<b>能边写边显示</b>；<b>安全</b>（除了模拟，窗口里不跑大脑写的脚本）。visual-explainer 的 --quick 模式也是这个思路。</p>
+  </div>
+</div>
+
+<h2 class="group">画完自己检查一遍</h2>
+<div class="chain">
+  <div class="c"><b>① 先试着画</b>每块图交上来，窗口先画一遍</div>
+  <div class="a">▸</div>
+  <div class="c"><b>② 画不出来就改</b>把 Mermaid 的报错原样发回大脑，最多改 2 次；还不行就换成文字说明，不留空白</div>
+  <div class="a">▸</div>
+  <div class="c"><b>③ 整页截一张图</b>大脑看一眼：有没有画歪、字挤在一起、哪里空太多</div>
+  <div class="a">▸</div>
+  <div class="c"><b>④ 只改有问题的那块</b>其他块不动，宿主看到的是那一块闪一下换掉</div>
+</div>
+
+<h2 class="group">四、就地讲解：直接在软件上标注着讲</h2>
+<div class="onscreen" id="os">
+  <div>
+    <div class="app" id="osApp"></div>
+    <p class="note" style="margin-top:12px">这里用一个假的 OBS 代表宿主屏幕上真实的软件。金色编号、框、系统光标、讲解字幕都画在效果层上：<b>点不到、不挡你</b>，跟现在操作软件时的扫描框一样。讲完自动收起。</p>
+  </div>
+  <div>
+    <section class="fr" data-title="就地讲解" data-code="OBS · 1/6" id="osPanel">
+      <div class="msg-u" style="margin-bottom:10px"><span class="tag">宿主</span>OBS 这些按钮都是干嘛的</div>
+      <ol class="plist" id="osList"></ol>
+      <div class="subbox"><span class="lb">正在讲</span><span id="osSub"></span></div>
+      <div class="btns"><span class="btn sm" id="osPause">暂停</span><span class="btn ghost sm" id="osPrev">上一个</span><span class="btn ghost sm" id="osNext">下一个</span><span class="btn ghost sm">退出</span></div>
+    </section>
+    <p class="step-cap"><b>流程</b>读一遍界面，拿到每个按钮的位置 → 大脑挑出最常用的几个，一次写好每个的旁白 → 依次框住、光标飞过去、念 → 讲完收起。</p>
+    <p class="step-cap"><b>读不出按钮的软件</b>（剪映、微信这类）：看截图估位置，框画成<b>虚线</b>，表示位置是估的，可能不准。</p>
+  </div>
+</div>
+
+<h2 class="group">五、手把手教学：在真实软件上带你自己做</h2>
+<div class="onscreen tut" id="tut">
+  <div>
+    <div class="app" id="tutApp"></div>
+    <p class="note" style="margin-top:12px"><b>这个能真点</b>：照着亮着的地方点这个假软件，点错了会提示；也可以点教学面板里的「你来做这步」。实际做的时候，系统用已经装好的 uiohook 听你点在哪，再重新读一遍界面，确认真的变了才算这一步做完。</p>
+  </div>
+  <div>
+    <section class="fr" data-title="手把手教学" data-code="TUTOR · 1/4" id="tutPanel">
+      <div class="tutor-h">【教学】</div>
+      <div class="tutor-t">在 OBS 里添加窗口采集</div>
+      <div class="tlive">
+        <ol class="plist" id="tutList"></ol>
+        <div class="tsay" id="tutSay"></div>
+        <div class="twarn" id="tutWarn"></div>
+        <div class="btns"><span class="btn sm" id="tutDo">你来做这步</span><span class="btn ghost sm" id="tutSkip">跳过</span><span class="btn ghost sm" id="tutAgain2">再指一遍</span></div>
+      </div>
+      <div class="tdone" id="tutDone"></div>
+    </section>
+    <p class="step-cap"><b>流程</b>系统先读界面，排好步骤 → 亮出这一步要点的地方，念一句要做什么 → 等你点；点对了打勾、亮下一步；点错了提醒一下、重新指 → 全部做完，存一页小结（每步一张截图）。</p>
+    <p class="step-cap"><b>系统不替你点</b>：除非你按「你来做这步」或者说「你来」，那一步照常走授权。</p>
+  </div>
+</div>
+
+<h2 class="group">六、大脑多了这些工具</h2>
+<div class="tools card"><div class="ct">
+  <div class="row"><span class="mono c-cyan" style="width:150px">explain</span><span>画一页讲解：大脑只交主题和要点，画图另开一次模型调用，按积木一块块写（写好一块、窗口显示一块），画完自检</span></div>
+  <div class="row"><span class="mono c-cyan" style="width:150px">explain_open</span><span>按关键词找以前的讲解，重新打开（「把上次讲声音的那张图再打开」）</span></div>
+  <div class="row"><span class="mono c-cyan" style="width:150px">point_out</span><span>就地讲解：一次交几个元素和旁白，在真实软件上依次框住、光标飞过去、念；工具马上返回，讲解在后台进行</span></div>
+  <div class="row"><span class="mono c-cyan" style="width:150px">tutor_step</span><span>教学的一步：亮出要点的地方、说要做什么、等宿主做完；返回做完了 / 宿主让你来做 / 跳过 / 退出</span></div>
+  <div class="row"><span class="mono c-cyan" style="width:150px">tutor_finish</span><span>教学做完：每一步和截图存成一页讲解，收起标注</span></div>
+</div></div>
+<p class="note">反过来，讲解窗口和效果层会告诉大脑：宿主点了图上的哪一块、圈了哪一段、切了深浅、Mermaid 报错、整页截图，以及教学时宿主点了哪里。<b>实现时的调整</b>：原来设想大脑一块块交积木（explain_page / explain_block），实际改成画图另开一次模型调用——对话不会被图的代码撑满，「画图用的模型」也能单独换。</p>
+
+<h2 class="group">七、安全和花费</h2>
+<div class="two">
+  <div class="card"><div class="hd"><span class="dia"></span>安全</div><div class="ct">
+    <ul>
+      <li><b>讲解窗口是隔离的</b>：跑不了 Node，碰不到你的文件，不能弹新窗口；只用本地的 Mermaid，不加载外网的东西；页面里的链接用你的默认浏览器打开</li>
+      <li><b>模拟关在沙箱里</b>：能跑自己的脚本，但不能联网、不能碰文件、不能弹窗</li>
+      <li><b>标注层点不到</b>：就地讲解和教学的框、编号、字幕都画在效果层上，不挡你操作</li>
+      <li><b>教学时只指不点</b>：你说「你来」才替你做那一步，照常走授权</li>
+      <li><b>禁止操作的软件照样不碰</b>：设置里禁掉的软件，不讲、不标、不教</li>
+    </ul>
+  </div></div>
+  <div class="card tone-warn"><div class="hd"><span class="dia"></span>花费和隐私</div><div class="ct">
+    <ul>
+      <li><b>一页讲解几千 token</b>：积木比整页 HTML 省；默认你说了才画</li>
+      <li><b>边念边指不额外花钱</b>：念的是本地声音</li>
+      <li><b>自检截图</b>：每页多一次看图请求，设置里能关</li>
+      <li><b>就地讲解、教学要读界面和截图</b>：跟现在操作软件时一样，会发给 DeepSeek，直播时注意别让它读私信和后台</li>
+      <li><b>存在本机</b>：讲解和教学小结存在 <span class="mono">data\explainers</span>，不上传</li>
+    </ul>
+  </div></div>
+</div>
+
+<h2 class="group">八、需要你拍板的（括号里是默认）</h2>
+<div class="decide card"><div class="ct">
+  <h4>讲解窗口</h4>
+  <ol>
+    <li>什么时候画图讲解？（<b>你说了才画</b>：「画图讲讲」「图解一下」「画个图」「可视化一下」。平时的回答还是面板里几句话，省时间也省钱）</li>
+    <li>讲解窗口开几个？（<b>只开一个</b>：每次讲解是里面的一页，◂ ▸ 翻；追问、点图展开、新话题都接在后面）</li>
+    <li>什么时候打开？（<b>马上打开</b>：积木写好一块出一块，结论不到 1 秒就能看到）</li>
+    <li>弹出来抢不抢焦点、置不置顶？（<b>都不</b>：在核心旁边展开，不打断你打字；想浮在最上面就点「钉住」）</li>
+    <li>边念边指自动开始吗？（<b>自动</b>：分步一到就开始。系统声音关着时只亮不念，说「下一步」或按「下一步」往后翻）</li>
+    <li>默认讲多深？（<b>说人话</b>：少用术语、多打比方；切「专业」重写这一页，两版都留着）</li>
+    <li>点图上一块，是展开成新的一页，还是在原地展开？（<b>新的一页</b>：顶上的路径能跳回去）</li>
+    <li>画完自检做到哪一步？（<b>都做</b>：画不出来自动改，最多 2 次；画完截图看一眼。截图检查每页多一次看图请求，设置里能关）</li>
+    <li>画图用哪个模型？（<b>跟聊天同一个</b>；设置里能单独选「画图用的模型」，比如换成 deepseek-v4-pro）</li>
+    <li>什么时候做模拟？（<b>大脑觉得拖一下看变化更好懂时才做</b>，一页最多一个）</li>
+  </ol>
+  <h4>就地讲解</h4>
+  <ol start="11">
+    <li>一次讲几个？（<b>最多 8 个</b>，挑最常用的；你说「全部讲一遍」才全讲）</li>
+    <li>讲的时候你动了鼠标，或者那个窗口挪了，怎么办？（<b>暂停</b>：标注跟着窗口重新对齐，说「继续」接着讲）</li>
+    <li>读不出按钮的软件怎么办？（<b>照样讲，框画成虚线</b>，表示位置是看截图估的）</li>
+  </ol>
+  <h4>手把手教学</h4>
+  <ol start="14">
+    <li>系统能替你做某一步吗？（<b>你按「你来做这步」或说「你来」才做</b>，照常走授权；平时只指不点）</li>
+    <li>点错了怎么办？（<b>提醒一下，重新指</b>；同一步点错 3 次，问你要不要系统来做这步）</li>
+    <li>怎么算你做完了这一步？（<b>两条都要</b>：你点的位置落在亮着的框里，并且重新读界面确实变了；读不出界面的软件就问你一句「做好了吗」）</li>
+    <li>教完存小结吗？（<b>存</b>：每一步加一张截图，存成一页讲解）</li>
+  </ol>
+  <h4>其他</h4>
+  <ol start="18">
+    <li>讲解存多久？（<b>一直存</b>：放在 <span class="mono">data\explainers</span>，对话里的图解卡点了能重新打开；设置里能一键清空）</li>
+    <li>下载 Mermaid 放在本地？（<b>下载</b>：mermaid 12.1.0（10 月 2 日发布），来自 npm（github.com/mermaid-js/mermaid），MIT，只取打包好的单个文件 mermaid.min.js，约 5.5MB。<br><small>最新的 12.2.0 前天才出，先不用。放在本地是因为国内访问 CDN 不稳，讲解窗口也就不用联网。</small>）</li>
+  </ol>
+</div></div>
+<p class="note">做法参考：nicobailon/visual-explainer（MIT）的页面结构、「什么内容用什么图」的规则和 --quick 的积木思路；bentossell/visualise 的「能动手玩」；zarazhangrui/codebase-to-course 的「先结论、再图、再打比方」。只借鉴写法，不装这几个 skill。</p>
+
+<script>
+  document.querySelectorAll('section.fr').forEach((fr) => {
+    const kids = [...fr.childNodes];
+    fr.innerHTML = '<i class="l1"></i><i class="l2"></i><i class="l3"></i><i class="l4"></i>' +
+      `<div class="plate"><span class="wing l"></span><span class="p">${fr.dataset.title}</span><span class="wing r"></span></div><span class="code">${fr.dataset.code}</span><div class="body"></div>`;
+    const body = fr.querySelector('.body');
+    kids.forEach((n) => body.appendChild(n));
+  });
+  const $ = (id) => document.getElementById(id);
+  const rel = (el, root) => { const a = el.getBoundingClientRect(), b = root.getBoundingClientRect(); return { x: a.left - b.left, y: a.top - b.top, w: a.width, h: a.height }; };
+  const put = (el, r, pad = 0) => Object.assign(el.style, { left: r.x - pad + 'px', top: r.y - pad + 'px', width: r.w + pad * 2 + 'px', height: r.h + pad * 2 + 'px' });
+
+  // ---------- 讲解窗口 ----------
+  const xwin = $('xwin');
+  const play = () => { xwin.classList.remove('play'); void xwin.offsetWidth; xwin.classList.add('play'); };
+  $('replay').addEventListener('click', play);
+  play();
+
+  const TLDR = {
+    plain: '<b>【结论】</b>系统听懂宿主要过五关：唤醒词 → 断句 → 识别 → 大脑 → 开口。前三关和开口都在本机跑，不联网；只有「大脑」这一关把文字发给 DeepSeek。',
+    pro: '<b>【结论】</b>语音链路：sherpa-onnx 关键词检测 → Silero VAD 端点检测（尾部静音 0.8 s 判句尾）→ SenseVoice 离线识别 → pi agent 调 DeepSeek 推理和工具调用 → Qwen3-TTS 流式合成（首包约 0.5 s）。只有大模型推理这一步出网。',
+  };
+  const tldr = $('tldr');
+  tldr.innerHTML = TLDR.plain;
+  $('dep').addEventListener('click', (e) => {
+    const v = e.target.dataset.v;
+    if (!v) return;
+    $('dep').querySelectorAll('span').forEach((s) => s.classList.toggle('on', s === e.target));
+    tldr.innerHTML = TLDR[v];
+  });
+
+  const XS = [
+    { n: ['n-mic', 'n-kws'], say: '第一关，唤醒词。系统一直在听，但只认「系统启动」这四个字，别的话不往下传。' },
+    { n: ['n-vad'], say: '第二关，断句。宿主停顿零点八秒，系统就认为这句话说完了。' },
+    { n: ['n-asr'], say: '第三关，识别。SenseVoice 把这句话转成文字。到这里为止都在本机，不联网。' },
+    { n: ['n-brain', 'e-up', 'e-down'], say: '第四关，大脑。文字发给 DeepSeek，由它决定怎么回、要不要动手干活。这是唯一要联网的一步。' },
+    { n: ['n-tts', 'n-spk'], say: '第五关，开口。回复交给 Qwen3-TTS，大约零点五秒出声，面板里的字跟着声音出现。' },
+  ];
+  const xs = { i: 0, ch: 0, playing: true, wait: 0 };
+  const cards = [...$('five').children];
+  function xshow() {
+    document.querySelectorAll('#xsvg .hl').forEach((el) => el.classList.remove('hl'));
+    XS[xs.i].n.forEach((id) => $(id).classList.add('hl'));
+    cards.forEach((c, k) => c.classList.toggle('hl', k === xs.i));
+    $('xst').textContent = `第 ${xs.i + 1} / ${XS.length} 步`;
+    $('xplay').textContent = xs.playing ? '⏸' : '▶';
+    const t = XS[xs.i].say;
+    $('xsub').innerHTML = t.slice(0, xs.ch) + (xs.ch < t.length && xs.playing ? '<span class="caret"></span>' : '');
+  }
+  function xgo(i) { xs.i = Math.max(0, Math.min(XS.length - 1, i)); xs.ch = xs.playing ? 0 : XS[xs.i].say.length; xs.wait = 0; xshow(); }
+  setInterval(() => {
+    if (!xs.playing) return;
+    const t = XS[xs.i].say;
+    if (xs.ch < t.length) { xs.ch++; return xshow(); }
+    if (++xs.wait < 18) return;
+    if (xs.i < XS.length - 1) return xgo(xs.i + 1);
+    xs.playing = false;
+    xshow();
+    $('xsub').textContent = '讲解完毕。可以接着问，或者点图上任意一块展开。';
+  }, 75);
+  $('xplay').addEventListener('click', () => {
+    if (!xs.playing && xs.i === XS.length - 1 && xs.ch >= XS[xs.i].say.length) xgo(0);
+    xs.playing = !xs.playing;
+    xshow();
+  });
+  $('xprev').addEventListener('click', () => xgo(xs.i - 1));
+  $('xnext').addEventListener('click', () => xgo(xs.i + 1));
+  $('xredo').addEventListener('click', () => { xs.playing = true; xgo(xs.i); });
+  xshow();
+
+  let toastT = null;
+  document.querySelectorAll('#xsvg .node').forEach((g) => g.addEventListener('click', () => {
+    const name = g.dataset.name;
+    $('xtoast').textContent = `展开「${name}」→ 生成新的一页（示意）`;
+    $('xtoast').classList.add('on');
+    $('crumb').innerHTML = `全程 › <b>${name}</b>`;
+    clearTimeout(toastT);
+    toastT = setTimeout(() => { $('xtoast').classList.remove('on'); $('crumb').textContent = '全程'; }, 2600);
+  }));
+
+  // ---------- 模拟：断句 ----------
+  const SEG = [{ t: '帮我打开记事本', d: 1.6 }, { g: 0.5 }, { t: '然后', d: 0.5 }, { g: 1.0 }, { t: '写一句今天的计划', d: 1.8 }, { g: 0.4 }, { t: '再保存到桌面', d: 1.3 }, { g: 2.0 }];
+  const COLORS = ['#5fe6ff', '#b15bff', '#ff5fcf', '#ffd97a', '#6dffbe'];
+  const total = SEG.reduce((a, s) => a + (s.d || s.g), 0);
+  const wave = $('wave');
+  let seed = 7;
+  const rnd = () => ((seed = (seed * 9301 + 49297) % 233280) / 233280);
+  const bars = [];
+  SEG.forEach((s, si) => {
+    const n = Math.round((s.d || s.g) * 10);
+    for (let k = 0; k < n; k++) {
+      const i = document.createElement('i');
+      i.style.height = s.t ? 18 + rnd() * 46 + 'px' : 2 + rnd() * 3 + 'px';
+      i.dataset.seg = si;
+      wave.appendChild(i);
+      bars.push(i);
+    }
+  });
+  function simRun() {
+    const th = +$('th').value;
+    $('thv').textContent = th.toFixed(1) + ' 秒';
+    wave.querySelectorAll('.cut').forEach((c) => c.remove());
+    const groups = [[]];
+    const segGroup = {};
+    let t = 0;
+    SEG.forEach((s, si) => {
+      if (s.t) { groups.at(-1).push(s.t); segGroup[si] = groups.length - 1; }
+      else if (s.g >= th) {
+        const c = document.createElement('div');
+        c.className = 'cut';
+        c.style.left = ((t + th) / total) * 100 + '%';
+        wave.appendChild(c);
+        if (si < SEG.length - 1) groups.push([]);
+      }
+      t += s.d || s.g;
+    });
+    bars.forEach((b) => { const g = segGroup[b.dataset.seg]; b.style.background = g == null ? 'rgba(143,163,200,.35)' : COLORS[g % COLORS.length]; });
+    const full = groups.filter((g) => g.length);
+    $('sents').innerHTML = full.map((g, k) => `<div style="border-color:${COLORS[k % COLORS.length]}">第 ${k + 1} 句：${g.join('，')}</div>`).join('');
+    const n = full.length;
+    $('verdict').innerHTML = n >= 3
+      ? `切成 <b class="c-err">${n} 句</b>：话还没说完就被切断了，「然后」被当成一句单独的指令。`
+      : n === 1
+        ? `切成 <b class="c-gold">1 句</b>：一整段都收到了，但每次说完都要多等 <b class="c-gold">${th.toFixed(1)} 秒</b>系统才开始处理。`
+        : `切成 <b class="c-ok">${n} 句</b>：停顿 1 秒那里被切开了。说完后等 ${th.toFixed(1)} 秒开始处理，快慢和完整之间取了个折中。`;
+  }
+  $('th').addEventListener('input', simRun);
+  simRun();
+
+  // ---------- 积木一块块出来 ----------
+  const blks = [...$('bstream').children];
+  const DELAY = [300, 1300, 2200, 2700, 3300, 4100];
+  function streamLoop() {
+    blks.forEach((b) => b.classList.remove('on'));
+    blks.forEach((b, k) => setTimeout(() => b.classList.add('on'), DELAY[k]));
+    setTimeout(streamLoop, 7600);
+  }
+  streamLoop();
+
+  // ---------- 假软件 ----------
+  const APP = `
+    <div class="atitle"><span>OBS 32.0 · 配置文件：直播 · 场景集合：日常</span><span>—　☐　✕</span></div>
+    <div class="amenu">文件 编辑 查看 停靠窗口 配置文件 场景集合 工具 帮助</div>
+    <div class="apreview">预览</div>
+    <div class="adocks">
+      <div class="dock" data-k="scenes"><div class="dh">场景</div><div class="dl"><div class="it on" data-k="scene-live">直播</div><div class="it" data-k="scene-game">游戏</div><div class="it" data-k="scene-chat">聊天</div></div><div class="df"><span>＋</span><span>－</span><span>⌃</span><span>⌄</span></div></div>
+      <div class="dock" data-k="sources"><div class="dh">来源</div><div class="dl src"><div class="it">摄像头</div><div class="it">麦克风</div></div><div class="df"><span data-k="src-add">＋</span><span>－</span><span>⚙</span><span>⌃</span><span>⌄</span></div></div>
+      <div class="dock" data-k="mixer"><div class="dh">混音器</div><div class="dl"><div class="mrow">桌面音频<i style="--v:55%"></i></div><div class="mrow">麦克风<i style="--v:72%"></i></div></div></div>
+      <div class="dock"><div class="dh">控件</div><div class="ctl2"><div class="cb" data-k="ctl-stream">开始直播</div><div class="cb" data-k="ctl-record">开始录制</div><div class="cb">虚拟摄像机</div><div class="cb">工作室模式</div><div class="cb" data-k="ctl-settings">设置</div></div></div>
+    </div>
+    <div class="menu"><div>图像</div><div>媒体源</div><div>显示器采集</div><div data-k="menu-window">窗口采集</div><div>文本</div><div>浏览器</div></div>
+    <div class="dialog"><div class="dt">创建 / 选择源</div><div class="db">新建来源的名字<div class="fake">窗口采集</div><div class="dbtns"><span data-k="dlg-ok">确定</span><span>取消</span></div></div></div>
+    <div class="ov"><div class="spot"></div><div class="tgt"><i class="k tl"></i><i class="k tr"></i><i class="k bl"></i><i class="k br"></i><span class="tagx"><span class="d"></span><span class="tt"></span></span></div><div class="capx"><span class="lb"></span><span class="tx"></span></div><div class="hint"></div><div class="scur"></div></div>`;
+  function makeApp(el) {
+    el.innerHTML = APP;
+    const q = (s) => el.querySelector(s);
+    return { el, q, k: (k) => el.querySelector(`[data-k="${k}"]`), spot: q('.spot'), tgt: q('.tgt'), cap: q('.capx'), hint: q('.hint'), cur: q('.scur'), ov: q('.ov') };
+  }
+  function ripple(a, x, y) {
+    const r = document.createElement('div');
+    r.className = 'rip';
+    Object.assign(r.style, { left: x + 'px', top: y + 'px' });
+    a.ov.appendChild(r);
+    setTimeout(() => r.remove(), 700);
+  }
+
+  // ---------- 就地讲解 ----------
+  const OS = [
+    { k: 'scenes', n: '场景', say: '一套画面布置。直播、打游戏、聊天可以各存一个，点一下就切换。' },
+    { k: 'sources', n: '来源', say: '画面里放什么：摄像头、游戏窗口、图片、文字，都在这里加。' },
+    { k: 'mixer', n: '混音器', say: '每一路声音的音量。说话时麦克风这条会跳，跳到红色就是太响了。' },
+    { k: 'ctl-stream', n: '开始直播', say: '把画面推到直播平台。要先在「设置」里填好推流地址。' },
+    { k: 'ctl-record', n: '开始录制', say: '把画面录成视频存在本机，跟直播互不影响，可以同时开。' },
+    { k: 'ctl-settings', n: '设置', say: '推流地址、画质、快捷键都在这里。改完要点「应用」。' },
+  ];
+  const os = makeApp($('osApp'));
+  const osNums = OS.map((it, i) => { const d = document.createElement('div'); d.className = 'num'; d.textContent = i + 1; os.ov.appendChild(d); return d; });
+  $('osList').innerHTML = OS.map((it, i) => `<li><span class="n">${i + 1}</span>${it.n}</li>`).join('');
+  const osLis = [...$('osList').children];
+  const ost = { i: 0, paused: false, ch: 0 };
+  function osPlace() {
+    const it = OS[ost.i], r = rel(os.k(it.k), os.el);
+    put(os.spot, r, 4);
+    put(os.tgt, r, 4);
+    os.tgt.classList.toggle('below', r.y < 40);
+    os.tgt.querySelector('.tt').textContent = `${ost.i + 1} · ${it.n}`;
+    OS.forEach((o, k) => {
+      const rr = rel(os.k(o.k), os.el);
+      Object.assign(osNums[k].style, { left: rr.x + 'px', top: rr.y + 'px' });
+      osNums[k].className = 'num' + (k === ost.i ? ' cur' : k > ost.i ? ' later' : '');
+    });
+    const cw = 270, W = os.el.clientWidth;
+    const cx = Math.min(Math.max(8, r.x + r.w / 2 - cw / 2), W - cw - 8);
+    const cy = r.y - 104 > 8 ? r.y - 104 : r.y + r.h + 12;
+    Object.assign(os.cap.style, { left: cx + 'px', top: cy + 'px' });
+    os.cap.querySelector('.lb').textContent = `${ost.i + 1} / ${OS.length} · ${it.n}`;
+    os.cur.classList.add('on');
+    os.cur.style.transform = `translate(${r.x + r.w * 0.7}px, ${r.y + r.h * 0.6}px)`;
+    osLis.forEach((li, k) => { li.className = k === ost.i ? 'on' : k < ost.i ? 'done' : ''; });
+    $('osPanel').querySelector('.code').textContent = `OBS · ${ost.i + 1}/${OS.length}`;
+  }
+  function osText() {
+    const s = OS[ost.i].say.slice(0, ost.ch);
+    os.cap.querySelector('.tx').textContent = s;
+    $('osSub').textContent = s;
+  }
+  function osGo(i) { ost.i = (i + OS.length) % OS.length; ost.ch = ost.paused ? OS[ost.i].say.length : 0; osPlace(); osText(); }
+  setInterval(() => {
+    if (ost.paused) return;
+    if (ost.ch < OS[ost.i].say.length + 22) ost.ch++;
+    else return osGo(ost.i + 1);
+    osText();
+  }, 70);
+  $('osPause').addEventListener('click', () => { ost.paused = !ost.paused; $('osPause').textContent = ost.paused ? '继续' : '暂停'; });
+  $('osPrev').addEventListener('click', () => osGo(ost.i - 1));
+  $('osNext').addEventListener('click', () => osGo(ost.i + 1));
+  osGo(0);
+
+  // ---------- 手把手教学 ----------
+  const TS = [
+    { k: 'scene-game', n: '选中「游戏」场景', say: '先在「场景」里点一下「游戏」。' },
+    { k: 'src-add', n: '点来源下面的 ＋', say: '点「来源」下面的 ＋ 号。' },
+    { k: 'menu-window', n: '选「窗口采集」', say: '在弹出来的菜单里选「窗口采集」。' },
+    { k: 'dlg-ok', n: '点「确定」', say: '名字用默认的就行，点「确定」。' },
+  ];
+  const tu = makeApp($('tutApp'));
+  $('tutList').innerHTML = TS.map((s, i) => `<li><span class="n">${i + 1}</span>${s.n}</li>`).join('');
+  const tuLis = [...$('tutList').children];
+  const tst = { i: 0, wrong: 0, wrongAll: 0, t0: Date.now(), busy: false };
+  function tuPlace() {
+    if (tst.i >= TS.length) return;
+    const r = rel(tu.k(TS[tst.i].k), tu.el);
+    put(tu.spot, r, 4);
+    put(tu.tgt, r, 4);
+    tu.tgt.classList.add('pulse');
+    tu.tgt.classList.toggle('below', r.y < 40);
+    tu.tgt.querySelector('.tt').textContent = '点这里';
+  }
+  function tuShow() {
+    tuLis.forEach((li, k) => {
+      li.className = k === tst.i ? 'on' : k < tst.i ? 'done' : '';
+      li.querySelector('.n').textContent = k < tst.i ? '✓' : k + 1;
+    });
+    $('tutSay').textContent = TS[tst.i]?.say || '';
+    $('tutPanel').querySelector('.code').textContent = `TUTOR · ${Math.min(tst.i + 1, TS.length)}/${TS.length}`;
+    requestAnimationFrame(tuPlace);
+  }
+  function tuApply(k) {
+    if (k === 'scene-game') tu.el.querySelectorAll('.dock[data-k="scenes"] .it').forEach((x) => x.classList.toggle('on', x.dataset.k === 'scene-game'));
+    if (k === 'src-add') {
+      const r = rel(tu.k('src-add'), tu.el), m = tu.q('.menu');
+      m.style.display = 'block';
+      Object.assign(m.style, { left: r.x + 'px', top: r.y - m.offsetHeight - 4 + 'px' });
+    }
+    if (k === 'menu-window') { tu.q('.menu').style.display = 'none'; tu.q('.dialog').style.display = 'block'; }
+    if (k === 'dlg-ok') {
+      tu.q('.dialog').style.display = 'none';
+      tu.q('.dl.src').querySelectorAll('.it').forEach((x) => x.classList.remove('on'));
+      const it = document.createElement('div');
+      it.className = 'it on';
+      it.textContent = '窗口采集';
+      tu.q('.dl.src').prepend(it);
+    }
+  }
+  function tuAdvance() {
+    tuApply(TS[tst.i].k);
+    tst.i++;
+    tst.wrong = 0;
+    $('tutWarn').textContent = '';
+    if (tst.i >= TS.length) return tuFinish();
+    tuShow();
+  }
+  function tuFinish() {
+    tu.spot.style.opacity = 0;
+    tu.tgt.style.opacity = 0;
+    const sec = Math.round((Date.now() - tst.t0) / 1000);
+    $('tut').classList.add('finished');
+    $('tutPanel').querySelector('.code').textContent = 'TUTOR · DONE';
+    $('tutDone').innerHTML = `<b>【教学完成】</b>添加窗口采集 · 4 步 · 用时 ${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')} · 点错 ${tst.wrongAll} 次<br>已存成一页讲解（每步一张截图），以后在讲解窗口里能翻到。<div class="btns"><span class="btn sm" id="tutAgain">再来一遍</span></div>`;
+    $('tutAgain').addEventListener('click', tuReset);
+  }
+  function tuReset() {
+    Object.assign(tu, makeApp($('tutApp')));
+    Object.assign(tst, { i: 0, wrong: 0, wrongAll: 0, t0: Date.now(), busy: false });
+    $('tut').classList.remove('finished');
+    $('tutWarn').textContent = '';
+    tuShow();
+  }
+  $('tutApp').addEventListener('click', (e) => {
+    if (tst.busy || tst.i >= TS.length) return;
+    const a = tu.el.getBoundingClientRect(), x = e.clientX - a.left, y = e.clientY - a.top;
+    const hit = e.target.closest('[data-k]');
+    if (hit && hit.dataset.k === TS[tst.i].k) { ripple(tu, x, y); return tuAdvance(); }
+    tst.wrong++;
+    tst.wrongAll++;
+    const r = rel(tu.k(TS[tst.i].k), tu.el);
+    tu.hint.textContent = '不是这里，要点的是亮着的那个';
+    Object.assign(tu.hint.style, { left: Math.max(8, Math.min(r.x, tu.el.clientWidth - 230)) + 'px', top: (r.y > 70 ? r.y - 64 : r.y + r.h + 34) + 'px' });
+    tu.hint.classList.add('on');
+    setTimeout(() => tu.hint.classList.remove('on'), 1600);
+    $('tutWarn').textContent = tst.wrong >= 3 ? '这一步点错 3 次了，要不要系统来做这一步？' : '点错了，没关系，再看一眼亮着的地方。';
+  });
+  $('tutDo').addEventListener('click', () => {
+    if (tst.busy || tst.i >= TS.length) return;
+    tst.busy = true;
+    const r = rel(tu.k(TS[tst.i].k), tu.el), cx = r.x + r.w / 2, cy = r.y + r.h / 2;
+    tu.cur.classList.add('on');
+    tu.cur.style.transform = `translate(${cx}px, ${cy}px)`;
+    setTimeout(() => {
+      ripple(tu, cx, cy);
+      tuAdvance();
+      tst.busy = false;
+      setTimeout(() => tu.cur.classList.remove('on'), 400);
+    }, 650);
+  });
+  $('tutSkip').addEventListener('click', () => { if (tst.i < TS.length && !tst.busy) tuAdvance(); });
+  // 再指一遍：重新亮一下、再念一遍这一步
+  $('tutAgain2').addEventListener('click', () => {
+    if (tst.i >= TS.length) return;
+    tu.tgt.classList.remove('pulse');
+    void tu.tgt.offsetWidth;
+    tuPlace();
+    $('tutWarn').textContent = '';
+  });
+  tuShow();
+
+  addEventListener('resize', () => { osPlace(); tuPlace(); });
+</script>
+</body>
+</html>
