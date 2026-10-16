@@ -1,0 +1,366 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>项目模式设计稿</title>
+<link rel="stylesheet" href="kit.css">
+<style>
+  .fr > .l2 { background: rgba(7, 12, 36, .78); }
+  .fr > .l4 { background: rgba(16, 28, 70, .2); }
+  .fr > .l1, .fr > .l3 { --w: 2px; clip-path: polygon(evenodd,
+    var(--c) 0, calc(100% - var(--c)) 0, 100% var(--c), 100% calc(100% - var(--c)), calc(100% - var(--c)) 100%, var(--c) 100%, 0 calc(100% - var(--c)), 0 var(--c), var(--c) 0,
+    calc(var(--w) + var(--c)) var(--w), var(--w) calc(var(--w) + var(--c)), var(--w) calc(100% - var(--w) - var(--c)), calc(var(--w) + var(--c)) calc(100% - var(--w)),
+    calc(100% - var(--w) - var(--c)) calc(100% - var(--w)), calc(100% - var(--w)) calc(100% - var(--w) - var(--c)), calc(100% - var(--w)) calc(var(--w) + var(--c)),
+    calc(100% - var(--w) - var(--c)) var(--w), calc(var(--w) + var(--c)) var(--w)); }
+  .fr > .l3 { --w: 1px; }
+  .note { max-width: 1180px; margin: 10px auto 0; font-size: 13px; color: var(--muted); line-height: 1.8; }
+  .note b { color: #cfe0ff; }
+  .flow { max-width: 1180px; margin: 36px auto 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 28px; align-items: start; }
+  .flow .fr > .body { padding: 40px 16px 16px; }
+  .flow2 { grid-template-columns: repeat(2, 1fr); }
+  .cap2 { margin: 12px 4px 0; font-size: 12.5px; color: var(--muted); line-height: 1.6; }
+  .cap2 b { color: #cfe0ff; margin-right: 6px; }
+  .chat { gap: 8px; }
+  .msg-u, .msg-s { font-size: 13px; }
+  .decide { max-width: 1180px; margin: 30px auto 0; }
+  .decide ol { margin: 0; padding-left: 22px; font-size: 14px; line-height: 1.9; }
+  .decide li { margin-bottom: 6px; }
+  .decide li b { color: var(--gold); font-weight: 600; }
+  .done-list { color: var(--muted); }
+  .done-list b { color: var(--green); font-weight: 400; }
+
+  /* 对话里的项目卡（计划 / 进行中 / 等你 / 完成） */
+  .pj { position: relative; padding: 10px 13px 12px; --c: 10px; font-size: 12.5px; line-height: 1.65; }
+  .pj::before, .pj::after { content: ""; position: absolute; clip-path: polygon(var(--c) 0, 100% 0, 100% calc(100% - var(--c)), calc(100% - var(--c)) 100%, 0 100%, 0 var(--c)); }
+  .pj::before { inset: 0; background: linear-gradient(135deg, #ffd97a, #ffb35f 45%, #5fe6ff); }
+  .pj::after { inset: 1.5px; background: rgba(30, 24, 10, .94); }
+  .pj > * { position: relative; z-index: 1; }
+  .pj .tt { font-size: 11.5px; letter-spacing: .2em; color: #ffd97a; text-shadow: 0 0 8px rgba(255,217,122,.5); display: flex; }
+  .pj .tt small { margin-left: auto; letter-spacing: .1em; color: var(--dim); font: 10.5px Consolas, monospace; }
+  .pj .nm { font-size: 15px; font-weight: 700; color: #fff; margin: 2px 0 4px; }
+  .pj .kv { grid-template-columns: auto 1fr; gap: 1px 10px; }
+  .pj .kv > :nth-child(odd) { color: var(--muted); white-space: nowrap; }
+  .pj .btns { margin-top: 9px; gap: 7px; }
+  .pj .path { font: 11.5px Consolas, monospace; color: #cfe0ff; }
+  .pj .path a { font-family: "Microsoft YaHei UI"; color: var(--cyan); margin-left: 6px; cursor: pointer; }
+  .pj.run::before { background: linear-gradient(135deg, #5fe6ff, #4f7bff 45%, #b15bff); }
+  .pj.run::after { background: rgba(8, 18, 44, .94); }
+  .pj.run .tt { color: var(--cyan); text-shadow: 0 0 8px rgba(95,230,255,.5); }
+  .pj.ask::before { background: linear-gradient(135deg, #ff9ae0, #ff5fcf 45%, #b15bff); }
+  .pj.ask::after { background: rgba(40, 10, 44, .94); }
+  .pj.ask .tt { color: #ff9ae0; text-shadow: none; }
+  .pj.ok::before { background: linear-gradient(135deg, #6dffbe, #5fe6ff 50%, #4f7bff); }
+  .pj.ok::after { background: rgba(8, 30, 30, .94); }
+  .pj.ok .tt { color: var(--green); }
+  .ag { display: grid; grid-template-columns: 56px 1fr auto; gap: 1px 8px; font-size: 12px; }
+  .ag .r { color: var(--muted); }
+  .st { font-size: 11px; padding: 0 6px; border: 1px solid; white-space: nowrap; }
+  .st.done { color: var(--green); border-color: rgba(109,255,190,.5); }
+  .st.work { color: var(--cyan); border-color: rgba(95,230,255,.5); }
+  .st.wait { color: var(--dim); border-color: rgba(93,111,150,.6); }
+  .st.need { color: #ff9ae0; border-color: rgba(255,154,224,.6); }
+  .st.check { color: #ffd97a; border-color: rgba(255,217,122,.5); }
+  .pbar { height: 6px; margin: 8px 0 4px; background: rgba(0,10,40,.8); border: 1px solid rgba(95,230,255,.4); }
+  .pbar i { display: block; height: 100%; background: linear-gradient(90deg, var(--cyan), var(--violet)); box-shadow: 0 0 8px var(--cyan); }
+  .meta { font-size: 11.5px; color: var(--muted); }
+  .q { margin: 4px 0; padding: 6px 9px; background: rgba(255,154,224,.08); border-left: 2px solid #ff9ae0; color: #fff; }
+  .q small { display: block; color: var(--muted); font-size: 11px; }
+  .shot { height: 74px; margin-top: 6px; border: 1px solid rgba(95,230,255,.4); background:
+    linear-gradient(180deg, #e9eef8 0 14px, #fff 14px), #fff; position: relative; overflow: hidden; }
+  .shot::before { content: ""; position: absolute; left: 10px; top: 24px; width: 46%; height: 40px; background: repeating-linear-gradient(90deg, #4f7bff 0 10px, transparent 10px 16px); opacity: .7; }
+  .shot::after { content: "记账本 · 10 月"; position: absolute; left: 8px; top: 1px; font-size: 9px; color: #445; }
+
+  /* 项目页 */
+  .pp { max-width: 1180px; margin: 40px auto 0; }
+  .pp .fr > .body { height: 640px; display: flex; flex-direction: column; padding: 42px 20px 16px; }
+  .pphead { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; font-size: 13px; }
+  .pphead .nm { font-size: 17px; font-weight: 700; }
+  .pphead .cost { display: flex; align-items: center; gap: 6px; color: var(--muted); font-size: 12px; }
+  .pphead .cost .pbar { width: 130px; margin: 0; }
+  .pphead .btns { margin: 0 0 0 auto; gap: 6px; }
+  .ppgrid { display: grid; grid-template-columns: 236px 1fr; gap: 14px; flex: 1; min-height: 0; }
+  .agl { border-right: 1px solid rgba(95,230,255,.15); padding-right: 8px; overflow: hidden; }
+  .agi { padding: 7px 9px; margin-bottom: 6px; background: rgba(0,10,40,.45); border-left: 2px solid var(--cyan); font-size: 12.5px; }
+  .agi.on { background: color-mix(in srgb, var(--g1) 16%, transparent); box-shadow: inset 2px 0 0 var(--g1); }
+  .agi.boss { border-left-color: #ffd97a; }
+  .agi .n { display: flex; align-items: center; gap: 6px; color: #fff; }
+  .agi .n .st { margin-left: auto; }
+  .agi .d { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .tabs2 { display: flex; gap: 2px; border-bottom: 1px solid rgba(95,230,255,.2); margin-bottom: 10px; }
+  .tabs2 span { padding: 4px 14px; font-size: 12.5px; color: var(--muted); border-bottom: 2px solid transparent; margin-bottom: -1px; }
+  .tabs2 span.on { color: #fff; border-color: var(--g1); text-shadow: 0 0 8px var(--g1); }
+  .pane { overflow: hidden; font-size: 12.5px; line-height: 1.7; }
+  .prompt { padding: 8px 11px; margin-bottom: 8px; background: rgba(255,217,122,.07); border: 1px solid rgba(255,217,122,.35); font: 12px/1.7 Consolas, "Microsoft YaHei UI", monospace; color: #e8dcc0; white-space: pre-wrap; }
+  .prompt b { color: #ffd97a; font-weight: 400; }
+  .stp { display: flex; gap: 8px; padding: 3px 0; font: 12px/1.6 Consolas, "Microsoft YaHei UI", monospace; color: #b9cbec; }
+  .stp .i { flex: none; color: var(--green); }
+  .stp .i.now { color: var(--gold); }
+  .stp .t { color: var(--dim); flex: none; width: 40px; }
+  .stp.msg { color: #ffc6ea; }
+  .stp.msg .i { color: #ff9ae0; }
+  .stp.ans { color: #c6f7e2; }
+  .stp.ans .i { color: var(--green); }
+  .ppfoot { display: flex; gap: 8px; align-items: center; margin-top: 8px; padding-top: 8px; border-top: 1px dashed rgba(95,230,255,.2); }
+  .ppfoot .field { flex: 1; font-size: 12.5px; padding: 4px 10px; color: var(--dim); }
+
+  /* 通信记录 */
+  .comm { font-size: 12.5px; }
+  .cm { display: grid; grid-template-columns: 40px 48px 150px 1fr; gap: 8px; align-items: baseline; padding: 5px 0; border-bottom: 1px dashed rgba(95,230,255,.13); }
+  .cm .t { color: var(--dim); font: 11px Consolas, monospace; }
+  .cm .k { font-size: 10.5px; padding: 0 5px; border: 1px solid; text-align: center; }
+  .cm .k.as { color: #ffd97a; border-color: rgba(255,217,122,.5); }
+  .cm .k.rp { color: var(--green); border-color: rgba(109,255,190,.5); }
+  .cm .k.qs { color: #ff9ae0; border-color: rgba(255,154,224,.55); }
+  .cm .k.an { color: var(--cyan); border-color: rgba(95,230,255,.5); }
+  .cm .k.mg { color: #d9b8ff; border-color: rgba(177,91,255,.55); }
+  .cm .who { color: #cfe0ff; white-space: nowrap; }
+  .cm .who i { font-style: normal; color: var(--dim); margin: 0 3px; }
+  .cm .x { color: #e9f4ff; }
+  .cm .x small { color: var(--muted); }
+  /* 合并队列 */
+  .mq { font-size: 12.5px; }
+  .mqi { display: grid; grid-template-columns: 70px 1fr repeat(3, 74px); gap: 8px; align-items: center; padding: 6px 0; border-bottom: 1px dashed rgba(95,230,255,.13); }
+  .mqi .c { font-size: 11px; text-align: center; padding: 0 4px; border: 1px solid; }
+  .mqi .c.y { color: var(--green); border-color: rgba(109,255,190,.5); }
+  .mqi .c.n { color: var(--red); border-color: rgba(255,90,114,.5); }
+  .mqi .c.w { color: var(--dim); border-color: rgba(93,111,150,.6); }
+  .tree { font: 12.5px/1.75 Consolas, "Microsoft YaHei UI", monospace; color: #c7d6f5; white-space: pre; overflow-x: auto; }
+  .tree .n { color: var(--gold); }
+  .tree .c { color: var(--dim); }
+  .row2 { max-width: 1180px; margin: 30px auto 0; display: grid; grid-template-columns: 1fr 1fr; gap: 28px; align-items: start; }
+  @media (max-width: 1100px) { .flow, .row2 { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>设计稿 · 项目模式</h1>
+  <p>在主窗口说「帮我做一个 xx」，总指挥把需求问清楚、写好计划给你过目；你点「开工」以后，它把活分给几个智能体在各自的代码副本里一起干，自己负责合并和检查。主窗口只留一张项目卡，点开是项目页：每个智能体收到的任务、每一步、产出，还有它们之间的通信记录。干活的有问题先问总指挥，总指挥答不了才来问你。调研见 docs\research-projects.md。</p>
+</header>
+
+<h2 class="group">一、主窗口里：问清楚 → 计划 → 开工</h2>
+<div class="flow">
+  <div>
+    <section class="fr" data-title="系统通知" data-code="SYS">
+      <div class="chat">
+        <div class="msg-u"><span class="tag">宿主</span>系统，帮我做一个记账网站，能记收支、按月看图表、导出 Excel</div>
+        <div class="msg-s"><span class="tag">系统</span>收到。先确认两件事：只有宿主自己用，还是要多人登录？数据存在本机还是云上？</div>
+        <div class="msg-u"><span class="tag">宿主</span>就我自己用，存本机</div>
+        <div class="msg-s"><span class="tag">系统</span>明白。计划已拟好，请宿主过目。</div>
+      </div>
+    </section>
+    <p class="cap2"><b>① 问清楚</b>总指挥只问会改变做法的一两件事（谁用、存哪、部署到哪）；说得够清楚就直接出计划。原话一字不改地存下来，后面每个干活的都看得到。</p>
+  </div>
+  <div>
+    <section class="fr" data-title="项目计划" data-code="PLAN">
+      <div class="pj">
+        <div class="tt">【项目计划】待你确认<small>PLAN</small></div>
+        <div class="nm">记账网站</div>
+        <div class="kv">
+          <span>做成什么</span><span>记一笔收入 / 支出，按月看柱状图和分类饼图，导出 Excel；数据存本机</span>
+          <span>怎么做</span><span>网页前端 + 本机小服务，SQLite 存数据</span>
+        </div>
+        <div class="ag" style="margin-top:6px">
+          <span>架构</span><span class="r">定页面、数据表和接口，写成文档</span><span></span>
+          <span>前端</span><span class="r">记账页、月报页、图表（只改 web/）</span><span></span>
+          <span>后端</span><span class="r">记账接口、导出 Excel（只改 server/）</span><span></span>
+          <span>测试</span><span class="r">写测试，用浏览器打开检查</span><span></span>
+          <span>评审</span><span class="r">最后过一遍代码和需求</span><span></span>
+        </div>
+        <div class="kv" style="margin-top:6px">
+          <span>算做完</span><span>能启动、测试全过、首页截图检查、评审通过</span>
+          <span>预计</span><span>约 40 分钟 · ¥6～10（预算 ¥30）</span>
+          <span>放在</span><span class="path">C:\Users\…\HostboundProjects\记账网站<a>换个文件夹</a></span>
+        </div>
+        <div class="btns"><span class="btn sm">开工</span><span class="btn ghost sm">改一下</span><span class="btn ghost sm">不做了</span></div>
+      </div>
+    </section>
+    <p class="cap2"><b>② 计划卡</b>谁干什么、只许改哪些文件、怎么算做完、大概花多少。点「换个文件夹」弹选择窗口，也可以直接说「放到 D:\workspace」。「改一下」就直接说要改哪；点「开工」才派活。</p>
+  </div>
+  <div>
+    <section class="fr" data-title="项目进行中" data-code="RUNNING">
+      <div class="chat">
+        <div class="pj run">
+          <div class="tt">【项目】进行中<small>4 / 6 步</small></div>
+          <div class="nm">记账网站</div>
+          <div class="ag">
+            <span>架构</span><span class="r">页面和接口定好了</span><span class="st done">完成</span>
+            <span>前端</span><span class="r">在做月报页的图表</span><span class="st work">进行中</span>
+            <span>后端</span><span class="r">6 个接口，测试都过了</span><span class="st check">合并检查</span>
+            <span>测试</span><span class="r">等前端</span><span class="st wait">等着</span>
+            <span>评审</span><span class="r">最后再来</span><span class="st wait">等着</span>
+          </div>
+          <div class="pbar"><i style="width:58%"></i></div>
+          <div class="meta">用时 18 分钟 · 花费 ¥3.2 / ¥30</div>
+          <div class="btns"><span class="btn sm">打开项目页</span><span class="btn ghost sm">暂停</span></div>
+        </div>
+        <div class="msg-u"><span class="tag">宿主</span>顺便看看明天天气</div>
+        <div class="msg-s"><span class="tag">系统</span>明天晴，18～25 度。</div>
+      </div>
+    </section>
+    <p class="cap2"><b>③ 进行中</b>主窗口只有这一张卡，状态实时变（进行中 / 合并检查 / 等你 / 完成）。项目在后台跑，你照常跟系统聊别的。只念「项目开工」「项目完成」和要你回答的问题。</p>
+  </div>
+</div>
+
+<h2 class="group">二、有问题、做完了</h2>
+<div class="flow flow2">
+  <div>
+    <section class="fr tone-warn" data-title="项目 · 等你" data-code="ASK">
+      <div class="chat">
+        <div class="pj ask">
+          <div class="tt">【项目】等你回答<small>记账网站</small></div>
+          <div class="q">分类饼图里「其他」那一块，要不要能点开看明细？<small>前端问的 · 总指挥：计划里没写，得问宿主</small></div>
+          <div class="btns"><span class="btn sm">要</span><span class="btn ghost sm">不用</span><span class="btn ghost sm">打开项目页</span></div>
+        </div>
+        <div class="msg-u"><span class="tag">宿主</span>要，点开显示那个月的明细</div>
+        <div class="msg-s"><span class="tag">系统</span>已转给前端。</div>
+      </div>
+    </section>
+    <p class="cap2"><b>④ 有问题先问总指挥</b>干活的没有「问宿主」的工具，只能问总指挥。计划里写清楚了的总指挥自己答；会改范围、要花更多钱、危险操作，才在主窗口问你（粉紫色卡）。你点按钮或者直接说，总指挥转过去，记进通信记录。几个问题会攒一起问。</p>
+  </div>
+  <div>
+    <section class="fr tone-ok" data-title="项目完成" data-code="COMPLETE">
+      <div class="pj ok">
+        <div class="tt">【项目完成】记账网站<small>46 分钟 · ¥7.4</small></div>
+        <div class="kv">
+          <span>做了</span><span>3 个页面、6 个接口、导出 Excel；24 个测试全过</span>
+          <span>检查</span><span class="done-list"><b>✓</b> 能启动 <b>✓</b> 测试 <b>✓</b> 首页截图 <b>✓</b> 评审</span>
+          <span>怎么运行</span><span class="path">npm start → http://localhost:5173</span>
+        </div>
+        <div class="shot"></div>
+        <div class="btns"><span class="btn sm">打开网站</span><span class="btn ghost sm">打开文件夹</span><span class="btn ghost sm">项目页</span></div>
+      </div>
+    </section>
+    <p class="cap2"><b>⑤ 做完了</b>说清楚做了什么、检查结果、怎么运行，附一张首页截图。没做完或者做坏了也照实说：卡在哪一步、为什么、建议怎么办。以后说「接着改记账网站，加个预算提醒」，总指挥接着这个项目干。</p>
+  </div>
+</div>
+
+<h2 class="group">三、项目页（单独的大窗口）</h2>
+<div class="pp">
+  <section class="fr" data-title="系统项目" data-code="PROJECT">
+    <div class="pphead">
+      <span class="nm">记账网站</span><span class="st work">进行中</span>
+      <span class="cost">⏱ 18:32 · ¥3.2 / ¥30 <span class="pbar"><i style="width:11%"></i></span></span>
+      <span class="btns"><span class="btn ghost sm">暂停</span><span class="btn ghost sm">停止</span><span class="btn ghost sm">打开文件夹</span></span>
+    </div>
+    <div class="ppgrid">
+      <div class="agl">
+        <div class="agi boss"><div class="n">总指挥<span class="st check">合并检查</span></div><div class="d">DeepSeek V4.1 Flash · ¥0.9 · 规划、答疑、合并</div></div>
+        <div class="agi"><div class="n">架构<span class="st done">完成</span></div><div class="d">¥0.4 · 9 轮 · 写了 docs/api.md</div></div>
+        <div class="agi on"><div class="n">前端<span class="st work">进行中</span></div><div class="d">¥1.1 · 第 14 轮 · 改了 6 个文件</div></div>
+        <div class="agi"><div class="n">后端<span class="st check">合并检查</span></div><div class="d">¥0.8 · 11 轮 · 测试 12/12</div></div>
+        <div class="agi"><div class="n">测试<span class="st wait">等着</span></div><div class="d">等前端合并</div></div>
+        <div class="agi"><div class="n">评审<span class="st wait">等着</span></div><div class="d">最后再来</div></div>
+      </div>
+      <div class="pane">
+        <div class="tabs2"><span class="on">过程</span><span>通信</span><span>计划</span><span>合并</span></div>
+        <div class="prompt"><b>总指挥 → 前端（09:12）</b>
+<b>宿主原话：</b>帮我做一个记账网站，能记收支、按月看图表、导出 Excel。只有我自己用，存本机。
+<b>你的任务：</b>做「记账」「月报」两个页面和图表。只改 web/ 下面的文件；接口照 docs/api.md。
+<b>做完：</b>跑 npm run build 和 npm test，都过了再用 report 汇报。拿不准的用 ask 问总指挥。</div>
+        <div class="stp"><span class="t">09:12</span><span class="i">✓</span><span>读 docs/api.md</span></div>
+        <div class="stp"><span class="t">09:14</span><span class="i">✓</span><span>新建 web/src/pages/Record.vue</span></div>
+        <div class="stp"><span class="t">09:19</span><span class="i">✓</span><span>运行 npm run build · 通过</span></div>
+        <div class="stp msg"><span class="t">09:22</span><span class="i">?</span><span>问总指挥：饼图「其他」那块要不要能点开看明细？</span></div>
+        <div class="stp ans"><span class="t">09:25</span><span class="i">↩</span><span>总指挥（转宿主）：要，点开显示那个月的明细</span></div>
+        <div class="stp"><span class="t">09:26</span><span class="i now">◆</span><span>改 web/src/pages/Report.vue（第 14 轮）</span></div>
+      </div>
+    </div>
+    <div class="ppfoot"><span class="field">对总指挥说……（比如「前端那个图表换个颜色」）</span><span class="btn sm">发送</span></div>
+  </section>
+  <p class="note">左边是总指挥和每个干活的：状态、花了多少、几轮。右边看选中的那个：最上面是<b>它收到的任务</b>（总指挥写给它的完整提示词，含宿主原话），下面是<b>每一步</b>（读了什么、改了什么、跑了什么命令和结果），提问和回答也在里面。底下的输入框是跟总指挥说话，你的话会转给对应的智能体并记进通信。</p>
+</div>
+
+<div class="row2">
+  <div>
+    <section class="fr" data-title="通信" data-code="COMM">
+      <div class="comm">
+        <div class="cm"><span class="t">09:02</span><span class="k as">分派</span><span class="who">总指挥<i>→</i>架构</span><span class="x">定页面、数据表、接口，写进 docs/</span></div>
+        <div class="cm"><span class="t">09:10</span><span class="k rp">汇报</span><span class="who">架构<i>→</i>总指挥</span><span class="x">3 个页面、2 张表、6 个接口 <small>docs/api.md</small></span></div>
+        <div class="cm"><span class="t">09:12</span><span class="k as">分派</span><span class="who">总指挥<i>→</i>前端、后端</span><span class="x">照 docs/api.md 分头做，各改各的文件夹</span></div>
+        <div class="cm"><span class="t">09:22</span><span class="k qs">提问</span><span class="who">前端<i>→</i>总指挥</span><span class="x">饼图「其他」要不要能点开？</span></div>
+        <div class="cm"><span class="t">09:22</span><span class="k qs">问宿主</span><span class="who">总指挥<i>→</i>宿主</span><span class="x">计划里没写，转给宿主</span></div>
+        <div class="cm"><span class="t">09:25</span><span class="k an">回答</span><span class="who">宿主<i>→</i>总指挥<i>→</i>前端</span><span class="x">要，点开显示那个月的明细</span></div>
+        <div class="cm"><span class="t">09:28</span><span class="k rp">汇报</span><span class="who">后端<i>→</i>总指挥</span><span class="x">6 个接口做完，测试 12/12</span></div>
+        <div class="cm"><span class="t">09:29</span><span class="k mg">合并</span><span class="who">总指挥</span><span class="x">合并后端 · 构建 ✓ 测试 ✓</span></div>
+      </div>
+    </section>
+    <p class="cap2"><b>通信</b>谁对谁说了什么，按时间排。消息分五种：分派、汇报、提问、回答、合并。干活的之间不直接聊，都经过总指挥，所以这一页就是全部的来龙去脉。</p>
+  </div>
+  <div>
+    <section class="fr" data-title="合并" data-code="MERGE">
+      <div class="mq">
+        <div class="mqi" style="color:var(--muted);font-size:11.5px"><span>谁的</span><span>改了什么</span><span style="text-align:center">构建</span><span style="text-align:center">测试</span><span style="text-align:center">截图</span></div>
+        <div class="mqi"><span>架构</span><span>docs/ 3 个文档</span><span class="c y">✓</span><span class="c w">—</span><span class="c w">—</span></div>
+        <div class="mqi"><span>后端</span><span>server/ 9 个文件</span><span class="c y">✓</span><span class="c y">12/12</span><span class="c w">—</span></div>
+        <div class="mqi"><span>前端 #1</span><span>上一次：图表没显示</span><span class="c y">✓</span><span class="c y">8/8</span><span class="c n">✗</span></div>
+        <div class="mqi"><span>前端 #2</span><span>web/ 7 个文件（改好了图表）</span><span class="c w">排队</span><span class="c w">排队</span><span class="c w">排队</span></div>
+      </div>
+      <p class="meta" style="margin:10px 0 0">没过的退回给原来那个智能体改（「前端 #1」截图里图表是空的，退回去改；改好的「前端 #2」在排队）。</p>
+    </section>
+    <p class="cap2"><b>合并</b>每个干活的在自己那份代码副本（git worktree）里干，从不直接动主线。总指挥一个一个合并，合并一个就跑一次构建和测试；网站类再用浏览器打开截图看一眼。</p>
+  </div>
+</div>
+
+<h2 class="group">四、设置 · 项目</h2>
+<div class="row2">
+  <section class="fr" data-title="系统设置" data-code="CONFIG">
+    <div class="row"><span class="lbl" style="width:120px">项目放哪</span><span class="field" style="flex:1">C:\Users\…\HostboundProjects</span><span class="btn ghost sm">选文件夹</span></div>
+    <div class="row"><span class="lbl" style="width:120px">总指挥用的模型</span><span class="field" style="flex:1">跟主窗口一样（DeepSeek V4.1 Flash）▾</span></div>
+    <div class="row"><span class="lbl" style="width:120px">干活的用</span><span class="field" style="flex:1">跟总指挥一样 ▾</span><span class="muted" style="font-size:11.5px">也可选 Claude Code · Codex</span></div>
+    <div class="row"><span class="lbl" style="width:120px">同时最多几个</span><span class="chip">4</span><span class="chip">8</span><span class="chip on">12</span><span class="chip">不限</span></div>
+    <div class="row"><span class="lbl" style="width:120px">每个项目预算</span><span class="field" style="width:90px">¥30</span><span class="muted" style="font-size:11.5px">用到 80% 提醒，用完停下问你</span></div>
+    <div class="row"><span class="lbl" style="width:120px">每个智能体最多</span><span class="field" style="width:90px">80 轮</span><span class="muted" style="font-size:11.5px">同一件事重复 4 次算卡住，退回总指挥重新安排</span></div>
+    <div class="row"><span class="lbl" style="width:120px">项目里自动放行</span><span class="tog on"></span><span class="muted" style="font-size:11.5px">项目文件夹里读写、装依赖不问；出了文件夹、危险操作照常问</span></div>
+  </section>
+  <div class="note" style="margin:0">
+    <p><b>干活的用谁</b>：默认跟总指挥一样（pi + 同一个模型，用你配好的 key）。也能选这台电脑上装好的 Claude Code、Codex：会用它们自己的账号和额度。每个干活的都是系统拉起来的一个子进程，挂了不影响别的，点「停止」立刻停。</p>
+    <p><b>同时最多几个</b>：默认 12 个，可以改成不限。总指挥按活的大小派，小东西一个人干（调研里一个智能体干小项目反而又好又省），不会为了凑数多派。</p>
+    <p><b>花费</b>：每个智能体、每个项目实时算钱（按模型的价格表）。预算用完不再派新活，停下来问你要不要追加。</p>
+  </div>
+</div>
+
+<h2 class="group">五、文件长什么样</h2>
+<div class="row2">
+  <div class="tree">
+<span class="n">记账网站\</span>               <span class="c">← 你的项目（一个 git 仓库，主线是总指挥合并好的）</span>
+  web\  server\  docs\  …
+  <span class="n">.hostbound\</span>             <span class="c">← 项目模式自己的记录（加进 .gitignore）</span>
+    request.md            <span class="c">宿主原话、问答</span>
+    plan.md               <span class="c">计划：目标、分工、谁改哪些文件、怎么算做完</span>
+    tasks.json            <span class="c">任务、依赖、谁在做、状态</span>
+    events.jsonl          <span class="c">所有事：分派、每一步、提问、回答、合并、花费</span>
+    agents\前端\           <span class="c">它收到的提示词、完整过程记录</span>
+    worktrees\前端\        <span class="c">它那份代码副本（git worktree，合并完收掉）</span>
+  </div>
+  <div class="note" style="margin:0">
+    <p><b>为什么都写成文件</b>：项目页就是读这些文件；系统重启、电脑重启以后能接着干；以后想复盘「当时为什么这么做」也翻得到。</p>
+    <p><b>宿主原话跟着走</b>：每个干活的任务里都附上你的原话，免得一层层转述走样（调研里 MetaGPT 就栽在这）。</p>
+    <p><b>只许改自己的文件</b>：计划里写好谁改哪些文件夹；越界改了，合并时标出来让总指挥决定。</p>
+  </div>
+</div>
+
+<h2 class="group">六、需要你拍板的（括号里是默认）</h2>
+<div class="decide card"><div class="ct">
+<ol>
+  <li>总指挥用什么模型？（<b>跟主窗口的大脑一样</b>，设置里能单独换成更强的，比如 deepseek-v4-pro）</li>
+  <li>每个项目预算多少？（<b>¥30</b>，用到 80% 提醒，用完停下问你；每个项目开工前在计划卡上也能改）</li>
+  <li>你能不能直接跟某个智能体说话？（<b>能，但经过总指挥</b>：在项目页底下说，或者点某个智能体「插一句」，总指挥转过去并记进通信）</li>
+  <li>做完以后要不要自动把网站跑起来给你看？（<b>不自动</b>，完成卡上有「打开网站」按钮，点了才启动、在系统专用浏览器里打开）</li>
+  <li>项目页怎么打开？（<b>项目卡上的按钮</b>；另外托盘菜单、面板加一个「项目」页签列出所有项目，说「打开项目」也行）</li>
+  <li>以前的项目还能接着改吗？（<b>能</b>：说「接着改记账网站，加个预算提醒」，总指挥读回计划和记录，出一份新的小计划给你过目）</li>
+</ol>
+</div></div>
+<p class="note">已经定了的：干活的用哪个智能体在设置里选，默认跟总指挥同一个模型；每个干活的一份 git worktree，总指挥合并；项目文件夹里自动放行，出了文件夹、危险操作照常在主窗口问；预算和轮数有上限；开工前先看计划；项目放哪显示在计划卡上，能弹窗选文件夹，也能直接说；同时最多 12 个，可以改成不限；做完的标准是能启动、测试全过、网站截图检查、评审通过。</p>
+
+<script>
+  document.querySelectorAll('section.fr').forEach((fr) => {
+    const kids = [...fr.childNodes];
+    fr.innerHTML = '<i class="l1"></i><i class="l2"></i><i class="l3"></i><i class="l4"></i>' +
+      `<div class="plate"><span class="wing l"></span><span class="p">${fr.dataset.title}</span><span class="wing r"></span></div><span class="code">${fr.dataset.code}</span><div class="body"></div>`;
+    const body = fr.querySelector('.body');
+    kids.forEach((n) => body.appendChild(n));
+  });
+</script>
+</body>
+</html>
