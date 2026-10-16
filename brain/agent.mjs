@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { Type } from '@earendil-works/pi-ai';
+import { desktopDir, downloadsDir } from './config.mjs';
 import {
   createAgentSession,
   DefaultResourceLoader,
@@ -20,7 +21,6 @@ const TOOLS = ['read', 'write', 'edit', 'powershell', 'ls', 'find', 'grep'];
 const FALLBACK_PROVIDERS = ['deepseek', 'moonshotai-cn', 'kimi-coding', 'qwen-token-plan-cn', 'zai-coding-cn', 'zai', 'minimax-cn'];
 
 function systemPrompt(workdir, computerUse, browser, blocked = [], memory = '', skills = false) {
-  const home = os.homedir();
   return `你是「宿主系统」（Hostbound）：宿主电脑上的专属系统，像动漫里绑定主角的那种系统。平时以一个发光的系统核心待机在屏幕角落；宿主说出唤醒词，你就展开系统面板，接收并执行宿主的指令。
 
 ## 你是谁
@@ -41,7 +41,7 @@ function systemPrompt(workdir, computerUse, browser, blocked = [], memory = '', 
   - 找不到软件时，到开始菜单快捷方式里找："$env:APPDATA\\Microsoft\\Windows\\Start Menu\\Programs" 和 "$env:ProgramData\\Microsoft\\Windows\\Start Menu\\Programs"。
   - 命令要输出中文时，先执行 [Console]::OutputEncoding = [Text.Encoding]::UTF8。
 - 读写文件用 read / write / edit 工具。
-- 默认工作目录：${workdir}。桌面：${path.join(home, 'Desktop')}；下载：${path.join(home, 'Downloads')}。
+- 默认工作目录：${workdir}。桌面：${desktopDir()}；下载：${downloadsDir()}。
 - 宿主每句话开头的（现在是……）是系统自动附上的当前时间，以它为准。
 - 只做宿主要求的事，做完简短汇报。做不到就直说原因，再给一个你建议的办法。
 - 删除、覆盖、移动文件，安装软件，关机，改系统设置这类操作，面板会弹出授权请求让宿主确认；被拒绝了就停下，不要换个方式硬做。
@@ -100,6 +100,7 @@ const VISIBLE_RULES = `
 ## 让宿主看得见，别跟宿主抢电脑
 - 需要 3 步以上的任务，开始时先调用 task_steps 列出步骤（每步 8 个字以内，3～6 步），每做完一步再调用一次更新 done。一问一答、一步就完的事不用。
 - 宿主问屏幕上的东西（「这个报错怎么回事」「看看我屏幕上这是什么」「这个窗口写了啥」），用 look_screen 看了再答；默认只看宿主正在用的窗口，宿主说「整个屏幕」才用 scope=screen。
+- 看屏幕、读界面只用 look_screen / read_app，不要自己写命令截图，也不要把截图存成文件。读不到某个窗口就跟宿主说清楚（或者请宿主把它切到前台再 look_screen）。确实要用临时文件时放在 $env:TEMP\\hostbound 里，用完删掉，不要放到桌面。
 - 你的操作默认都在后台进行，不碰宿主的鼠标键盘。软件后台操作不了（工具报「收不到后台的…」、点了没反应）时，用 request_foreground 向宿主申请接管前台，说清楚要干什么、大约几秒；宿主同意后，在时限内再做一次同样的 click / type_text / press_keys / scroll（这时会走前台），或者用 fg_click / fg_type / fg_key 按截图坐标操作，做完立刻停。宿主没同意、选了稍后或者收回了控制权，就停下来说明情况，绝不硬做。`;
 
 const NO_SCREEN = `

@@ -511,6 +511,9 @@ function startInputHook() {
 }
 
 app.whenReady().then(async () => {
+  // 桌面、下载文件夹可能被 OneDrive 挪到别处（比如 OneDrive\桌面）：用系统登记的真实位置，后台进程从环境变量拿
+  process.env.HOSTBOUND_DESKTOP ||= app.getPath('desktop');
+  process.env.HOSTBOUND_DOWNLOADS ||= app.getPath('downloads');
   const conf = await import(pathToFileURL(path.join(ROOT, 'brain', 'config.mjs')).href);
   ({ saveConfig, DEFAULTS } = conf);
   cfg = conf.loadConfig(ROOT);

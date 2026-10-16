@@ -1,6 +1,7 @@
 /* 阶段 3：面板翻页（对话 / 记录 / 日志 / 设置）、新手引导 */
 .nav { display: flex; align-items: center; gap: 2px; margin: -6px 0 10px; border-bottom: 1px solid color-mix(in srgb, var(--g1) 20%, transparent); flex: none; }
-.nav span { padding: 4px 13px; font-size: 13px; color: var(--muted); border-bottom: 2px solid transparent; margin-bottom: -1px; cursor: pointer; }
+/* 面板拉窄时页签间距跟着缩（7 个页签的字一共约 196px），字不折行 */
+.nav span { padding: 4px clamp(3px, calc((100% - 196px) / 14), 13px); font-size: 13px; color: var(--muted); border-bottom: 2px solid transparent; margin-bottom: -1px; cursor: pointer; white-space: nowrap; flex: none; }
 .nav span:hover { color: #e9f4ff; }
 .nav span.on { color: #fff; border-color: var(--g1); text-shadow: 0 0 8px var(--g1); background: linear-gradient(0deg, color-mix(in srgb, var(--g1) 18%, transparent), transparent); }
 #bubble.booting .nav { visibility: hidden; }

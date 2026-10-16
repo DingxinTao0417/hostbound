@@ -8,6 +8,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { createRequire } from 'node:module';
 import { Type } from '@earendil-works/pi-ai';
+import { downloadsDir } from './config.mjs';
 
 const require = createRequire(import.meta.url);
 const { Cron } = require('croner');
@@ -406,7 +407,7 @@ export class Tasks extends EventEmitter {
   applyConfig() {
     const c = this.cfg.watch || {};
     this.#toggle('downloads', c.downloads !== false, () => {
-      const dir = c.downloadsDir || path.join(os.homedir(), 'Downloads');
+      const dir = c.downloadsDir || downloadsDir();
       return new FolderWatch({
         dir,
         since: this.now(),

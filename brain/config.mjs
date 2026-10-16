@@ -3,11 +3,16 @@ import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
 
+// 桌面、下载文件夹：桌面窗口（Electron）会把系统登记的真实位置放进环境变量（OneDrive 可能把桌面挪到 OneDrive\桌面）；
+// 单独跑后台、跑测试时没有，就按用户目录下的 Desktop、Downloads 算
+export const desktopDir = () => process.env.HOSTBOUND_DESKTOP || path.join(os.homedir(), 'Desktop');
+export const downloadsDir = () => process.env.HOSTBOUND_DOWNLOADS || path.join(os.homedir(), 'Downloads');
+
 export const DEFAULTS = {
   // 系统的大脑。provider/id 见 README 里的模型表；对应的 API key 用环境变量提供
   model: { provider: 'deepseek', id: 'deepseek-flash', thinking: 'low' },
   // 系统干活时的默认目录
-  workdir: path.join(os.homedir(), 'Desktop'),
+  workdir: desktopDir(),
   // 系统报时用的时区，例如 "Asia/Shanghai"；留空就用电脑的系统时区
   timezone: '',
   voice: {

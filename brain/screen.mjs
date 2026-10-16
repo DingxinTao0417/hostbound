@@ -98,7 +98,8 @@ export class Screen {
     const r = await cua.call('list_windows', {});
     return r.text
       .split('\n')
-      .map((l) => l.match(/^- (\S+) \(pid (\d+)\) "(.*)" \[window_id: (\d+)\]/))
+      // 程序名里可能有空格（Qoder CN.exe）
+      .map((l) => l.match(/^- (.+?) \(pid (\d+)\) "(.*)" \[window_id: (\d+)\]/))
       .filter(Boolean)
       .map((m) => ({ exe: m[1], pid: +m[2], title: m[3], wid: +m[4] }))
       .filter((w) => w.title && !this.ownPids.includes(w.pid) && !/^(explorer|TextInputHost|cua-driver|AsMonitorControl|AsHotplugCtrl)\.exe$/i.test(w.exe));

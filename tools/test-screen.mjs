@@ -33,6 +33,7 @@ const WINDOWS = [
   '- Weixin.exe (pid 200) "微信" [window_id: 22]',
   '- WINWORD.EXE (pid 300) "文档1 - Word" [window_id: 33]',
   '- electron.exe (pid 999) "Hostbound" [window_id: 44]',
+  '- Qoder CN.exe (pid 400) "index.mjs - myapp - Qoder CN" [window_id: 55]',
 ].join('\n');
 const el = (i, role, label, x, y, w = 100, h = 80) => ({ element_index: i, element_token: `s1:${i}`, role, label, actions: role === 'Edit' ? ['set_value', 'text'] : ['invoke'], frame: { x, y, w, h } });
 // 计算器：窗口在屏幕 (300, 200)，480×760；截图缩成一半 240×380
@@ -97,6 +98,7 @@ screen.rawRectOf = (h) => ({ 33: { x: 100, y: 50, width: 800, height: 600 } })[h
 ok('中文名认窗口：计算器', (await screen.resolve('计算器')).wid === 11);
 ok('程序名认窗口：calculator', (await screen.resolve('calculator')).wid === 11);
 ok('标题里的词认窗口：word', (await screen.resolve('word')).wid === 33);
+ok('程序名带空格的也认得（Qoder CN.exe）', (await screen.resolve('Qoder')).wid === 55);
 ok('自己的窗口（Hostbound）不在列表里', /没找到/.test(await throws(() => screen.resolve('Hostbound'))));
 
 // ---- 读界面：Cua 读得出就用 Cua ----
