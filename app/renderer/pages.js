@@ -543,6 +543,37 @@
     window.App.go('skill');
   }
 
+  // =================== 项目 ===================
+  // 所有项目一张卡一个（跟对话里的项目卡同一个样子，卡上的按钮一样能用）；点「打开项目页」看每个智能体在干什么
+  const PJ = { built: false, items: [] };
+  const LIVE_KINDS = new Set(['planning', 'plan', 'running', 'checking', 'ask', 'paused']);
+  function buildProj() {
+    $p('#pg-proj').append(h('div', { class: 'pj-page' },
+      h('div', { class: 'toolbar' }, h('span', { id: 'pj-count' }), h('span', { class: 'r' },
+        h('button', { class: 'btn ghost sm', text: '项目设置', onclick: () => window.App.go('set', 'proj') }),
+        h('button', { class: 'btn sm', text: '+ 做一个新东西', onclick: () => window.App.prefill('帮我做一个') }))),
+      h('div', { class: 'pscroll' }, h('div', { class: 'pj-list', id: 'pj-list' }))));
+    PJ.built = true;
+  }
+  async function loadProj() {
+    const r = await request({ type: 'projects_query' });
+    PJ.items = r?.items || [];
+    renderProj();
+  }
+  function renderProj() {
+    const list = $p('#pj-list');
+    if (!list) return;
+    list.innerHTML = '';
+    const items = PJ.items.filter((p) => p.card);
+    const live = items.filter((p) => LIVE_KINDS.has(p.card.kind)).length;
+    $p('#pj-count').textContent = items.length ? `${items.length} 个项目${live ? ` · ${live} 个正在进行` : ''}` : '';
+    if (!items.length) {
+      list.append(h('div', { class: 'pj-empty' }, '还没有项目。跟系统说「', h('b', { text: '帮我做一个记账网站' }), '」试试：', h('br'), '总指挥先写计划给你看，你点「开工」以后，几个智能体在各自的代码副本里一起做。'));
+      return;
+    }
+    for (const p of items) list.append(window.ProjectCards.make(p.card));
+  }
+
   // =================== 记录 ===================
   const RES = { ok: ['完成', 'ok'], fail: ['失败', 'fail'], deny: ['被拒绝', 'deny'], stopped: ['中止', 'stopped'] };
   const rec = { q: '', result: 'all', items: [], more: false, sel: null, built: false };
@@ -945,6 +976,54 @@
     return row('鉴定存档', info, h('span', { class: 'r' }, b));
   }
 
+  // 设置 · 项目
+  function modelSelect(key, label, empty) {
+    const sel = h('select', { class: 'pg-input', style: 'flex:1' });
+    sel.append(h('option', { value: '', text: empty }));
+    for (const m of S.info?.brain?.models || []) sel.append(h('option', { value: `${m.provider}/${m.id}`, text: `${m.name || m.id}（${m.provider}）` }));
+    const cur = S.values[key] || '';
+    if (cur && ![...sel.options].some((o) => o.value === cur)) sel.append(h('option', { value: cur, text: cur }));
+    sel.value = cur;
+    sel.addEventListener('change', () => save(key, sel.value, `${label} · ${sel.value || empty}`));
+    return row(label, sel);
+  }
+  function numberRow(key, label, unit, hint, { min = 0, max = 100000 } = {}) {
+    const inp = h('input', { class: 'pg-input', type: 'number', min, max, step: 1, style: 'flex:none;width:90px', value: S.values[key] ?? S.defaults[key] ?? '' });
+    const commit = debounce(() => {
+      const v = Math.max(min, Math.min(max, Math.round(+inp.value || 0)));
+      save(key, v, `${label} · ${unit === '¥' ? `¥${v}` : `${v} ${unit}`}`);
+    }, 600);
+    inp.addEventListener('input', commit);
+    return h('div', {}, row(label, unit === '¥' ? h('span', { class: 'hint', style: 'flex:none', text: '¥' }) : null, inp, unit !== '¥' ? h('span', { class: 'hint', style: 'flex:none', text: unit }) : null), hint ? h('div', { class: 'srow', style: 'border:0;min-height:0;padding-top:0' }, h('span', { class: 'lbl' }), h('span', { class: 'hint', text: hint })) : null);
+  }
+  function projectSettings() {
+    const out = [];
+    const root = S.values['projects.root'] || '';
+    const rootEl = h('span', { class: 'hint', style: 'flex:1;color:#c7d6f5;overflow:hidden;text-overflow:ellipsis;white-space:nowrap', text: root || '用户文件夹\\HostboundProjects（默认）', title: root });
+    out.push(head('放在哪'));
+    out.push(row('新项目放哪', rootEl, h('span', { class: 'r' },
+      h('button', { class: 'btn ghost sm', text: '选文件夹', onclick: async () => {
+        const dir = await B().pickFolder();
+        if (dir && (await save('projects.root', dir, `项目放哪 · ${dir}`))) renderSub();
+      } }),
+      root ? h('button', { class: 'btn ghost sm', text: '恢复默认', onclick: async () => (await save('projects.root', '', '项目放哪 · 默认')) && renderSub() }) : null)));
+    out.push(note('每个项目一个文件夹（是一个 git 仓库）。计划卡上也能给单个项目换地方，或者直接说「放到 D:\\workspace」。'));
+    out.push(head('谁来干'));
+    out.push(modelSelect('projects.commanderModel', '总指挥用的模型', '跟主窗口一样'));
+    const engine = S.values['projects.workerEngine'] || 'same';
+    out.push(chips('projects.workerEngine', '干活的用', [['same', '跟总指挥一样'], ['claude', 'Claude Code'], ['codex', 'Codex']], null, () => setTimeout(renderSub, 0)));
+    if (engine === 'same') out.push(modelSelect('projects.workerModel', '干活的模型', '跟总指挥一样'));
+    else out.push(note(engine === 'claude' ? '用这台电脑上装好的 Claude Code（claude 命令），花的是你自己 Claude 账号的额度。项目文件夹外面的操作照样先在面板上问你。' : '用这台电脑上装好的 Codex CLI（codex 命令），花的是你自己 OpenAI 账号的额度。它被关在项目文件夹里，只能写那里面。'));
+    out.push(chips('projects.maxConcurrent', '同时最多几个', [[4, '4'], [8, '8'], [12, '12'], [0, '不限']]));
+    out.push(note('总指挥按活的大小派人：小东西一个就够，不会为了凑数多派。'));
+    out.push(head('花费和上限'));
+    out.push(numberRow('projects.budget', '每个项目预算', '¥', '用到 80% 提醒，用完先停下问你要不要追加；0 是不限'));
+    out.push(numberRow('projects.maxTurns', '每个智能体最多', '轮', '一个任务最多对话这么多轮；同一件事重复 4 次算卡住，交回总指挥重新安排', { min: 5, max: 500 }));
+    out.push(head('授权'));
+    out.push(toggle('projects.autoAllow', '项目里自动放行', '项目文件夹里读写、装依赖、跑脚本不问；出了文件夹、全局安装、危险操作照常问'));
+    return out;
+  }
+
   const k10 = (v) => `${Math.round(v / 10000)} 万`;
   const SUBS = {
     ear: ['听觉', () => [
@@ -985,6 +1064,7 @@
       explainClearRow(),
       appraiseClearRow(),
     ]],
+    proj: ['项目', () => projectSettings()],
     safe: ['安全中心', () => [
       head('这些操作一定先问你（不能关）'),
       h('div', { class: 'lockline', text: '删除、移动、改名、覆盖文件；改工作目录以外的文件' }),
@@ -1157,7 +1237,7 @@
   }
   async function refreshInfo() {
     S.info = await request({ type: 'info_query' }, 20000);
-    if (current === 'set' && (S.sub === 'brain' || S.sub === 'ear' || S.sub === 'hand')) renderSub();
+    if (current === 'set' && (S.sub === 'brain' || S.sub === 'ear' || S.sub === 'hand' || S.sub === 'proj')) renderSub();
   }
   async function loadSet(sub) {
     S.snap = await B().settings();
@@ -1230,6 +1310,9 @@
       if (!T.built) buildTask();
       renderTask();
       request({ type: 'tasks_query' });
+    } else if (page === 'proj') {
+      if (!PJ.built) buildProj();
+      loadProj();
     } else if (page === 'rec') {
       if (!rec.built) buildRec();
       loadRec();
@@ -1261,6 +1344,16 @@
       case 'log_entry':
         onLogEntry(m.entry);
         return true;
+      case 'project_card':
+        if (current === 'proj' && m.card) {
+          const old = document.querySelector(`#pj-list .msg.pj[data-pid="${CSS.escape(m.card.projectId)}"]`);
+          if (old) old.replaceWith(window.ProjectCards.make(m.card));
+          else {
+            clearTimeout(PJ.reload);
+            PJ.reload = setTimeout(loadProj, 300);
+          }
+        }
+        return false; // 对话里的卡也要更新（project-cards.js）
       case 'tasks':
         setTimeout(() => current === 'task' && renderTask(), 0);
         return false; // app.js 也要（核心下面的倒计时）

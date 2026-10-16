@@ -8,6 +8,7 @@
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="pages.css">
   <link rel="stylesheet" href="explain-cards.css">
+  <link rel="stylesheet" href="project-cards.css">
 </head>
 <body>
   <!-- 整个窗口铺满屏幕工作区、全透明；只有系统核心和系统面板能点，其余地方点击直接穿到下面的软件 -->
@@ -19,7 +20,7 @@
     <span class="code" id="code">SYS</span>
     <button id="close" title="收起（Esc）">×</button>
     <div class="body">
-      <nav id="nav" class="nav"><span data-p="chat" class="on">对话</span><span data-p="task">任务</span><span data-p="mem">记忆</span><span data-p="skill">技能</span><span data-p="rec">记录</span><span data-p="log">日志</span><span data-p="set">设置</span></nav>
+      <nav id="nav" class="nav"><span data-p="chat" class="on">对话</span><span data-p="task">任务</span><span data-p="mem">记忆</span><span data-p="skill">技能</span><span data-p="proj">项目</span><span data-p="rec">记录</span><span data-p="log">日志</span><span data-p="set">设置</span></nav>
       <div class="topline"><span id="status"></span><span id="live" class="chip hidden">直播模式 · 语音唤醒已关</span><button id="hush" class="chip hidden" type="button"></button></div>
       <section class="page on" id="pg-chat" data-page="chat">
       <div id="wave" class="wave hidden"></div>
@@ -37,6 +38,7 @@
       <section class="page" id="pg-task" data-page="task"></section>
       <section class="page" id="pg-mem" data-page="mem"></section>
       <section class="page" id="pg-skill" data-page="skill"></section>
+      <section class="page" id="pg-proj" data-page="proj"></section>
       <section class="page" id="pg-rec" data-page="rec"></section>
       <section class="page" id="pg-log" data-page="log"></section>
       <section class="page" id="pg-set" data-page="set"></section>
@@ -59,5 +61,6 @@
   <script src="pages.js"></script>
   <script src="app.js"></script>
   <script src="explain-cards.js"></script>
+  <script src="project-cards.js"></script>
 </body>
 </html>

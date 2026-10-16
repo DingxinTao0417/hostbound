@@ -6,6 +6,7 @@
 <link rel="stylesheet" href="/style.css">
 <link rel="stylesheet" href="/pages.css">
 <link rel="stylesheet" href="/explain-cards.css">
+<link rel="stylesheet" href="/project-cards.css">
 <style>
   /* 浏览器里预览：给个桌面底色，看得清半透明面板 */
   html, body { background: radial-gradient(ellipse at 70% 30%, #2a3f6e, transparent 60%), linear-gradient(160deg, #1b2440, #10162b) !important; }
@@ -133,6 +134,28 @@
     brainCb({ type: 'appraise_card', rec: { id: 's1', at: Date.now(), kind: 'scan', name: '检测到 5 个窗口', tag: '全屏', fields: [['浏览器', '在看视频网站'], ['剪映', '在剪一期视频']], verdict: '宿主正在一边看视频一边剪片。', actions: [], thumb: null } });
   };
 
+  // 控制台里调 __demoProjects() 看对话里的项目卡（计划 → 进行中 → 等你回答 → 完成），面板「项目」页也用这几张
+  const PCARDS = (() => {
+    const dir = 'C:\\Users\\宿主\\HostboundProjects\\记账网站';
+    const agents = [{ id: 'arch', role: '架构', does: '定页面、数据表和接口，写成文档' }, { id: 'fe', role: '前端', does: '记账页、月报页、图表（只改 web/）' }, { id: 'be', role: '后端', does: '记账接口、导出 Excel（只改 server/）' }, { id: 'qa', role: '测试', does: '写测试，用浏览器打开检查' }];
+    const base = { projectId: 'p1', name: '记账网站', dir, summary: '记一笔收入 / 支出，按月看柱状图和分类饼图，导出 Excel；数据存本机', approach: '网页前端 + 本机小服务，SQLite 存数据', budgetCny: 30, checks: { install: 'npm install', build: 'npm run build', test: 'npm test', start: 'npm start', url: 'http://localhost:5173', web: true } };
+    return {
+      plan: { ...base, kind: 'plan', status: 'awaiting_approval', agents, tasks: { done: 0, total: 5 }, planTasks: [{ title: '骨架和接口' }, { title: '记账和月报页' }, { title: '接口和导出' }, { title: '端到端测试' }, { title: '部署说明' }], estimate: { minutes: 40, cny: [6, 10] }, costCny: 0.03 },
+      running: { ...base, kind: 'running', status: 'running', startedAt: now - 18 * 60_000, costCny: 3.2, tasks: { done: 2, total: 5 }, agents: [{ ...agents[0], state: 'done', now: '页面和接口定好了' }, { ...agents[1], state: 'work', now: '在做月报页的图表' }, { ...agents[2], state: 'check', now: '6 个接口，测试都过了' }, { ...agents[3], state: 'wait', now: '等「记账和月报页」' }] },
+      ask: { ...base, kind: 'ask', status: 'running', startedAt: now - 20 * 60_000, costCny: 3.4, tasks: { done: 2, total: 5 }, agents, question: { qid: 'q1', text: '分类饼图里「其他」那一块，要不要能点开看明细？', options: ['要', '不用'], from: '前端' } },
+      done: { ...base, kind: 'done', status: 'done', startedAt: now - 46 * 60_000, finishedAt: now, costCny: 7.4, tasks: { done: 6, total: 6 }, agents, result: { did: '3 个页面、6 个接口、导出 Excel；24 个测试全过', run: 'npm start → http://localhost:5173', notes: '', url: 'http://localhost:5173', checks: [{ name: '构建', ok: true }, { name: '测试', ok: true }, { name: '启动', ok: true }, { name: '看首页', ok: true }, { name: '评审', ok: true }], shotData: null } },
+    };
+  })();
+  window.__demoProjects = (step) => {
+    const show = (k) => brainCb({ type: 'project_card', card: PCARDS[k] });
+    if (step) return show(step);
+    brainCb({ type: 'heard', text: '帮我做一个记账网站，能记收支、按月看图表、导出 Excel，就我自己用，存本机' });
+    show('plan');
+    setTimeout(() => show('running'), 1500);
+    setTimeout(() => show('ask'), 3000);
+    setTimeout(() => show('done'), 4500);
+  };
+
   // 跟真的桥一样可以挂好几个监听（app.js、explain-cards.js 各挂一个）
   const listeners = [];
   const brainCb = (m) => listeners.forEach((cb) => cb(m));
@@ -160,6 +183,8 @@
       else if (m.type === 'memory_review') setTimeout(() => reply({ type: 'memory_reviewed', reqId: r, ok: true, change: { id: 'j3', summary: '没有要改的' } }), 800);
       else if (m.type === 'embed_test') reply({ type: 'embed_result', reqId: r, ok: true });
       else if (m.type === 'tasks_query') reply({ type: 'tasks', reqId: r, ...QUESTS });
+      else if (m.type === 'projects_query') reply({ type: 'projects', reqId: r, items: [{ id: 'p1', name: '记账网站', card: PCARDS.running }, { id: 'p0', name: '贪吃蛇', card: { ...PCARDS.done, projectId: 'p0', name: '贪吃蛇', result: { ...PCARDS.done.result, did: '一个能玩的贪吃蛇，方向键控制，记最高分', url: '' } } }] });
+      else if (m.type === 'project_action') reply({ type: 'project_action_result', reqId: r, ok: true, action: m.action });
       else if (m.type === 'skills_query') reply({ type: 'skills', reqId: r, ...SKILLS });
       else if (m.type === 'skill_decide') {
         SKILLS.pending = SKILLS.pending.filter((e) => e.id !== m.id);
@@ -193,7 +218,7 @@
   // 面板的 HTML 直接用 index.html 里的，跟程序保持一致
   const html = await (await fetch('/index.html')).text();
   document.body.insertAdjacentHTML('afterbegin', html.match(/<body>([\s\S]*?)<script/)[1]);
-  for (const src of ['/voice-fx.js', '/speech.js', '/pages.js', '/app.js', '/explain-cards.js']) {
+  for (const src of ['/voice-fx.js', '/speech.js', '/pages.js', '/app.js', '/explain-cards.js', '/project-cards.js']) {
     await new Promise((ok) => {
       const s = document.createElement('script');
       s.src = src;

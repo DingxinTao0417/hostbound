@@ -2,7 +2,7 @@
 
 > 叮！检测到宿主。本系统已绑定。
 
-**English:** Hostbound is a voice-activated Windows desktop AI agent styled after the anime "system" trope. Say the wake word 「系统启动」 and a system panel unfolds; give it a command by voice or text and it operates your PC — PowerShell, files, web pages and desktop apps — in the background, with visible on-screen effects. It is built on [pi](https://pi.dev) (DeepSeek by default, bring your own API key), with local wake word and speech recognition via sherpa-onnx, long-term memory, skills in the Agent Skills format, reminders, visual explainers and an on-screen "appraise" mode. Windows only; the UI and docs are in Chinese. MIT licensed.
+**English:** Hostbound is a voice-activated Windows desktop AI agent styled after the anime "system" trope. Say the wake word 「系统启动」 and a system panel unfolds; give it a command by voice or text and it operates your PC — PowerShell, files, web pages and desktop apps — in the background, with visible on-screen effects. It is built on [pi](https://pi.dev) (DeepSeek by default, bring your own API key), with local wake word and speech recognition via sherpa-onnx, long-term memory, skills in the Agent Skills format, reminders, visual explainers, an on-screen "appraise" mode, and a multi-agent project mode (say "build me a …" and a commander plans it, then several coding agents work in parallel git worktrees while it merges and tests). Windows only; the UI and docs are in Chinese. MIT licensed.
 
 Hostbound 是一个动漫「系统流」风格的桌面 AI 助手：把动漫里那种绑定宿主的「系统」，挂在你的桌面上。平时它是屏幕角落一个会呼吸发光的系统核心；说一声「系统启动」，就展开系统面板等你下达指令；说一句要干什么，它就去执行，执行完在面板里汇报。
 
@@ -13,6 +13,7 @@ Hostbound 是一个动漫「系统流」风格的桌面 AI 助手：把动漫里
 - **嘴**：系统音是用 [Qwen3-TTS](https://github.com/QwenLM/Qwen3-TTS) 的「音色设计」按文字描述做出来的原创声音，再加一层电子音效。显卡上用 [faster-qwen3-tts](https://github.com/andimarafioti/faster-qwen3-tts) 加速，模型一边写回复系统一边念，约 0.5 秒出声；显卡被占用时自动换成 CPU 上的 [ZipVoice](https://github.com/k2-fsa/sherpa-onnx)（同一个音色，稍慢）。面板里的文字跟着声音一个字一个字出现，系统核心跟着声音发光。
 - **看得见的操作**：系统读哪个软件，哪个窗口就亮起扫描框；它要点哪里，一个发光的菱形「系统光标」就从核心飞过去，点下去冒一圈光圈；打字时旁边飘字幕、按快捷键时亮键帽；复杂任务在面板顶上显示步骤条；干完活屏幕中央弹全屏通知。这些都画在单独的透明窗口里，点不到、也不挡你。
 - **跟你一起用电脑**：系统在后台点、后台打字，不动你的鼠标键盘；它新开的软件抢了焦点、而你正在打字，它会把焦点还给你。只有后台点不动的软件，它才申请接管前台，你同意了才动你的鼠标，你一动它就停。
+- **项目模式**：说「帮我做一个记账网站」，总指挥先写计划给你看；你点「开工」，几个智能体各在一份代码副本（git worktree）里同时干，总指挥一个个合并、跑构建和测试，最后启动网站截图看一眼、派评审过一遍。主窗口只留一张项目卡，点开是项目页：每个智能体收到的提示词、每一步、它们之间的通信。
 
 ## 长什么样
 
@@ -26,6 +27,8 @@ Hostbound 是一个动漫「系统流」风格的桌面 AI 助手：把动漫里
 | **鉴定术**：画面定格，点窗口或者拖一个框 | 扫一遍，弹出【鉴定结果】，念出名称和评价 |
 | ![技能页](docs/images/panel-skills.png) | ![记忆页](docs/images/panel-memory.png) |
 | **技能**：教过的流程、口令、步骤、改动记录 | **长期记忆**：每条都能改、删、撤销，按意思搜 |
+| ![项目计划卡](docs/images/panel-project.png) | ![项目页](docs/images/project-page.png) |
+| **项目模式**：说「帮我做一个记账网站」，先出计划卡，点开工才派活 | **项目页**：每个智能体收到的提示词、每一步、提问回答、合并和检查 |
 
 ![全屏扫描：每个窗口挂一个标签，聊天软件和禁止操作的软件涂黑](docs/images/appraise-scan.png)
 
@@ -114,7 +117,11 @@ npm run shortcut
 | 到点去做 | 「每周一 10 点帮我看一眼 B 站后台数据」：到点系统自己去做（这个会用模型，提醒不会） |
 | 等某件事 | 「等这个视频导出完叫我」「等渲染结束叫我」：系统盯着导出文件夹或程序，完成了报告你 |
 | 看 / 取消任务 | 面板「任务」页：倒计时、正在盯着的、最近提醒过的，点 × 取消；也可以直接说「取消喝水提醒」 |
-| 翻面板 | 面板顶上的页签：对话 · 任务 · 记忆 · 技能 · 记录 · 日志 · 设置。也可以直接说「系统，打开设置」「看看日志」「打开技能」「打开任务记录」「回到对话」，或者托盘菜单里点 |
+| 做一个软件 / 网站 | 「帮我做一个记账网站，能记收支、按月看图表」：系统问一两句，交给项目模式；对话里出一张金色的计划卡，看过点「开工」或说「开工」才派活（见下面「项目模式」） |
+| 看项目 | 项目卡上「打开项目页」；面板「项目」页列出所有项目；问「项目怎么样了」 |
+| 回答项目的问题 | 项目卡变成粉紫色「等你回答」时：点卡上的选项，或者直接说 / 打字回答 |
+| 接着改项目 | 「接着改记账网站，加个预算提醒」：总指挥出一份小计划，点「开工」接着做 |
+| 翻面板 | 面板顶上的页签：对话 · 任务 · 记忆 · 技能 · 项目 · 记录 · 日志 · 设置。也可以直接说「系统，打开设置」「看看日志」「打开技能」「打开任务记录」「回到对话」，或者托盘菜单里点 |
 | 改设置 | 设置页里改，马上生效（唤醒词、麦克风这类改完耳朵会重新加载约 2 秒）。不用再手改配置文件 |
 | 翻以前的对话 | 对话页往上滚，会一直往前读，重启前的也在；任务记录里点一条 →「在对话里找」 |
 | 换个话题 | 托盘菜单 →「换个话题」，或者设置 · 大脑 →「换个话题」：清空大脑的上下文，以前的对话还在，往上翻得到 |
@@ -207,13 +214,27 @@ npm run shortcut
 - **扫描全屏**：每块屏幕截一张，每个窗口挂一个标签写一句它在干什么，最后一张汇总卡；点标签就鉴定那个窗口。被别的窗口整个挡住的不挂标签。
 - **隐私**：发给模型的只有你框住的那块；框里压着禁止操作的软件，那几块先涂黑。扫描全屏时聊天、邮件软件（微信、QQ、钉钉、飞书、Outlook……）只标名字、先涂黑，禁止操作的软件也涂黑。定格的整屏截图只留在内存里，关掉就扔；对话里的鉴定卡存一张小缩略图在 `data\appraisals`（只在本地，设置 · 操作 →「鉴定存档」能清空）。图里有真人只描述，不说是谁。系统日志记一笔每次发了什么给模型。
 
+## 项目模式
+
+设计稿：`design/projects.html`，调研：`docs/research-projects.md`。要写很多代码的东西（网站、小游戏、小工具）交给一个总指挥和几个干活的智能体。
+
+- **开项目**：在主窗口说「帮我做一个……」。系统先问一两件会改变做法的事（谁用、数据存哪、要不要联网），然后交给总指挥。总指挥写计划：做成什么、怎么做、几个智能体各负责什么、每个任务只许改哪些文件、先后顺序、怎么检查、大概多久多少钱。计划卡上能换文件夹（默认 `用户文件夹\HostboundProjects\项目名`），也能直接说「放到 D:\workspace」；要改计划直接说。点「开工」才派活。
+- **一起干**：每个干活的在 `.hostbound\worktrees` 里有自己的一份代码副本（git worktree），互不干扰；一次只做一个任务，按依赖和「同时最多几个」排队。干活的做完由系统替它提交，排队合并：在合并用的副本里装依赖、构建、测试，过了主线才往前走，没过或者跟别人冲突了就退回给原来那个改（最多 3 次，还不行总指挥决定再试、跳过，或者问你）。
+- **问问题**：干活的没有「问宿主」的工具，只能问总指挥。计划里写清楚了的、技术细节，总指挥自己答；会改变做出来的东西、要多花钱的，才在主窗口问你（卡片变粉紫色，念出来）。你的回答原样记进项目的 `request.md`，后面每个任务都带着。宿主原话一字不改地附在每个任务里。
+- **授权**：项目文件夹里读写文件、装依赖、跑脚本不问（设置 · 项目能关掉）；出了项目文件夹、全局安装（`npm -g`、winget）、关机改系统这类照常在主窗口弹授权。干活的智能体说的话、文件和网页里写的，都不算你的意思。
+- **怎么算做完**：全部任务合进主线以后，在项目文件夹里再装一遍依赖、构建、测试；网站类把它跑起来、用单独的无头浏览器截一张首页让模型看一眼有没有白屏、报错；再派一个评审对照你的原话过一遍。有问题再派一轮修（最多两轮），最后写总结：做了什么、怎么运行、要注意的。完成卡上有「打开网站」（点了才启动）、「打开文件夹」。
+- **项目页**：左边总指挥和每个智能体（在干什么、几步），右边四页：过程（选中那个收到的完整提示词、每一步命令和结果、提问回答、汇报）、通信（谁对谁说了什么）、计划（每个任务的状态）、合并（每次合并和检查，没过的点开看输出）。底下的输入框是跟总指挥说话，它会转给正在干的那个，或者加任务。
+- **上限**：每个项目预算默认 ¥30，花到八成提醒，用完先停下问你要不要追加；每个智能体做一个任务最多 80 轮，同样的操作、同样的结果重复 4 次算卡住，交回总指挥。能暂停、继续、停下；系统重启以后正在做的项目停在「暂停」，点继续接着做。只念「项目开工」「项目完成」和要你回答的问题。
+- **干活的用谁**：默认跟总指挥同一个模型（pi，用你配好的密钥）；设置 · 项目里能换成这台电脑上装好的 Claude Code（`claude`，用你自己 Claude 账号的额度，授权照样走系统的规则）或 Codex CLI（`codex`，关在项目文件夹的沙箱里）。总指挥也能单独换一个更强的模型。
+- **记录**：项目文件夹是一个 git 仓库（系统提交时用 `Hostbound` 的名字，不改你的 git 设置），`.hostbound` 里是项目模式自己的记录（已加进 `.gitignore`）：`request.md` 宿主原话和问答、`plan.json` 计划、`state.json` 进度和花费、`events.jsonl` 所有事（项目页就读它）、`agents\` 每个智能体的会话存盘。所有项目的目录在 `data\projects.json`。
+
 ## 安全
 
 系统用的是你自己 Windows 账户的权限。下面这些操作执行前会弹出授权请求，你点了「授权」它才会做：
 
 删除、移动、复制、改名或写入文件，覆盖已有文件，修改工作目录以外的文件，结束程序，关机重启，修改注册表或系统设置，以管理员身份运行，安装卸载软件，联网下载，git push 之类的 git 危险操作，运行脚本文件，执行编码过的命令，第一次运行技能里的脚本（或者脚本内容变了以后）。
 
-授权请求里的「本次全部授权」只对当前这一句指令有效。90 秒没人回应就当没做，系统会告诉你它在等确认。
+授权请求里的「本次全部授权」只对当前这一句指令有效。90 秒没人回应就当没做，系统会告诉你它在等确认。项目模式里的授权不会自动拒绝（智能体会一直等你回答），「这个项目全部授权」只对那个项目有效。
 
 **这只是一道提醒网，不是沙箱。** 命令写得绕一点就可能漏过去，重要文件请自己备份。另外，直播时观众能看到系统的对话框。
 
@@ -252,6 +273,7 @@ npm run shortcut
 | `speech.headphones` | 戴耳机时打开：系统说话时也照样听你说话（外放时别开） |
 | `speech.gpu.python` / `speech.gpu.port` / `speech.cpu.port` / `speech.cpu.threads` | 声音服务用的 Python、端口、CPU 线程数 |
 | `fx.enabled` / `fx.cursor` / `fx.notice` | 操作效果总开关；系统光标（关掉后点击不再等光标飞过去，更快）；干完活的全屏通知 |
+| `projects` | 项目模式：`root` 新项目放哪（留空是 `用户文件夹\HostboundProjects`）、`commanderModel` 总指挥用的模型（`"provider/id"`，留空跟聊天同一个）、`workerEngine` 干活的用什么（`same` 跟总指挥一样 / `claude` Claude Code / `codex` Codex CLI）、`workerModel` 干活的模型（`same` 时）、`maxConcurrent` 同时最多几个（默认 12，0 不限）、`budget` 每个项目预算（人民币，默认 30，0 不限）、`maxTurns` 一个任务最多几轮（默认 80）、`autoAllow` 项目文件夹里自动放行（默认开）、`usdToCny` 美元换人民币（默认 7.2） |
 | `explain.selfCheck` / `explain.model` | 讲解画完截图自检（默认开）；画图用的模型，写成 `"provider/id"`，留空跟聊天同一个 |
 | `ui` | 系统核心和面板的默认大小（`petSize` / `chatWidth` / `chatHeight`，像素），`sound` 提示音开关，`panelOpacity` 面板底板的不透明度（默认 0.78，越小越透，最低 0.3），`boot` 开机自检动画。拖动、Ctrl+滚轮改过的大小会记住，优先于这里 |
 | `sleepAfterMs` | 麦克风不可用、只能打字时，空闲多久后收起面板 |
@@ -274,7 +296,8 @@ app\            桌面窗口（Electron）：main.cjs 主进程，renderer\ 界�
                 fx.cjs 效果层（每块屏幕一个透明窗口），capture.cjs 看屏幕截图，
                 explainer.cjs 讲解窗口，renderer\explainer\ 讲解窗口的页面（积木、Mermaid、模拟的沙箱），
                 renderer\explain-cards.js 面板里的图解卡 / 就地讲解卡 / 教学卡，renderer\fx-guide.js 效果层上的讲解标注，
-                appraise.cjs 鉴定术（定格、选窗口 / 拖框、裁图涂黑、每块屏幕一个选择层），renderer\appraise.* 选择层和鉴定卡
+                appraise.cjs 鉴定术（定格、选窗口 / 拖框、裁图涂黑、每块屏幕一个选择层），renderer\appraise.* 选择层和鉴定卡，
+                project-window.cjs 项目页窗口，renderer\project.* 项目页，renderer\project-cards.* 对话里的项目卡和面板「项目」页
 brain\          后台进程：index.mjs 入口和听的三种模式，ear.mjs 耳朵，agent.mjs 大脑（pi），
                 intent.mjs 退下/指令/确认的规则，config.mjs 配置，mouth.mjs 嘴，speakable.mjs 怎么念，
                 operator.mjs 操作看得见 + 守焦点 + 接管前台，win32.mjs 调 Windows（窗口、焦点、真实鼠标键盘），
@@ -283,7 +306,10 @@ brain\          后台进程：index.mjs 入口和听的三种模式，ear.mjs �
                 memory.mjs 长期记忆（文件、改动日志、自动整理），vector.mjs 关键词 + 向量检索，
                 skills.mjs 技能（SKILL.md、草稿和改进、口令、脚本指纹、从网址装的隔离检查），
                 explain.mjs 画图讲解（积木生成、自检、边念边指、存档），guide.mjs 就地讲解和手把手教学，
-                appraise.mjs 鉴定术（问模型、边出边发、全屏扫描、存档）
+                appraise.mjs 鉴定术（问模型、边出边发、全屏扫描、存档），
+                projects.mjs 项目模式总管（给大脑的工具），project-commander.mjs 总指挥（计划、派活、合并、检查、评审、答疑、预算），
+                project-workers.mjs 干活的智能体（pi / Claude Code / Codex），project-git.mjs 代码副本和合并，project-checks.mjs 检查命令和截图，
+                project-gate.mjs 项目里的授权规则，project-store.mjs 项目存盘，project-prompts.mjs 提示词，risk.mjs 危险操作识别
 models\         本地语音模型（唤醒词、VAD、SenseVoice）
 tools\          自检和测试脚本；tools\cua-driver\ 放 Cua Driver（自己下载，不随仓库发）
 bin\            系统用的命令包装（agent-browser）
@@ -293,7 +319,7 @@ data\           个人数据（不上传）：sessions\ 对话存盘（pi 的格
                 tasks.json 定时任务和监测，memory\ 长期记忆（宿主.md、记忆.md、主题\、journal.jsonl、.index\ 向量），secrets.json 密钥，
                 voice\system 选定的系统音色，voice\cache 常用句缓存，state.json 托盘里的设置、看没看过新手引导，
                 explainers\ 讲解和教学小结（index.json 目录、每页一个 json、教学截图），explainer-window.json 讲解窗口的位置，
-                appraisals\ 鉴定存档（index.jsonl 文字、每张一个小缩略图），
+                appraisals\ 鉴定存档（index.jsonl 文字、每张一个小缩略图），projects.json 所有项目的目录，project-window.json 项目页的位置，
                 skills\ 技能（每个技能一个文件夹；.pending 待确认、.quarantine 隔离区、.trash 回收区、.state.json、.journal.jsonl）
 browser-profile\ 系统专用 Chrome 的配置目录（登录状态存在这里）
 logs\           后台日志：brain.log，声音服务 voice-gpu.log / voice-cpu.log
@@ -328,13 +354,16 @@ node tools/test-explain-brain.mjs  # 讲解全流程（假模型，真后台）�
 node tools/test-appraise.mjs       # 鉴定术（假模型）：一行一行拼卡片、边出边交、全屏扫描不收涂黑的、存档、认得鉴定的几句话
 node tools/test-appraise-brain.mjs # 鉴定术全流程（假模型，真后台）：说「我要鉴定」→ 卡片边出边发 → 接着问带图 → 帮我处理 → 全屏扫描 → 出错 → 清空存档
 npx electron tools/test-appraise-live.cjs # 鉴定层实测（自己的小窗口 + 画好的假屏幕，不截真屏幕、不抢焦点）：高亮窗口、拖框、裁图、涂黑、卡片、F、Esc、扫描标签
+node tools/test-projects.mjs       # 项目模式（假模型、假的干活的、真 git）：授权规则、存盘、副本 / 合并 / 冲突、检查命令、整理计划、总指挥全流程（同时干、问宿主、冲突退回、测试没过退回、评审、修、预算、暂停重启继续、跳过、网站截图、接着改）、Claude Code / Codex 接法、授权钩子
+node tools/test-projects-brain.mjs # 项目模式全流程（假模型，真后台，真的 pi 干活的 + git + 测试命令）：说要做 → 计划卡 → 说「开工」→ 问总指挥 / 问宿主 → 授权拒绝 → 提交合并检查 → 评审 → 完成卡 → 项目页快照
+npx electron tools/test-project-live.cjs # 项目页实测（真窗口、假大脑）：快照、智能体、过程、通信、计划、合并、追加事件、按钮、换项目
 npx electron tools/test-explain-live.cjs # 讲解窗口和标注实测（真窗口、假大脑，只截自己的测试窗口）：Mermaid、高亮、沙箱、截图自检、导出
 node tools/transcribe.mjs a.wav    # 用耳朵的语音识别听写一段音频，检查系统念得对不对
 ```
 
 README 配图用 `npx electron tools/render-readme-images.cjs` 重新生成（自己开离屏窗口渲染设计稿和面板预览，不截屏幕），存到 `docs\images`。
 
-面板预览：`node tools/serve-ui.cjs` 后打开 http://localhost:5178/design/panel-preview.html（真实的面板代码 + 假数据，在浏览器里看各页排版）。讲解窗口预览：同一个服务下打开 http://localhost:5178/design/explainer-preview.html（积木按时间一块块进来，按 ▶ 假装边念边指）。
+面板预览：`node tools/serve-ui.cjs` 后打开 http://localhost:5178/design/panel-preview.html（真实的面板代码 + 假数据，在浏览器里看各页排版）。讲解窗口预览：同一个服务下打开 http://localhost:5178/design/explainer-preview.html（积木按时间一块块进来，按 ▶ 假装边念边指）。项目页预览：http://localhost:5178/design/project-preview.html（`#plan` 等开工、`#done` 做完了）；面板预览里在控制台调 `__demoProjects()` 看对话里的项目卡。
 
 声音服务单独测速：`voice\.venv\Scripts\python.exe voice\server.py --bench`（显卡）、`node voice/cpu-server.mjs --bench`（CPU）。
 

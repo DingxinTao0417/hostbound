@@ -4,6 +4,7 @@ const { FxLayer } = require('./fx.cjs');
 const { captureRect } = require('./capture.cjs');
 const { Explainer } = require('./explainer.cjs');
 const { Appraiser } = require('./appraise.cjs');
+const { ProjectWindow } = require('./project-window.cjs');
 const { spawn } = require('node:child_process');
 const fs = require('node:fs');
 const path = require('node:path');
@@ -32,6 +33,7 @@ let autoLive = false; // 直播模式是检测到在直播自动打开的（直�
 let explainer = null; // 讲解窗口（explainer.cjs）
 let watchClicks = false; // 手把手教学等宿主去点：这时把宿主点了哪告诉大脑
 let appraiser = null; // 鉴定术（appraise.cjs）
+let projectWin = null; // 项目页（project-window.cjs）
 function uiLog(text) {
   fs.mkdirSync(path.join(ROOT, 'logs'), { recursive: true });
   fs.appendFile(path.join(ROOT, 'logs', 'ui.log'), `${new Date().toISOString()} ${text}\n`, () => {});
@@ -93,6 +95,12 @@ function startBrain() {
     if (msg.type === 'watch_clicks') return void (watchClicks = !!msg.on);
     // 鉴定术：开始、卡片边出边显示、全屏扫描的标签（面板要的 appraise_card 照常发给面板）
     if (/^appraise_(start|close|part|result|tag|scan_done)$/.test(msg.type)) return appraiser?.fromBrain(msg);
+    // 项目模式：项目页要的（事件、回给项目页的请求结果）只发给项目页；卡片两边都要
+    if (msg.type === 'project_open') return projectWin?.show(msg.projectId);
+    if (msg.type === 'project_event') return projectWin?.fromBrain(msg);
+    if (String(msg.reqId || '').startsWith('pw')) return projectWin?.fromBrain(msg);
+    if (msg.type === 'project_card') projectWin?.fromBrain(msg);
+    if (msg.type === 'open_url') return void (/^https?:\/\//i.test(String(msg.url)) && shell.openExternal(String(msg.url)));
     toWindow(msg);
   });
   brain.on('error', (e) => toWindow({ type: 'error', message: `后台进程起不来：${e.message}（需要安装 Node.js 22.19 以上）` }));
@@ -241,6 +249,7 @@ function buildTrayMenu() {
       { label: '系统任务', click: () => openPage('task') },
       { label: '系统记忆', click: () => openPage('mem') },
       { label: '系统技能', click: () => openPage('skill') },
+      { label: '系统项目', click: () => openPage('proj') },
       { label: '设置', click: () => openPage('set') },
       { label: '任务记录', click: () => openPage('rec') },
       { label: '系统日志', click: () => openPage('log') },
@@ -323,6 +332,7 @@ const SETTING_KEYS = new Set([
   'memory.enabled', 'memory.autoReview', 'memory.embed.chat',
   'skills.enabled', 'skills.suggest',
   'explain.selfCheck', 'explain.model',
+  'projects.root', 'projects.commanderModel', 'projects.workerEngine', 'projects.workerModel', 'projects.maxConcurrent', 'projects.budget', 'projects.maxTurns', 'projects.autoAllow',
 ]);
 const pick = (o, key) => key.split('.').reduce((a, k) => (a == null ? undefined : a[k]), o);
 function settingsSnapshot() {
@@ -525,6 +535,7 @@ app.whenReady().then(async () => {
   createWindow();
   fx = new FxLayer({ coreDisplay: () => currentDisplay(), coreHome: () => petHome, cursorHome: () => fxHome });
   explainer = new Explainer({ root: ROOT, dataDir: DATA, toBrain, coreHome: () => petHome });
+  projectWin = new ProjectWindow({ dataDir: DATA, toBrain, coreHome: () => petHome, defaultDir: () => cfg.projects?.root || path.join(require('node:os').homedir(), 'HostboundProjects') });
   appraiser = new Appraiser({ root: ROOT, toBrain, hide: () => [win], fx, blocked: () => cfg.safety?.blockedApps || [], log: (...a) => uiLog(a.map(String).join(' ')) });
   startBrain();
 

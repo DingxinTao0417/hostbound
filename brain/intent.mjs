@@ -55,7 +55,7 @@ export function parseTakeover(text) {
 }
 
 // 翻面板：「系统，打开设置」「看看日志」「回到对话」「打开快捷键设置」。整句只是这个意思才算，免得把「打开记录本」当成翻页
-const NAV_PAGE = { 设置: 'set', 设定: 'set', 系统设置: 'set', 任务记录: 'rec', 记录: 'rec', 历史记录: 'rec', 历史: 'rec', 系统日志: 'log', 日志: 'log', 操作日志: 'log', 对话: 'chat', 聊天: 'chat', 技能: 'skill', 系统技能: 'skill', 技能列表: 'skill' };
+const NAV_PAGE = { 设置: 'set', 设定: 'set', 系统设置: 'set', 任务记录: 'rec', 记录: 'rec', 历史记录: 'rec', 历史: 'rec', 系统日志: 'log', 日志: 'log', 操作日志: 'log', 对话: 'chat', 聊天: 'chat', 技能: 'skill', 系统技能: 'skill', 技能列表: 'skill', 项目: 'proj', 系统项目: 'proj', 项目列表: 'proj', 所有项目: 'proj' };
 const NAV_SUB = { 听觉: 'ear', 声音: 'voice', 大脑: 'brain', 模型: 'brain', 操作: 'hand', 安全: 'safe', 安全中心: 'safe', 直播: 'live', 直播模式: 'live', 快捷键: 'keys', 外观: 'look', 关于: 'about' };
 const NAV_RE = new RegExp(
   `^(系统)?(帮我)?(打开|看看|看一下|查看|进入|切到|切换到|去|翻到|回到|返回|跳到)?(一下)?(系统的?)?(?:(${Object.keys(NAV_SUB).join('|')})的?(?:设置|页)?|(${Object.keys(NAV_PAGE).sort((a, b) => b.length - a.length).join('|')}))(页|页面|界面)?(吧|了|呀)?$`,
@@ -68,7 +68,7 @@ export function parseNav(text) {
     if (!m[3] && !/设置|页/.test(text)) return null;
     return { page: 'set', sub: NAV_SUB[m[6]] };
   }
-  if (!m[3] && (m[7] === '对话' || m[7] === '聊天' || m[7] === '历史' || m[7] === '记录' || m[7] === '技能')) return null;
+  if (!m[3] && (m[7] === '对话' || m[7] === '聊天' || m[7] === '历史' || m[7] === '记录' || m[7] === '技能' || m[7] === '项目')) return null;
   return { page: NAV_PAGE[m[7]] };
 }
 
@@ -120,4 +120,9 @@ export function parseAppraise(text) {
 // 鉴定卡开着的时候：「关掉」「收起来」「不看了」
 export function parseAppraiseClose(text) {
   return /^(关掉|关了|关闭|收起来?|不看了|可以关了|关掉卡片|关掉鉴定)(吧|了)?$/.test(strip(text).replace(/^(系统)+/, ''));
+}
+
+// 项目计划卡弹着时的「开工」「就按这个做」（不用问大脑，直接开工）
+export function parseProjectGo(text) {
+  return /^(那就|那|好|好的|行|可以|没问题|嗯)*(就)?(开工|开干|开始吧|开始做吧?|动手吧?|就这么做|就按这个做|按这个做|按这个来|按计划来|照这个做)(吧|了|呀)?$/.test(strip(text).replace(/^(系统)+/, ''));
 }

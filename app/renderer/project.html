@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'none'">
+  <title>系统项目</title>
+  <link rel="stylesheet" href="project.css">
+</head>
+<body>
+  <!-- 项目页：一个项目里总指挥和每个智能体在干什么。页面结构由 project.js 生成；数据都从后台要（快照 + 一条条事件） -->
+  <div class="dragbar"></div>
+  <section class="fr">
+    <i class="l1"></i><i class="l2"></i><i class="l3"></i><i class="l4"></i>
+    <div class="plate"><span class="wing l"></span><span class="p">系统项目</span><span class="wing r"></span></div>
+    <span class="code">PROJECT</span>
+    <div class="body" id="app"></div>
+  </section>
+  <div class="winbtns"><button class="ib" data-op="minimize" title="最小化">—</button><button class="ib" data-op="maximize" title="放大">□</button><button class="ib x" data-op="close" title="关掉">×</button></div>
+  <script src="project.js"></script>
+</body>
+</html>

@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>项目页预览</title>
+<link rel="stylesheet" href="/project.css">
+</head>
+<body>
+<!-- 在普通浏览器里看项目页（app/renderer/project.js）：node tools/serve-ui.cjs → http://localhost:5178/design/project-preview.html
+     假的后台：一个做到一半的记账网站（前端在干活、后端在合并检查、前端问了个问题等宿主回答）。#done 看做完的样子，#plan 看等开工的样子 -->
+<div class="dragbar"></div>
+<section class="fr">
+  <i class="l1"></i><i class="l2"></i><i class="l3"></i><i class="l4"></i>
+  <div class="plate"><span class="wing l"></span><span class="p">系统项目</span><span class="wing r"></span></div>
+  <span class="code">PROJECT</span>
+  <div class="body" id="app"></div>
+</section>
+<div class="winbtns"><button class="ib" data-op="minimize">—</button><button class="ib" data-op="maximize">□</button><button class="ib x" data-op="close">×</button></div>
+<script>
+(() => {
+  const mode = location.hash.slice(1) || 'run';
+  const now = Date.now();
+  const M = 60_000;
+  const t0 = now - 18 * M;
+  const plan = {
+    name: '记账网站', summary: '记一笔收入 / 支出，按月看柱状图和分类饼图，导出 Excel；数据存本机', approach: '网页前端（Vite + Vue）+ 本机小服务（Express + SQLite）',
+    agents: [{ id: 'arch', role: '架构', does: '定页面、数据表和接口，写成文档' }, { id: 'fe', role: '前端', does: '记账页、月报页、图表（只改 web/）' }, { id: 'be', role: '后端', does: '记账接口、导出 Excel（只改 server/）' }, { id: 'qa', role: '测试', does: '写端到端测试' }],
+    tasks: [
+      { id: 't1', agent: 'arch', title: '骨架和接口', desc: '定目录结构、package.json、docs/api.md（6 个接口）、数据表', files: ['package.json', 'docs/', 'web/package.json', 'server/package.json'], deps: [], done: '文档写好，npm install 能过' },
+      { id: 't2', agent: 'fe', title: '记账和月报页', desc: '做「记账」「月报」两个页面和图表，接口照 docs/api.md', files: ['web/'], deps: ['t1'], done: 'npm run build 过，组件测试过' },
+      { id: 't3', agent: 'be', title: '接口和导出', desc: '6 个接口 + 导出 Excel，SQLite 存在 data/', files: ['server/'], deps: ['t1'], done: '接口测试全过' },
+      { id: 't4', agent: 'qa', title: '端到端测试', desc: '用 Playwright 打开首页记一笔、看月报', files: ['tests/'], deps: ['t2', 't3'], done: 'npm test 过' },
+    ],
+    checks: { install: 'npm install', build: 'npm run build', test: 'npm test', start: 'npm start', url: 'http://localhost:5173', web: true },
+    estimate: { minutes: 40, cny: [6, 10] },
+  };
+  const ev = [];
+  const at = (m) => t0 + m * M;
+  const push = (m, e) => ev.push({ at: at(m), ...e });
+  push(0, { type: 'created', name: '记账网站', dir: 'C:\\Users\\宿主\\HostboundProjects\\记账网站', request: '帮我做一个记账网站，能记收支、按月看图表、导出 Excel。就我自己用，存本机' });
+  push(1, { type: 'plan', plan });
+  push(2, { type: 'approved', base: '3f2a9c1d', main: 'main' });
+  push(2, { type: 'status', status: 'running' });
+  const prompt = (task, extra = '') => `## 宿主原话\n帮我做一个记账网站，能记收支、按月看图表、导出 Excel。就我自己用，存本机\n\n## 这个项目\n${plan.summary}（${plan.approach}）。项目名：记账网站。\n\n## 你的任务：${task.title}\n${task.desc}\n- 只改：${task.files.join('、')}\n- 怎么算做完：${task.done}${extra}`;
+  push(2, { type: 'dispatch', agent: 'arch', role: '架构', task: 't1', title: '骨架和接口', attempt: 1, engine: 'pi', prompt: prompt(plan.tasks[0]), system: '你是一个项目里的「架构」……' });
+  let sid = 0;
+  const step = (m, agent, task, text, ok = true, detail = '') => {
+    const id = `s${++sid}`;
+    push(m, { type: 'step', agent, task, kind: 'tool', id, name: 'x', text, detail });
+    if (ok !== null) push(m + 0.2, { type: 'step', agent, task, kind: 'tool_end', id, ok, error: ok ? '' : 'npm ERR! missing script: build' });
+  };
+  step(2.5, 'arch', 't1', '写文件：package.json');
+  step(3, 'arch', 't1', '写文件：docs/api.md');
+  step(3.5, 'arch', 't1', '执行命令：npm install', true, 'npm install');
+  push(5, { type: 'report', agent: 'arch', task: 't1', status: 'done', summary: '3 个页面、2 张表、6 个接口写进 docs/api.md；npm install 能过', files: ['package.json', 'docs/api.md'] });
+  push(5.1, { type: 'commit', agent: 'arch', task: 't1', files: ['package.json', 'docs/api.md', 'docs/db.md', 'web/package.json', 'server/package.json'] });
+  push(5.2, { type: 'merge', agent: 'arch', task: 't1', ok: true, files: [] });
+  push(5.5, { type: 'check', scope: 'merge', task: 't1', name: 'install', command: 'npm install', ok: true, ms: 21000, output: '' });
+  push(6, { type: 'check', scope: 'merge', task: 't1', name: 'build', command: 'npm run build', ok: true, ms: 3000, output: '' });
+  push(6.2, { type: 'check', scope: 'merge', task: 't1', name: 'test', command: 'npm test', ok: true, ms: 2000, output: '' });
+  push(6.3, { type: 'merged', agent: 'arch', task: 't1', commit: 'a1b2c3d' });
+  push(6.3, { type: 'task_done', agent: 'arch', task: 't1', title: '骨架和接口' });
+  push(6.5, { type: 'dispatch', agent: 'fe', role: '前端', task: 't2', title: '记账和月报页', attempt: 1, engine: 'pi', prompt: prompt(plan.tasks[1], '\n- 前面已经做完的：「骨架和接口」（3 个页面、2 张表、6 个接口写进 docs/api.md）'), system: '你是一个项目里的「前端」……' });
+  push(6.5, { type: 'dispatch', agent: 'be', role: '后端', task: 't3', title: '接口和导出', attempt: 1, engine: 'pi', prompt: prompt(plan.tasks[2]), system: '你是一个项目里的「后端」……' });
+  step(7, 'fe', 't2', '看文件：docs/api.md');
+  step(7.3, 'be', 't3', '看文件：docs/api.md');
+  step(8, 'fe', 't2', '写文件：web/src/pages/Record.vue');
+  step(9, 'be', 't3', '写文件：server/src/routes.js');
+  step(10, 'fe', 't2', '执行命令：npm run build', true, 'cd web; npm run build');
+  push(11, { type: 'step', agent: 'fe', task: 't2', kind: 'say', text: '记账页好了，接着做月报页的图表。' });
+  push(12, { type: 'question', agent: 'fe', task: 't2', qid: 'w1', text: '分类饼图里「其他」那一块，要不要能点开看明细？', options: [] });
+  push(12.1, { type: 'ask_host', qid: 'q1', agent: 'fe', task: 't2', kind: 'question', text: '分类饼图里「其他」那一块，要不要能点开看明细？', options: ['要', '不用'] });
+  step(13, 'be', 't3', '执行命令：npm test', true, 'cd server; npm test');
+  push(14, { type: 'report', agent: 'be', task: 't3', status: 'done', summary: '6 个接口做完，导出 Excel 用 exceljs；测试 12/12', files: ['server/src/routes.js', 'server/src/db.js', 'server/test/api.test.js'] });
+  push(14.1, { type: 'commit', agent: 'be', task: 't3', files: ['server/src/routes.js', 'server/src/db.js', 'server/src/export.js', 'server/test/api.test.js'] });
+  push(14.2, { type: 'merge', agent: 'be', task: 't3', ok: true, files: [] });
+  push(14.5, { type: 'check', scope: 'merge', task: 't3', name: 'build', command: 'npm run build', ok: true, ms: 4100 });
+  if (mode !== 'run') {
+    push(12.5, { type: 'host_answer', qid: 'q1', text: '要，点开显示那个月的明细', kind: 'question' });
+    push(12.5, { type: 'answer', agent: 'fe', task: 't2', qid: 'w1', by: 'host', text: '要，点开显示那个月的明细' });
+  } else step(15, 'fe', 't2', '改文件：web/src/pages/Report.vue', null);
+  const state = { status: mode === 'done' ? 'done' : 'running', tasks: { t1: { status: 'done', attempts: 1 }, t2: { status: 'running', attempts: 1 }, t3: { status: 'merging', attempts: 1 }, t4: { status: 'pending', attempts: 0 } } };
+  const card = mode === 'done'
+    ? { projectId: 'p1', name: '记账网站', kind: 'done', status: 'done', costCny: 7.4, budgetCny: 30, startedAt: t0, finishedAt: t0 + 46 * M, dir: 'C:\\Users\\宿主\\HostboundProjects\\记账网站', agents: plan.agents.map((a) => ({ ...a, state: 'done', now: '' })), tasks: { done: 6, total: 6 },
+        result: { did: '3 个页面、6 个接口、导出 Excel；24 个测试全过', run: 'npm start → http://localhost:5173', notes: '', url: 'http://localhost:5173', checks: [{ name: '构建', ok: true }, { name: '测试', ok: true }, { name: '启动', ok: true }, { name: '看首页', ok: true }, { name: '评审', ok: true }] } }
+    : mode === 'plan'
+      ? { projectId: 'p1', name: '记账网站', kind: 'plan', status: 'awaiting_approval', costCny: 0.05, budgetCny: 30, dir: 'C:\\Users\\宿主\\HostboundProjects\\记账网站', estimate: plan.estimate, agents: plan.agents, tasks: { done: 0, total: 4 } }
+      : { projectId: 'p1', name: '记账网站', kind: 'ask', status: 'running', costCny: 3.2, budgetCny: 30, startedAt: t0, dir: 'C:\\Users\\宿主\\HostboundProjects\\记账网站',
+          agents: [{ ...plan.agents[0], state: 'done', now: '3 个页面、2 张表、6 个接口' }, { ...plan.agents[1], state: 'work', now: '记账和月报页', busy: true }, { ...plan.agents[2], state: 'check', now: '接口和导出' }, { ...plan.agents[3], state: 'wait', now: '等「记账和月报页」' }],
+          tasks: { done: 1, total: 4 }, question: { qid: 'q1', text: '分类饼图里「其他」那一块，要不要能点开看明细？', options: ['要', '不用'], from: '前端' } };
+  const listeners = [];
+  const reply = (m) => setTimeout(() => listeners.forEach((cb) => cb(m)), 50);
+  window.PW_DEMO = {
+    on: (cb) => listeners.push(cb),
+    send: (m) => {
+      console.log('→ 后台', m);
+      if (m.op === 'ready') reply({ type: 'open', projectId: 'p1' });
+      if (m.op === 'snapshot') reply({ type: 'project_snapshot', projectId: 'p1', project: { id: 'p1', name: '记账网站', dir: card.dir }, plan: mode === 'plan' ? null : plan, pendingPlan: null, state, card, request: '# 记账网站\n\n## 宿主原话\n\n帮我做一个记账网站，能记收支、按月看图表、导出 Excel。就我自己用，存本机\n', events: m.light ? undefined : ev });
+      if (m.op === 'list') reply({ type: 'projects', items: [{ id: 'p1', name: '记账网站', card }, { id: 'p0', name: '贪吃蛇', card: { projectId: 'p0', kind: 'done' } }] });
+    },
+  };
+  // 进行中的样子：每隔两秒前端多干一步
+  if (mode === 'run') {
+    let k = 0;
+    setInterval(() => {
+      const id = `live${++k}`;
+      reply({ type: 'project_event', projectId: 'p1', ev: { at: Date.now(), type: 'step', agent: 'fe', task: 't2', kind: 'tool', id, text: `改文件：web/src/components/Chart${k}.vue` } });
+      setTimeout(() => reply({ type: 'project_event', projectId: 'p1', ev: { at: Date.now(), type: 'step', agent: 'fe', task: 't2', kind: 'tool_end', id, ok: true } }), 900);
+    }, 2000);
+  }
+})();
+</script>
+<script src="/project.js"></script>
+</body>
+</html>

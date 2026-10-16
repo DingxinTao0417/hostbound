@@ -9,7 +9,7 @@ import { loadConfig } from './config.mjs';
 import { Ear, cleanTranscript } from './ear.mjs';
 import { Brain } from './agent.mjs';
 import { Mouth } from './mouth.mjs';
-import { isDismiss, looksLikeCommand, parseConfirm, parseTakeover, parseNav, parseReminderAnswer, parseSkillAnswer, parseAppraise, parseAppraiseClose } from './intent.mjs';
+import { isDismiss, looksLikeCommand, parseConfirm, parseTakeover, parseNav, parseReminderAnswer, parseSkillAnswer, parseAppraise, parseAppraiseClose, parseProjectGo } from './intent.mjs';
 import { Store } from './store.mjs';
 import { kwsTokens } from './pinyin.mjs';
 import { Tasks, describeSchedule } from './tasks.mjs';
@@ -17,6 +17,7 @@ import { Memory, REVIEW_PROMPT, reviewInput, parseReviewOps, memoryTools } from 
 import { Embedder, Recall } from './vector.mjs';
 import { Skills, skillTools, REPORT_PROMPT } from './skills.mjs';
 import { Appraise, noteOf } from './appraise.mjs';
+import { Projects } from './projects.mjs';
 import { processNames, powerStatus } from './win32.mjs';
 import { Operator } from './operator.mjs';
 import { Screen } from './screen.mjs';
@@ -69,6 +70,8 @@ const recall = new Recall({ dir: memory.dir, embedder, log });
 const searchMemory = (q, limit) => recall.searchMemory(q, memory.all(), limit);
 // 技能：宿主教的固定流程（data/skills，Agent Skills 格式）
 const skills = new Skills({ dir: path.join(store.dir, 'skills'), log });
+// 项目模式：宿主说「做一个……」，总指挥写计划、派几个智能体一起做（目录 data/projects.json，记录在每个项目文件夹的 .hostbound 里）
+const projects = new Projects({ dataDir: store.dir, cfg: () => cfg, runtime: () => brain.modelRuntime, model: () => brain.model, root, log });
 const brain = new Brain(cfg, {
   operator,
   screen,
@@ -79,6 +82,7 @@ const brain = new Brain(cfg, {
   memoryTools: memoryTools({ memory, search: searchMemory, enabled: () => cfg.memory.enabled !== false, onChange: (c) => memoryNotice(c) }),
   skills,
   skillTools: skillTools({ skills, install: (url, pick) => installSkill(url, pick), enabled: () => cfg.skills.enabled !== false }),
+  projectTools: projects.tools(),
 });
 let brainReady = false;
 const mouth = new Mouth({ root, cfg, log, out });
@@ -249,6 +253,103 @@ brain.on('confirm_closed', (c) => {
   out({ type: 'confirm_closed', ...c });
   if (listenMode === 'confirm') stopListening();
 });
+// ---- 项目模式 -> 窗口 ----
+// 完成卡上的首页截图：小于 2MB 就直接放进卡片（面板读不了任意本地文件）
+const shotCache = new Map();
+function cardOut(card) {
+  const file = card?.result?.shot;
+  if (!file) return card;
+  if (!shotCache.has(file)) {
+    try {
+      const st = fs.statSync(file);
+      shotCache.set(file, st.size < 2 * 1024 * 1024 ? `data:image/png;base64,${fs.readFileSync(file).toString('base64')}` : null);
+    } catch {
+      shotCache.set(file, null);
+    }
+  }
+  return { ...card, result: { ...card.result, shotData: shotCache.get(file) } };
+}
+projects.on('card', (card) => out({ type: 'project_card', card: cardOut(card) }));
+projects.on('event', ({ projectId, ev }) => out({ type: 'project_event', projectId, ev }));
+projects.on('say', (text) => mouth.say(text));
+projects.on('note', (text) => brain.note(text));
+projects.on('open', (projectId) => out({ type: 'project_open', projectId }));
+projects.on('ask', (q, c) => {
+  brain.note(`项目「${c.project?.name}」的总指挥在问宿主：${q.text}${q.options?.length ? `，选项：${q.options.join(' / ')}` : ''}。宿主回答的话用 project_answer 转过去`);
+  store.log('task', `项目「${c.project?.name}」问宿主：${q.text}`);
+});
+// 项目里要授权的操作：跟大脑的授权用同一张卡（id 前面带 p:项目:）
+projects.on('confirm', (x) => {
+  out({ type: 'confirm', id: `p:${x.projectId}:${x.cid}`, label: `${x.label}（项目「${x.project}」· ${x.agent}）`, detail: x.detail, tool: 'project', voice: !!(ear && cfg.voiceConfirm) });
+  mouth.say('项目请宿主授权。');
+  if (ear && cfg.voiceConfirm && !brain.busy) listen('confirm', 90_000);
+});
+projects.on('confirm_closed', (x) => {
+  store.log('auth', `项目授权 → ${CONFIRM_TEXT[x.answer] || x.answer}`);
+  out({ type: 'confirm_closed', id: `p:${x.projectId}:${x.cid}`, answer: x.answer });
+  if (listenMode === 'confirm' && !brain.confirmPending && !projects.confirmPending) stopListening();
+});
+
+// 项目卡、项目页上的按钮
+async function projectAction(m) {
+  const c = projects.get(m.projectId);
+  const reply = (r) => out({ type: 'project_action_result', reqId: m.reqId, projectId: m.projectId, action: m.action, ...r });
+  if (!c) return reply({ ok: false, error: '没有这个项目了' });
+  const name = c.project?.name;
+  try {
+    switch (m.action) {
+      case 'approve':
+        store.log('task', `项目「${name}」开工`);
+        return reply({ ok: await c.approve() });
+      case 'cancel':
+        store.log('task', `项目「${name}」不做了`);
+        return reply({ ok: c.cancel() });
+      case 'pause':
+        return reply({ ok: c.pause() });
+      case 'resume':
+        return reply({ ok: c.resume() });
+      case 'stop':
+        store.log('task', `项目「${name}」停下`);
+        return reply({ ok: c.stop() });
+      case 'answer':
+        store.log('task', `回答项目「${name}」：${String(m.value || '').slice(0, 80)}`);
+        return reply({ ok: c.answer(m.qid, String(m.value || '')) });
+      case 'set_dir':
+        return reply({ ok: true, dir: c.setDir(String(m.value || '')) });
+      case 'message':
+        return reply({ ok: true, reply: await c.message(String(m.value || '')) });
+      case 'open_page':
+        return out({ type: 'project_open', projectId: c.id });
+      case 'open_folder':
+        if (!fs.existsSync(c.dir)) return reply({ ok: false, error: '文件夹不在了' });
+        spawn('explorer.exe', [c.dir], { detached: true, stdio: 'ignore', windowsHide: false }).unref();
+        return reply({ ok: true });
+      case 'open_shot': {
+        const file = c.state.result?.shot || c.state.lastShot?.file;
+        if (!file || !fs.existsSync(file)) return reply({ ok: false, error: '没有截图' });
+        spawn('explorer.exe', [file], { detached: true, stdio: 'ignore', windowsHide: false }).unref();
+        return reply({ ok: true });
+      }
+      case 'open_site': {
+        const r = await c.openSite();
+        if (r.ok) out({ type: 'open_url', url: r.url });
+        store.log('task', r.ok ? `打开项目「${name}」的网站：${r.url}` : `项目「${name}」的网站没跑起来`, r.error || '');
+        return reply(r);
+      }
+      case 'close_site':
+        return reply({ ok: await c.closeSite() });
+      case 'retry_plan':
+        if (c.state.startedAt) return reply({ ok: false, error: '已经开过工了，要改就说「接着改」' });
+        c.start().catch((e) => log('project plan failed', e));
+        return reply({ ok: true });
+    }
+    return reply({ ok: false, error: `不认识的操作：${m.action}` });
+  } catch (e) {
+    log('project action failed', m.action, e);
+    return reply({ ok: false, error: String(e?.message || e) });
+  }
+}
+
 // ---- 操作员事件 -> 窗口 ----
 operator.on('fx', (m) => out(m));
 operator.on('steps', (st) => out({ type: 'steps', ...(st || { steps: null }) }));
@@ -459,10 +560,11 @@ async function onTranscript(text) {
     const answer = parseConfirm(text);
     if (answer) {
       out({ type: 'heard', text });
-      brain.answerConfirm(null, answer, 'voice');
+      if (brain.confirmPending) brain.answerConfirm(null, answer, 'voice');
+      else projects.answerConfirm(null, answer);
     } else {
       out({ type: 'confirm_unclear', text });
-      if (brain.confirmPending) listen('confirm', 60_000);
+      if (brain.confirmPending || projects.confirmPending) listen('confirm', 60_000);
     }
     return;
   }
@@ -489,6 +591,9 @@ async function onTranscript(text) {
 
   // 技能卡片弹着：「保存」「不要了」「安装」「不装」直接处理
   if (skillAnswer(text, 'voice')) return resumeFollowup();
+
+  // 项目计划卡弹着：「开工」「就按这个做」直接开工
+  if (projectGo(text)) return resumeFollowup();
 
   if (isDismiss(text)) {
     const farewell = FAREWELLS[Math.floor(Math.random() * FAREWELLS.length)];
@@ -535,6 +640,7 @@ async function handle(msg) {
     case 'prompt': {
       const text = String(msg.text || '').trim();
       if (skillAnswer(text, 'text', false)) return;
+      if (projectGo(text)) return;
       const ap = parseAppraise(text);
       if (ap) return startAppraise(ap);
       if (msg.appraise) return ask(text, 'text', { appraise: msg.appraise });
@@ -555,7 +661,8 @@ async function handle(msg) {
       const r = store.chat({ before: msg.before, limit: msg.limit || 40 });
       const lo = r.more && r.items.length ? r.items[0].at : 0;
       const cards = appraise.list({ after: lo - 1, before: msg.before || Infinity }).map((rec) => ({ role: 'appraise', at: rec.at, rec: cardForPanel(rec) }));
-      return out({ type: 'chat_history', reqId: msg.reqId, more: r.more, items: [...r.items, ...cards].sort((a, b) => a.at - b.at) });
+      const pcards = projects.cardsBetween(lo - 1, msg.before || Infinity).map((x) => ({ role: 'project', at: x.at, card: cardOut(x.card) }));
+      return out({ type: 'chat_history', reqId: msg.reqId, more: r.more, items: [...r.items, ...cards, ...pcards].sort((a, b) => a.at - b.at) });
     }
     case 'info_query':
       return out({ type: 'info', reqId: msg.reqId, ...(await systemInfo()) });
@@ -706,14 +813,23 @@ async function handle(msg) {
       wakeTest = !!msg.on;
       return;
     case 'listen': // 快捷键或点击叫醒
-      if (brain.confirmPending && cfg.voiceConfirm) return listen('confirm', 90_000);
+      if ((brain.confirmPending || projects.confirmPending) && cfg.voiceConfirm) return listen('confirm', 90_000);
       return listen('command', cfg.voice.listenTimeoutMs);
     case 'cancel_listen':
       return stopListening();
     case 'stop':
       return stop();
     case 'confirm_answer':
+      if (String(msg.id).startsWith('p:')) return projects.answerConfirm(msg.id, msg.answer);
       return brain.answerConfirm(msg.id, msg.answer, 'click');
+    case 'projects_query':
+      return out({ type: 'projects', reqId: msg.reqId, items: projects.list().map((p) => ({ ...p, card: p.card ? cardOut(p.card) : null })) });
+    case 'project_snapshot': {
+      const c = projects.get(msg.projectId);
+      return out({ type: 'project_snapshot', reqId: msg.reqId, projectId: msg.projectId, ...(c ? { ...c.snapshot({ events: !msg.light }), card: cardOut(c.card()) } : { error: '没有这个项目了' }) });
+    }
+    case 'project_action':
+      return projectAction(msg);
     case 'takeover_answer':
       return operator.answerTakeover(msg.id, msg.answer);
     case 'user_input': // 宿主最近一次按键 / 点鼠标（判断宿主是不是在忙）
@@ -770,6 +886,7 @@ async function handle(msg) {
       tasks.stop();
       memory.close();
       skills.close();
+      projects.dispose();
       mouth.shutdown();
       screen.close();
       await ear?.stopMic();
@@ -798,6 +915,7 @@ if (viaIpc) {
   memory.watch();
   skills.prune();
   skills.watch();
+  projects.init();
   setInterval(() => {
     store.prune(cfg.logKeepDays || 30);
     skills.prune();
@@ -1094,6 +1212,15 @@ function decideSkill(id, answer, by = 'click', force = false) {
   return r;
 }
 // 技能卡片弹出来 10 分钟内，整句是「保存」「不要了」「安装」「不装」：直接处理，不问大脑
+function projectGo(text) {
+  const c = parseProjectGo(text) ? projects.pendingPlan() : null;
+  if (!c) return false;
+  out({ type: 'heard', text });
+  store.log('task', `项目「${c.project?.name}」开工（宿主说「${text}」）`);
+  c.approve().catch((e) => log('project approve failed', e));
+  return true;
+}
+
 function skillAnswer(text, by, speak = true) {
   const e = skills.latestPending();
   if (!e || Date.now() - pendingShownAt > 10 * 60_000) return false;

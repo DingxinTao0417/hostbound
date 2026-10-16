@@ -7,6 +7,8 @@ import os from 'node:os';
 // 单独跑后台、跑测试时没有，就按用户目录下的 Desktop、Downloads 算
 export const desktopDir = () => process.env.HOSTBOUND_DESKTOP || path.join(os.homedir(), 'Desktop');
 export const downloadsDir = () => process.env.HOSTBOUND_DOWNLOADS || path.join(os.homedir(), 'Downloads');
+// 项目模式的新项目默认放这里
+export const projectsDir = (cfg) => cfg?.projects?.root || process.env.HOSTBOUND_PROJECTS || path.join(os.homedir(), 'HostboundProjects');
 
 export const DEFAULTS = {
   // 系统的大脑。provider/id 见 README 里的模型表；对应的 API key 用环境变量提供
@@ -90,6 +92,13 @@ export const DEFAULTS = {
   // 讲东西（画图讲解、就地讲解、手把手教学）。selfCheck：画完截图让模型看一眼有没有画歪、字挤在一起；
   // model：画图用的模型，写成 "provider/id"，留空就跟聊天用同一个
   explain: { selfCheck: true, model: '' },
+  // 项目模式：宿主说「做一个……」，总指挥写计划、宿主点开工，几个智能体各在一份代码副本里一起做，总指挥合并、检查。设计稿 design/projects.html
+  // root：新项目默认放哪（留空就是 用户目录\HostboundProjects）；commanderModel：总指挥用的模型，"provider/id"，留空跟聊天同一个；
+  // workerEngine：干活的智能体用什么——same（跟总指挥同一个模型）、claude（Claude Code，用你自己的 Claude 账号）、codex（Codex CLI）；
+  // workerModel：engine 是 same 时可以另外指定干活的模型，"provider/id"；maxConcurrent：最多几个同时干（0 不限）；
+  // budget：每个项目最多花多少（人民币），用到 80% 提醒，用完先停下问你；maxTurns：一个智能体做一个任务最多几轮；
+  // autoAllow：项目文件夹里的读写、装依赖、跑脚本不用问（出了文件夹、全局安装照样问）；usdToCny：模型按美元计费，换算成人民币显示
+  projects: { root: '', commanderModel: '', workerEngine: 'same', workerModel: '', maxConcurrent: 12, budget: 30, maxTurns: 80, autoAllow: true, usdToCny: 7.2 },
   // pushToTalk：按住说话，松开就发。Mouse4 / Mouse5 是鼠标侧键（Mouse5 一般是靠前的「前进」键），也可以写 RightCtrl、RightAlt、F8 这类键名
   hotkeys: { wake: 'Control+Alt+T', stop: 'Control+Alt+X', appraise: 'Control+Alt+J', pushToTalk: ['Mouse5', 'RightCtrl'] },
   // 系统核心图标多大、系统面板默认多大，单位像素。拖动和 Ctrl+滚轮改过的大小会记住，优先于这里。

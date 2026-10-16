@@ -46,5 +46,13 @@
     ],
     "appraise": "Control+Alt+J"
   },
+  "projects": {
+    "root": "",
+    "workerEngine": "same",
+    "maxConcurrent": 12,
+    "budget": 30,
+    "maxTurns": 80,
+    "autoAllow": true
+  },
   "sleepAfterMs": 45000
 }

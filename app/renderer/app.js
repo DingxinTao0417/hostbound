@@ -84,7 +84,7 @@ document.addEventListener('mouseleave', () => {
 // tone：''（默认幻彩）、ok（绿）、warn（粉紫）、err（红）；core：核心颜色状态
 let page = 'chat';
 let chatPlate = { title: '系统通知', code: 'SYS', tone: '' };
-const PAGE_PLATE = { mem: ['系统记忆', 'MEMORY'], skill: ['系统技能', 'SKILLS'], task: ['系统任务', 'QUESTS'], rec: ['任务记录', 'HISTORY'], log: ['系统日志', 'LOG'], set: ['系统设置', 'CONFIG'], guide: ['新手引导', 'GUIDE'] };
+const PAGE_PLATE = { mem: ['系统记忆', 'MEMORY'], skill: ['系统技能', 'SKILLS'], proj: ['系统项目', 'PROJECTS'], task: ['系统任务', 'QUESTS'], rec: ['任务记录', 'HISTORY'], log: ['系统日志', 'LOG'], set: ['系统设置', 'CONFIG'], guide: ['新手引导', 'GUIDE'] };
 function paintPlate(title, code, tone) {
   titleEl.textContent = title;
   codeEl.textContent = code;
@@ -172,6 +172,7 @@ function oldestAt() {
 }
 function histEl(m) {
   if (m.role === 'appraise') return appraiseMini(m.rec);
+  if (m.role === 'project' && window.ProjectCards) return window.ProjectCards.make(m.card);
   const d = document.createElement('div');
   d.className = m.role === 'divider' ? 'msg divider' : 'msg old ' + (m.role === 'user' ? 'user' : 'sys');
   d.textContent = m.text;
@@ -703,7 +704,14 @@ function endBoot(keepOpen) {
 
 // ---------- 高危操作授权 ----------
 let countdown = null;
+// 已经有一个授权弹着时又来一个：项目的授权排队（不会自动拒绝，不急）；大脑的授权有 90 秒倒计时，先弹，项目那个排到后面
+const confirmQueue = [];
 function showConfirm(c) {
+  if (pendingConfirm && pendingConfirm.id !== c.id) {
+    if (c.tool === 'project') return void confirmQueue.push(c);
+    if (pendingConfirm.tool === 'project') confirmQueue.unshift(pendingConfirm);
+  }
+  const project = c.tool === 'project';
   wake('event');
   pendingConfirm = c;
   setPanel('高危操作授权', 'AUTH', 'warn', 'auth');
@@ -723,14 +731,14 @@ function showConfirm(c) {
   what.textContent = `检测到高危操作：${c.label}`;
   const sub = document.createElement('div');
   sub.className = 'sub';
-  sub.textContent = '宿主是否授权执行？超时将自动拒绝';
+  sub.textContent = project ? '项目里的智能体在等宿主授权（不会自动拒绝）' : '宿主是否授权执行？超时将自动拒绝';
   txt.append(what, sub);
   top.append(rw, txt);
   const code = document.createElement('code');
   code.textContent = c.detail;
   const btns = document.createElement('div');
   btns.className = 'btns';
-  for (const [label, answer, cls] of [['授权', 'allow', 'btn'], ['拒绝', 'deny', 'btn ghost'], ['本次全部授权', 'all', 'btn ghost']]) {
+  for (const [label, answer, cls] of [['授权', 'allow', 'btn'], ['拒绝', 'deny', 'btn ghost'], [project ? '这个项目全部授权' : '本次全部授权', 'all', 'btn ghost']]) {
     const btn = document.createElement('button');
     btn.className = cls;
     btn.textContent = label;
@@ -745,6 +753,13 @@ function showConfirm(c) {
     confirmBox.append(hint);
   }
   confirmBox.classList.remove('hidden');
+  if (project) {
+    rw.style.display = 'none';
+    clearInterval(countdown);
+    scrollLog();
+    layout();
+    return;
+  }
   // 倒计时：后台 90 秒没回应就当拒绝
   const total = 90;
   const startAt = Date.now();
@@ -766,10 +781,16 @@ function answerConfirm(answer) {
 }
 const CONFIRM_NOTE = { allow: '授权', all: '本次任务全部授权', deny: '拒绝' };
 function onConfirmClosed(m) {
-  if (pendingConfirm && pendingConfirm.id !== m.id) return;
+  if (pendingConfirm && pendingConfirm.id !== m.id) {
+    const i = confirmQueue.findIndex((x) => x.id === m.id);
+    if (i >= 0) confirmQueue.splice(i, 1);
+    return;
+  }
+  const label = m.label || pendingConfirm?.label || '';
+  const project = pendingConfirm?.tool === 'project';
   hideConfirm();
-  if (m.answer === 'timeout') add('note', `授权超时，已拒绝：${m.label}`);
-  else if (CONFIRM_NOTE[m.answer]) add('note', `宿主${m.by === 'voice' ? '（语音）' : ''}${CONFIRM_NOTE[m.answer]}：${m.label}`);
+  if (m.answer === 'timeout') add('note', `授权超时，已拒绝：${label}`);
+  else if (CONFIRM_NOTE[m.answer]) add('note', `宿主${m.by === 'voice' ? '（语音）' : ''}${project && m.answer === 'all' ? '这个项目全部授权' : CONFIRM_NOTE[m.answer]}：${label}`);
   if (busy) setPanel('任务执行中', 'RUNNING', '', 'busy');
 }
 function hideConfirm() {
@@ -778,6 +799,9 @@ function hideConfirm() {
   clearInterval(countdown);
   confirmBox.classList.add('hidden');
   confirmBox.innerHTML = '';
+  setTimeout(() => {
+    if (!pendingConfirm && confirmQueue.length) showConfirm(confirmQueue.shift());
+  }, 60);
 }
 
 // ---------- 回复文字跟着声音一个字一个字出现 ----------

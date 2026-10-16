@@ -62,6 +62,9 @@ const SHOTS = [
   { name: 'panel-chat', url: '/design/panel-preview.html', w: 1280, h: 1000, wait: 2500, prep: CHAT_DEMO, after: 1200, union: ['#bubble', '#pet'], pad: 28 },
   { name: 'panel-skills', url: '/design/panel-preview.html', w: 1280, h: 860, wait: 2500, prep: `App.go('skill')`, after: 1200, union: ['#bubble'], pad: 28 },
   { name: 'panel-memory', url: '/design/panel-preview.html', w: 1280, h: 860, wait: 2500, prep: `App.go('mem')`, after: 1200, union: ['#bubble'], pad: 28 },
+  { name: 'panel-project', url: '/design/panel-preview.html', w: 1280, h: 1000, wait: 2500, prep: `__demoProjects('plan'); setTimeout(() => document.querySelector('#log .msg.pj').scrollIntoView({ block: 'start' }), 300)`, after: 1500, union: ['#bubble', '#pet'], pad: 28 },
+  // 项目页（真的项目页代码 + 假的一个做到一半的项目）
+  { name: 'project-page', url: '/design/project-preview.html', w: 1280, h: 820, wait: 1500, prep: `document.querySelectorAll('.agi')[2].click()`, after: 600, rect: 'viewport' },
   // 讲解窗口（真的讲解页面代码 + 假的一页）
   { name: 'explainer', url: '/design/explainer-preview.html', w: 1440, h: 1040, wait: 9000, rect: 'viewport' },
   // 鉴定术设计稿
