@@ -13,7 +13,10 @@ html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background:
 .hidden { display: none !important; }
 
 /* ---------- 系统核心 ---------- */
-#pet { --p: 76px; position: absolute; left: 0; top: 0; width: var(--p); height: var(--p); cursor: grab; touch-action: none; z-index: 2; }
+#pet { --p: 76px; position: absolute; left: 0; top: 0; width: var(--p); height: var(--p); cursor: grab; touch-action: none; z-index: 2; transition: opacity .25s; }
+/* 面板展开时核心让位：隐去并且不再吃鼠标点击（那块位置还给下面的软件）。
+   用 opacity 不用 display——主进程的自检取景和效果层的起飞点要量它的矩形 */
+body.awake #pet { opacity: 0; pointer-events: none; z-index: 0; }
 #pet.dragging { cursor: grabbing; }
 #pet[data-state="listen"] { --g1: var(--green); --g4: var(--cyan); }
 #pet[data-state="busy"] { --g1: var(--gold); --g4: #ff9a5f; }
@@ -64,7 +67,8 @@ html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background:
 #bubble.close-left .code { right: auto; left: 44px; }
 #close:hover { color: #fff; text-shadow: 0 0 8px var(--g1); }
 
-.plate { position: absolute; left: 50%; top: -18px; transform: translateX(-50%); display: flex; align-items: center; z-index: 3; pointer-events: none; }
+.plate { position: absolute; left: 50%; top: -18px; transform: translateX(-50%); display: flex; align-items: center; z-index: 3; cursor: grab; }
+.plate.dragging { cursor: grabbing; }
 .plate .wing { width: 64px; height: 14px; position: relative; }
 .plate .wing::before { content: ""; position: absolute; left: 0; right: 10px; top: 6px; height: 2px; background: linear-gradient(90deg, transparent, var(--g1)); box-shadow: 0 0 6px var(--g1); }
 .plate .wing.r::before { left: 10px; right: 0; background: linear-gradient(90deg, var(--g4), transparent); box-shadow: 0 0 6px var(--g4); }
@@ -82,6 +86,8 @@ html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background:
 #status, .chip { display: inline-flex; align-items: center; gap: 6px; padding: 2px 10px; font-size: 12px; color: #fff;
   border: 1px solid color-mix(in srgb, var(--g1) 55%, transparent); background: color-mix(in srgb, var(--g1) 18%, transparent);
   clip-path: polygon(6px 0, 100% 0, calc(100% - 6px) 100%, 0 100%); }
+button.chip { font: inherit; cursor: pointer; }
+button.chip:hover { filter: brightness(1.4); }
 #status::before { content: ""; width: 6px; height: 6px; background: var(--g1); box-shadow: 0 0 6px var(--g1); transform: rotate(45deg); animation: blink 1s steps(2) infinite; }
 
 /* 聆听波形 */

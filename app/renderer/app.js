@@ -16,6 +16,7 @@ const stepsEl = $('#steps');
 const steplineEl = $('#stepline');
 const opvEl = $('#opv');
 const navEl = $('#nav');
+const hushEl = $('#hush');
 
 // 在普通浏览器里打开（预览界面）时没有 Electron 桥，用一个假的
 const bridge = window.hostbound || {
@@ -67,7 +68,11 @@ function lockHit(on) {
     bridge.setHit(true);
   }
 }
-document.addEventListener('mousemove', (e) => updateHit(e.clientX, e.clientY));
+let lastPt = null; // 鼠标最后停在哪：核心隐去/重现后要拿它重算一次穿透判定
+document.addEventListener('mousemove', (e) => {
+  lastPt = { x: e.clientX, y: e.clientY };
+  updateHit(e.clientX, e.clientY);
+});
 document.addEventListener('mouseleave', () => {
   if (hitState && !hitLocked) {
     hitState = false;
@@ -442,9 +447,9 @@ function tickCountdowns() {
     const left = +cd.dataset.due - now;
     cd.firstChild.textContent = left > 0 ? fmtLeft(left) : '00:00';
   }
-  // 一小时内到点的，挂在核心下面（显示最近的那个）
+  // 一小时内到点的，挂在核心下面（显示最近的那个）。核心隐去时那块位置归面板了，先不显示
   const next = (taskSnap.tasks || []).filter((t) => t.nextAt && t.nextAt - now <= 3600_000 && t.nextAt > now).sort((a, b) => a.nextAt - b.nextAt)[0];
-  if (next) {
+  if (next && !coreHidden()) {
     petCd.textContent = `⏱ ${fmtLeft(next.nextAt - now)} ${next.name.slice(0, 6)}`;
     petCd.classList.toggle('soon', next.nextAt - now < 60_000);
     petCd.classList.remove('hidden');
@@ -504,9 +509,13 @@ function setListening(on, mode) {
 }
 // 系统说话时，波形显示系统自己的声音
 function updateWave() {
-  const speaking = !!window.Speech?.playing && !waveMic;
+  const playing = !!window.Speech?.playing;
+  const speaking = playing && !waveMic;
   waveEl.classList.toggle('hidden', !(waveMic || speaking));
   waveEl.classList.toggle('speak', speaking);
+  // 核心隐去时没有可点的地方：点核心的那两下改用顶栏这个按钮
+  hushEl.classList.toggle('hidden', !(playing || (!listening && !busy && voiceState.ok)));
+  hushEl.textContent = playing ? '闭嘴' : '听我说';
 }
 
 // ---------- 提示音（用 Web Audio 合成，不需要音频文件） ----------
@@ -534,14 +543,20 @@ function ding(kind) {
 }
 
 // ---------- 展开 / 收起 ----------
+function coreHidden() {
+  return document.body.classList.contains('awake'); // 面板展开时核心让位（CSS 认的就是 body.awake）
+}
 function openPanel() {
   bubble.classList.remove('hidden');
   bubble.classList.remove('opening');
   void bubble.offsetWidth;
   bubble.classList.add('opening');
   pet.classList.add('awake', 'pop');
+  document.body.classList.add('awake'); // 核心让位：隐去，并且不再占面板的位置
   setTimeout(() => pet.classList.remove('pop'), 520);
   layout();
+  tickCountdowns(); // 核心下面那块倒计时先收起来
+  if (lastPt) updateHit(lastPt.x, lastPt.y); // 鼠标正停在核心上时别把穿透状态留在「有东西可点」，否则面板不自动待机
 }
 
 function wake(source) {
@@ -587,7 +602,11 @@ function goSleep(force) {
   bubble.classList.add('hidden');
   awake = false;
   pet.classList.remove('awake');
+  document.body.classList.remove('awake');
   coreState('idle');
+  layout(); // 面板先退回给核心留位的位置（它是淡出不是消失），不然淡回来的核心会和面板叠一下
+  tickCountdowns(); // 倒计时牌子回到核心下面
+  if (lastPt) updateHit(lastPt.x, lastPt.y);
   if (page !== 'chat') go('chat');
 }
 
@@ -1105,11 +1124,13 @@ bridge.onBrain((m) => {
     case 'voice_ready':
       voiceState = { ok: true, message: m.mic };
       liveEl.classList.toggle('hidden', m.wakeEnabled !== false);
+      updateWave(); // 麦克风好了才显示「听我说」
       if (booting) bootLine('voice', `加载听觉模块 · 唤醒词「${(m.wakeWords || cfg.wakeWords || []).join('」「')}」`, 'ok');
       checkBootDone();
       break;
     case 'voice_error':
       voiceState = { ok: false, message: m.message };
+      updateWave();
       if (booting) bootLine('voice', '加载听觉模块', 'fail');
       checkBootDone();
       break;
@@ -1198,6 +1219,7 @@ bridge.onBrain((m) => {
       busy = m.busy;
       if (!busy) closeOpv();
       stopBtn.classList.toggle('hidden', !busy);
+      updateWave(); // 「闭嘴 / 听我说」按钮跟 busy 有关
       if (busy) {
         wake('event');
         setPanel('解析指令', 'PARSE', '', 'busy');
@@ -1375,6 +1397,17 @@ input.addEventListener('keydown', (e) => {
 });
 input.addEventListener('input', () => armSleep());
 stopBtn.addEventListener('click', () => bridge.send({ type: 'stop' }));
+// 点系统核心、或点顶栏那个按钮（核心隐去时没有可点的地方）：念着的时候让它闭嘴，闲着的时候立刻开始听
+function tapCore() {
+  if (!awake || booting) return wake('click');
+  if (Speech.playing) {
+    hush();
+    if (!busy && voiceState.ok) bridge.send({ type: 'listen' });
+  } else if (!listening && !busy && voiceState.ok) {
+    bridge.send({ type: 'listen' });
+  }
+}
+hushEl.addEventListener('click', tapCore);
 $('#close').addEventListener('click', () => {
   if (booting) endBoot(false);
   hush();
@@ -1419,8 +1452,11 @@ let ww = WIDE.w;
 let wh = WIDE.h;
 
 function applyPet() {
-  petX = clamp(petX, 0, vw() - petSize);
-  petY = clamp(petY, 0, vh() - petSize);
+  // 拖标题牌时不夹：贴边反推出来的核心位置本来就可能压到屏幕外面，一夹面板就会先跳一下
+  if (!plateDrag) {
+    petX = clamp(petX, 0, vw() - petSize);
+    petY = clamp(petY, 0, vh() - petSize);
+  }
   pet.style.setProperty('--p', petSize + 'px');
   pet.style.left = petX + 'px';
   pet.style.top = petY + 'px';
@@ -1470,6 +1506,7 @@ function initPet() {
 // 悬在中间就放在空间大的那一侧。放不下就换下一个方向，再放不下就压矮。
 // 拖角改大小的时候不换方向（rs.side），免得面板跳到另一边。
 let rs = null; // 正在拖角改大小
+let plateDrag = null; // 正在拖标题牌移动面板：{ sx, sy, ox, oy, side, alignRight, moved, edgeAt }
 let geo = null; // 上一次摆放的结果：在核心哪一侧、哪两条边能自由伸缩
 function layout() {
   const wide = page !== 'chat';
@@ -1483,11 +1520,21 @@ function layout() {
   };
   let H = setH(Hmax);
 
-  const p = { x: petX, y: petY, w: petSize, h: petSize, cx: petX + petSize / 2, cy: petY + petSize / 2 };
-  const nearL = p.x < DOCK;
-  const nearR = vw() - (p.x + p.w) < DOCK;
-  const nearT = p.y < DOCK;
-  const nearB = vh() - (p.y + p.h) < DOCK;
+  const r = { x: petX, y: petY, w: petSize, h: petSize, cx: petX + petSize / 2, cy: petY + petSize / 2 };
+  const nearL = r.x < DOCK;
+  const nearR = vw() - (r.x + r.w) < DOCK;
+  const nearT = r.y < DOCK;
+  const nearB = vh() - (r.y + r.h) < DOCK;
+  // 核心隐去时不再给它留位置：它贴着哪条屏幕边，锚点就塌到那条边上（两轴都贴就塌到那个角），
+  // 面板于是完全贴合屏幕边、下面不留空白。悬在屏幕中间时没有可贴的边，照原样摆（看不出空隙）。
+  // 拖标题牌时先不塌缩：塌缩后面板位置和核心无关，就拖不动了（见下面的 reanchor）。
+  const sink = !plateDrag && coreHidden() && (nearL || nearR || nearT || nearB);
+  const px = nearL ? MARGIN : nearR ? vw() - MARGIN : r.cx;
+  const py = nearT ? MARGIN : nearB ? vh() - MARGIN : r.cy;
+  const p = sink ? { x: px, y: py, w: 0, h: 0, cx: px, cy: py } : r;
+  const gap = sink ? 0 : GAP;
+  // 面板跟核心哪一侧对齐：拖标题牌时冻结，不然锚点一跨过屏幕中线，面板会瞬移
+  const alignRight = plateDrag ? plateDrag.alignRight : p.cx > vw() / 2;
   const room = { above: p.y - TOP_ROOM, below: vh() - p.y - p.h - TOP_ROOM, left: p.x, right: vw() - p.x - p.w };
   let first;
   if (nearL && !nearT && !nearB) first = 'right';
@@ -1496,22 +1543,22 @@ function layout() {
   else if (nearB) first = 'above';
   else first = room.above >= room.below ? 'above' : 'below';
   const order = [first, ...['above', 'below', 'left', 'right'].sort((a, b) => room[b] - room[a])];
-  const need = { above: H + GAP, below: H + GAP, left: W + GAP, right: W + GAP };
-  let side = rs?.side || order.find((s) => room[s] >= need[s] + MARGIN);
+  const need = { above: H + gap, below: H + gap, left: W + gap, right: W + gap };
+  let side = rs?.side || plateDrag?.side || order.find((s) => room[s] >= need[s] + MARGIN);
   if (!side) {
     side = room.above >= room.below ? 'above' : 'below';
-    Hmax = Math.max(220, Math.min(Hmax, room[side] - GAP - MARGIN));
+    Hmax = Math.max(220, Math.min(Hmax, room[side] - gap - MARGIN));
     H = setH(Hmax);
   }
 
-  const alignX = () => (p.cx > vw() / 2 ? p.x + p.w - W : p.x);
+  const alignX = () => (alignRight ? p.x + p.w - W : p.x);
   const alignY = () => p.cy - H / 2;
   let x;
   let y;
-  if (side === 'above') [x, y] = [alignX(), p.y - GAP - H];
-  else if (side === 'below') [x, y] = [alignX(), p.y + p.h + GAP + TOP_ROOM];
-  else if (side === 'left') [x, y] = [p.x - GAP - W, alignY()];
-  else [x, y] = [p.x + p.w + GAP, alignY()];
+  if (side === 'above') [x, y] = [alignX(), p.y - gap - H];
+  else if (side === 'below') [x, y] = [alignX(), p.y + p.h + gap + TOP_ROOM];
+  else if (side === 'left') [x, y] = [p.x - gap - W, alignY()];
+  else [x, y] = [p.x + p.w + gap, alignY()];
   x = clamp(x, MARGIN, vw() - W - MARGIN);
   y = clamp(y, TOP_ROOM, vh() - H - MARGIN);
   bubble.style.left = x + 'px';
@@ -1519,12 +1566,12 @@ function layout() {
   bubble.style.transformOrigin = `${clamp(p.cx - x, 0, W)}px ${clamp(p.cy - y, 0, H)}px`;
   // 面板有一条边贴着核心（固定），对面那条边能自由伸缩。拖动改大小的角放在能伸缩的那个角上，
   // 拖的时候角才会跟着鼠标走：面板在核心上方就放上角，在下方就放下角，在左右两侧（上下居中）放下角
-  const freeH = side === 'left' ? 'l' : side === 'right' ? 'r' : p.cx > vw() / 2 ? 'l' : 'r';
+  const freeH = side === 'left' ? 'l' : side === 'right' ? 'r' : alignRight ? 'l' : 'r';
   const freeV = side === 'above' ? 't' : side === 'below' ? 'b' : 'c';
   const corner = (freeV === 't' ? 't' : 'b') + freeH;
   grip.className = corner;
   bubble.classList.toggle('close-left', corner === 'tr'); // 右上角给了拖动角，关闭按钮挪到左上
-  geo = { side, freeH, freeV, room, p };
+  geo = { side, freeH, freeV, room, p, gap };
 }
 new ResizeObserver(() => layout()).observe(bubble);
 window.addEventListener('resize', () => {
@@ -1573,14 +1620,7 @@ function endDrag(e) {
     applyPet();
     savePet();
     layout();
-  } else if (!awake || booting) {
-    wake('click');
-  } else if (Speech.playing) {
-    hush();
-    if (!busy && voiceState.ok) bridge.send({ type: 'listen' });
-  } else if (!listening && !busy && voiceState.ok) {
-    bridge.send({ type: 'listen' });
-  }
+  } else tapCore();
   updateHit(e.clientX, e.clientY);
 }
 pet.addEventListener('pointerup', endDrag);
@@ -1610,6 +1650,66 @@ pet.addEventListener(
   { passive: false },
 );
 
+// 拖标题牌移动面板。面板贴边时它的位置是贴着屏幕边算的、和核心无关，所以先把面板当前位置
+// 反推回核心位置（reanchor），第一帧不跳；拖动期间不塌缩、不换边，松手后落回贴边范围就重新吸上去。
+const plate = document.querySelector('.plate');
+function reanchor(side, bx, by, bw, bh) {
+  const right = petX + petSize / 2 > vw() / 2; // 用反推前的核心位置判断面板当初是哪边对齐
+  if (side === 'above' || side === 'below') petX = right ? bx + bw - petSize : bx;
+  else petY = by + bh / 2 - petSize / 2;
+  if (side === 'above') petY = by + GAP + bh;
+  else if (side === 'below') petY = by - petSize - GAP - TOP_ROOM;
+  else if (side === 'left') petX = bx + GAP + bw;
+  else petX = bx - GAP - petSize;
+}
+plate.addEventListener('pointerdown', (e) => {
+  if (e.button !== 0 || !geo) return;
+  e.preventDefault(); // 别把标题选中
+  plateDrag = { sx: e.clientX, sy: e.clientY, ox: petX, oy: petY, side: geo.side, alignRight: petX + petSize / 2 > vw() / 2, moved: false, edgeAt: 0 };
+  reanchor(geo.side, bubble.offsetLeft, bubble.offsetTop, bubble.offsetWidth, bubble.offsetHeight);
+  plateDrag.ox = petX;
+  plateDrag.oy = petY;
+  plate.classList.add('dragging');
+  lockHit(true);
+  applyPet();
+  layout();
+  plate.setPointerCapture(e.pointerId);
+});
+plate.addEventListener('pointermove', (e) => {
+  if (!plateDrag) return;
+  plateDrag.moved = true;
+  petX = plateDrag.ox + e.clientX - plateDrag.sx;
+  petY = plateDrag.oy + e.clientY - plateDrag.sy;
+  applyPet();
+  layout();
+  // 拖到窗口外：鼠标可能到了另一块屏幕上，把窗口搬过去（和拖核心一样）
+  const out = e.clientX < 0 || e.clientY < 0 || e.clientX >= vw() || e.clientY >= vh();
+  if (out && performance.now() - plateDrag.edgeAt > 120) {
+    plateDrag.edgeAt = performance.now();
+    bridge.dragEdge?.();
+  }
+});
+function endPlateDrag(e) {
+  if (!plateDrag) return;
+  const moved = plateDrag.moved;
+  plateDrag = null;
+  plate.classList.remove('dragging');
+  lockHit(false);
+  if (moved) {
+    if (petX < SNAP) petX = 0;
+    if (vw() - petX - petSize < SNAP) petX = vw() - petSize;
+    if (petY < SNAP) petY = 0;
+    if (vh() - petY - petSize < SNAP) petY = vh() - petSize;
+    applyPet();
+    savePet();
+  }
+  layout();
+  updateHit(e.clientX, e.clientY);
+}
+plate.addEventListener('pointerup', endPlateDrag);
+plate.addEventListener('pointercancel', endPlateDrag);
+plate.addEventListener('lostpointercapture', endPlateDrag);
+
 // 拖面板的角改大小（rs 在 layout 前面声明）
 grip.addEventListener('pointerdown', (e) => {
   e.preventDefault();
@@ -1617,9 +1717,9 @@ grip.addEventListener('pointerdown', (e) => {
   // 最大能拖多大：固定的那条边不动，另一边不能超出屏幕
   const g = geo;
   const maxW = Math.min(900, vw() - 2 * MARGIN,
-    g.side === 'left' ? g.room.left - GAP - MARGIN : g.side === 'right' ? g.room.right - GAP - MARGIN : g.freeH === 'r' ? vw() - g.p.x - MARGIN : g.p.x + g.p.w - MARGIN);
+    g.side === 'left' ? g.room.left - g.gap - MARGIN : g.side === 'right' ? g.room.right - g.gap - MARGIN : g.freeH === 'r' ? vw() - g.p.x - MARGIN : g.p.x + g.p.w - MARGIN);
   const maxH = Math.min(vh() - MARGIN - TOP_ROOM,
-    g.side === 'above' ? g.room.above - GAP : g.side === 'below' ? g.room.below - GAP - MARGIN : Infinity);
+    g.side === 'above' ? g.room.above - g.gap : g.side === 'below' ? g.room.below - g.gap - MARGIN : Infinity);
   rs = { sx: e.clientX, sy: e.clientY, w: bubble.offsetWidth, h: bubble.offsetHeight, side: g.side, freeH: g.freeH, freeV: g.freeV, maxW, maxH };
   grip.setPointerCapture(e.pointerId);
   lockHit(true);
