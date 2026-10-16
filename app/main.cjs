@@ -25,6 +25,7 @@ let speechMode = 'gpu';
 let speechState = null;
 let fx = null; // 效果层
 let petHome = null; // 系统核心中心点（屏幕 DIP 坐标）
+let fxHome = null; // 系统光标的起飞点：核心隐去时改成面板靠核心那条边的中点
 let takeoverActive = false; // 系统正在接管前台
 let injectUntil = 0; // 这之前的鼠标键盘动作是系统自己模拟的，不算宿主
 let autoLive = false; // 直播模式是检测到在直播自动打开的（直播结束就自动关；宿主手动开的不动）
@@ -287,14 +288,15 @@ async function capture(req) {
   }
 }
 
-// 面板报告系统核心的位置：效果层的系统光标从这里出发、飞回这里
+// 面板报告系统核心的位置（x/y/w/h）；展开时核心隐去了，另报系统光标的起飞点 cx/cy
 ipcMain.on('pet-rect', (_e, r) => {
   if (!win || win.isDestroyed() || !r) return;
   const b = win.getBounds();
   petHome = { x: b.x + r.x + r.w / 2, y: b.y + r.y + r.h / 2 };
+  fxHome = { x: b.x + (r.cx ?? r.x + r.w / 2), y: b.y + (r.cy ?? r.y + r.h / 2) };
 });
 
-// 拖核心时鼠标出了窗口：鼠标到了别的屏幕上，就把窗口搬过去（还在本屏的任务栏上就不动）
+// 拖核心或拖标题牌时鼠标出了窗口：鼠标到了别的屏幕上，就把窗口搬过去（还在本屏的任务栏上就不动）
 ipcMain.on('drag-edge', () => {
   if (!win || win.isDestroyed()) return;
   moveToDisplay(screen.getDisplayNearestPoint(screen.getCursorScreenPoint()));
@@ -518,7 +520,7 @@ app.whenReady().then(async () => {
   speechMode = readState().speechMode || cfg.speech.mode;
 
   createWindow();
-  fx = new FxLayer({ coreDisplay: () => currentDisplay(), coreHome: () => petHome });
+  fx = new FxLayer({ coreDisplay: () => currentDisplay(), coreHome: () => petHome, cursorHome: () => fxHome });
   explainer = new Explainer({ root: ROOT, dataDir: DATA, toBrain, coreHome: () => petHome });
   appraiser = new Appraiser({ root: ROOT, toBrain, hide: () => [win], fx, blocked: () => cfg.safety?.blockedApps || [], log: (...a) => uiLog(a.map(String).join(' ')) });
   startBrain();

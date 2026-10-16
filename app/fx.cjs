@@ -5,10 +5,11 @@ const { BrowserWindow, screen, ipcMain } = require('electron');
 const path = require('node:path');
 
 class FxLayer {
-  constructor({ coreDisplay, coreHome }) {
+  constructor({ coreDisplay, coreHome, cursorHome }) {
     this.wins = new Map(); // 屏幕 id → { win, ready, queue }
     this.coreDisplay = coreDisplay; // 系统核心所在的屏幕
-    this.coreHome = coreHome; // 系统核心中心点（屏幕 DIP 坐标），系统光标从这里出发、飞回这里
+    this.coreHome = coreHome; // 系统核心中心点（屏幕 DIP 坐标）：小提示挂在它旁边
+    this.cursorHome = cursorHome || coreHome; // 系统光标起飞、归位的点：核心隐去时是面板靠核心那条边的中点
     ipcMain.on('fx-idle', (e) => {
       for (const s of this.wins.values()) if (!s.win.isDestroyed() && s.win.webContents === e.sender) s.win.hide();
     });
@@ -93,12 +94,20 @@ class FxLayer {
     let point = msg.point ? this.#dipRect({ ...msg.point, width: 0, height: 0 }, msg.dip) : null;
     // 通知放在系统核心那块屏幕上；有位置的效果放在它自己那块屏幕上
     const display = msg.kind === 'notice' || !rect ? this.coreDisplay() : screen.getDisplayMatching(rect.width ? rect : { ...rect, width: 1, height: 1 });
-    this.#send(display, { ...msg, rect: this.#local(rect, display), point: point ? this.#local(point, display) : null, home: this.#homeOn(display) });
+    this.#send(display, { ...msg, rect: this.#local(rect, display), point: point ? this.#local(point, display) : null, home: this.#homeOn(display), core: this.#coreOn(display) });
   }
 
-  // 系统核心在这块屏幕上的位置；不在这块屏幕上就是 null
   #homeOn(d) {
-    const h = this.coreHome();
+    return this.#onScreen(d, this.cursorHome());
+  }
+
+  // 「后台打开了某某」这类小提示挂在核心旁边，不跟着起飞点跑到面板上
+  #coreOn(d) {
+    return this.#onScreen(d, this.coreHome());
+  }
+
+  // 屏幕 DIP 坐标换算成这块屏幕的局部坐标；不在这块屏幕上就是 null
+  #onScreen(d, h) {
     if (!h) return null;
     const b = d.bounds;
     if (h.x < b.x || h.y < b.y || h.x >= b.x + b.width || h.y >= b.y + b.height) return null;

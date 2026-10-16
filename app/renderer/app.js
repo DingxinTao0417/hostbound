@@ -1572,6 +1572,14 @@ function layout() {
   grip.className = corner;
   bubble.classList.toggle('close-left', corner === 'tr'); // 右上角给了拖动角，关闭按钮挪到左上
   geo = { side, freeH, freeV, room, p, gap };
+  // 系统光标的起飞点：核心露着时是核心中心；核心隐去了，那块位置归面板，就改成面板离核心最近的那条边
+  bridge.petRect?.(coreHidden()
+    ? {
+      x: petX, y: petY, w: petSize, h: petSize,
+      cx: side === 'left' ? x + W : side === 'right' ? x : x + W / 2,
+      cy: side === 'above' ? y + H : side === 'below' ? y : y + H / 2,
+    }
+    : { x: petX, y: petY, w: petSize, h: petSize });
 }
 new ResizeObserver(() => layout()).observe(bubble);
 window.addEventListener('resize', () => {

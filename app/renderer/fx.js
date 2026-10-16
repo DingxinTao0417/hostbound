@@ -187,7 +187,8 @@ function onNotice(m) {
   }
   const t = add(`toast ${m.tone === 'err' ? 'err' : m.tone === 'info' ? 'info' : m.tone === 'gold' ? 'gold' : ''}`, `<b>${esc(m.title)}</b>${esc(m.text)}<div class="life"><i></i></div>`);
   // 「后台打开了某某」这类提示放在核心旁边；完成 / 失败放右上角
-  if (m.tone === 'info' && m.home) Object.assign(t.style, { left: clampX(m.home.x - 370, 340) + 'px', top: clampY(m.home.y - 70, 60) + 'px' });
+  const at = m.core || m.home;
+  if (m.tone === 'info' && at) Object.assign(t.style, { left: clampX(at.x - 370, 340) + 'px', top: clampY(at.y - 70, 60) + 'px' });
   else Object.assign(t.style, { right: '24px', top: '24px' });
   requestAnimationFrame(() => t.classList.add('on'));
   setTimeout(() => t.classList.remove('on'), 4200);
