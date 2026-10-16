@@ -41,12 +41,19 @@ export class Projects extends EventEmitter {
   get(id) {
     if (!id) return null;
     if (this.cs.has(id)) return this.cs.get(id);
+    // 正在接上这个项目（总指挥接上时会写事件，听事件的又来取它）：别再接一次
+    if (this.loading?.has(id)) return null;
     const p = this.store.get(id);
     if (!p || !fs.existsSync(path.join(p.dir, '.hostbound'))) return null;
-    const c = new Commander({ store: this.store, id, cfg: this.cfg, runtime: this.runtime, model: this.model, root: this.root, log: this.log, ...this.commanderOpts });
-    for (const ev of ['card', 'ask', 'confirm', 'confirm_closed', 'say', 'note']) c.on(ev, (x) => this.emit(ev, x, c));
-    this.cs.set(id, c);
-    return c;
+    (this.loading ||= new Set()).add(id);
+    try {
+      const c = new Commander({ store: this.store, id, cfg: this.cfg, runtime: this.runtime, model: this.model, root: this.root, log: this.log, history: () => this.history(), ...this.commanderOpts });
+      for (const ev of ['card', 'ask', 'confirm', 'confirm_closed', 'say', 'note']) c.on(ev, (x) => this.emit(ev, x, c));
+      this.cs.set(id, c);
+      return c;
+    } finally {
+      this.loading.delete(id);
+    }
   }
 
   // 按名字或 id 找；不给就找最需要宿主的那个（有问题等回答 > 等看计划 > 最近的）
@@ -56,6 +63,22 @@ export class Projects extends EventEmitter {
       return p ? this.get(p.id) : null;
     }
     return this.openQuestion()?.c || this.pendingPlan() || this.get(this.store.list()[0]?.id);
+  }
+
+  // 以前做完的项目（最近 10 轮）平均每个任务的实际用时和花费，写计划时让总指挥照着估
+  history() {
+    const rate = Number(this.cfg()?.projects?.usdToCny) || 7.2;
+    const rounds = [];
+    for (const p of this.store.list()) {
+      if (p.status !== 'done') continue;
+      for (const r of this.store.readJson(p.id, 'state.json')?.rounds || []) if (r.tasks > 0 && r.ms > 0) rounds.push(r);
+    }
+    const last = rounds.sort((a, b) => b.at - a.at).slice(0, 10);
+    if (!last.length) return '';
+    const tasks = last.reduce((n, r) => n + r.tasks, 0);
+    const min = last.reduce((n, r) => n + r.ms, 0) / 60_000 / tasks;
+    const cny = (last.reduce((n, r) => n + r.usd, 0) * rate) / tasks;
+    return `最近 ${last.length} 次一共 ${tasks} 个任务，平均每个任务（连合并、检查、评审）约 ${min < 1 ? '不到 1' : Math.round(min)} 分钟、¥${cny < 0.1 ? cny.toFixed(2) : cny.toFixed(1)}`;
   }
 
   pendingPlan() {

@@ -9,7 +9,9 @@ export const PLAN_PROMPT = `你是桌面助手「宿主系统」的项目总指�
 - 第一个任务通常是把项目骨架、依赖、接口约定定下来（写进 docs/ 和 package.json），后面的照着做。
 - 不用安排「评审」，系统最后会自己派一个评审。
 - checks 写这个项目怎么检查：install（装依赖，没有就留空）、build（构建，没有就留空）、test（跑测试，没有就留空，但最好有）、start（启动，网站类必须有）、url（启动后打开的网址）、web（是不是网站 / 有界面要截图看）。命令都在项目文件夹里跑，不要会一直等输入的命令；test 要能自己跑完退出。
-- 估一下要多久（分钟）、花多少（人民币，按每个智能体大概 10～30 轮对话算）。
+- checks 里用到的 npm 脚本（npm start、npm test、npm run build）要在第一个任务里写进 package.json，写在那个任务的 desc 里。
+- 每个任务的 done 要能用命令（构建、测试）或者看页面截图检查，不要写「打开浏览器玩一局」这种只有人能做的。
+- 估一下要多久（分钟）、花多少（人民币）。下面如果给了以前做过的项目的实际数字，照着估；没给就按每个任务 3～10 分钟、¥0.2～2 估。
 只输出 JSON，不要别的话：
 {"name":"项目名（10 个字以内）","summary":"做成什么（一两句）","approach":"怎么做（技术选型，一句）",
  "agents":[{"id":"英文小写短名","role":"中文角色","does":"负责什么"}],
@@ -18,18 +20,18 @@ export const PLAN_PROMPT = `你是桌面助手「宿主系统」的项目总指�
  "estimate":{"minutes":30,"cny":[3,8]}}`;
 
 export const REPLAN_PROMPT = `你是桌面助手「宿主系统」的项目总指挥。这个项目以前做过，宿主现在要接着改。下面是原来的计划、现在的文件、宿主这次的要求。
-照写新计划的规矩，只安排这次要做的事（不要重做已经有的）。只输出 JSON，格式跟写新计划一样（agents、tasks、checks、estimate；checks 沿用原来的，除非要改）。`;
+照写新计划的规矩，只安排这次要做的事（不要重做已经有的），不用安排评审（系统最后会自己派）。每个任务的 desc 写清楚要改什么、改哪些文件、宿主这次的要求落实成什么样；能沿用原来的智能体就沿用。只输出 JSON，格式跟写新计划一样（agents、tasks、checks、estimate；checks 沿用原来的，除非要改）。`;
 
 // 干活的智能体的系统提示
-export function workerSystem({ role, engine = 'pi' }) {
+export function workerSystem({ role, engine = 'pi', web = false }) {
   const tools =
     engine === 'pi'
-      ? `- 工具：read / write / edit 读写文件，powershell 跑命令，ls / find / grep 找文件。拿不准、计划里没写的事，用 ask_commander 问总指挥（会等它回答）。做完或者做不下去，用 report 汇报，汇报完这一轮就结束。`
+      ? `- 工具：read / write / edit 读写文件，powershell 跑命令，ls / find / grep 找文件${web ? '，preview 看页面（系统替你启动、截图、关掉）' : ''}。拿不准、计划里没写的事，用 ask_commander 问总指挥（会等它回答）。做完或者做不下去，用 report 汇报，汇报完这一轮就结束。`
       : `- 拿不准、计划里没写的事：停下来，最后一条消息只写一行「QUESTION: 你的问题」，然后结束，总指挥回答以后会接着叫你。
 - 做完：最后一条消息写「REPORT: 做了什么、改了哪些文件、自己检查的结果」；做不下去写「BLOCKED: 原因」。`;
   return `你是一个项目里的「${role}」，跟另外几个智能体一起做宿主要的东西，归项目总指挥管。你在自己的那份代码副本里干活（当前目录），别的智能体在各自的副本里同时干，总指挥负责把大家的活合并、检查。
 规矩：
-- 电脑是 Windows 11，命令在 PowerShell 里跑。命令要能自己跑完退出：不要启动会一直跑的服务器（npm start、npm run dev 之类）去手动看，检查用构建和测试。
+- 电脑是 Windows 11，命令在 PowerShell 里跑。命令要能自己跑完退出：不要启动会一直跑的服务器（npm start、npm run dev、vite 之类），也不要结束任何进程（Stop-Process、taskkill），电脑上还有宿主自己的程序。检查用构建和测试${engine === 'pi' && web ? '；要看页面长什么样用 preview' : ''}。
 - 只改任务里写的那几个文件夹 / 文件；需要改别的地方，先问总指挥。
 - 不要碰项目文件夹以外的东西，不要全局安装（npm -g、winget 之类），不要 git push、不要改 git 设置。提交、合并由系统来做，你不用 git commit。
 - 照着 docs/ 里已经定好的约定（接口、目录结构）做；约定有问题就问总指挥，别自己另起一套。
@@ -53,7 +55,7 @@ ${task.desc}
 - 只改：${(task.files || []).join('、') || '（总指挥没限定，尽量少改别人的地方）'}
 - 怎么算做完：${task.done || '能用，自己检查过'}
 ${deps.length ? `- 前面已经做完的：${deps.map((d) => `「${d.title}」${d.report ? `（${String(d.report).slice(0, 300)}）` : ''}`).join('；')}` : ''}
-${plan.checks?.build || plan.checks?.test ? `- 项目的检查命令：${[plan.checks.build && `构建 ${plan.checks.build}`, plan.checks.test && `测试 ${plan.checks.test}`].filter(Boolean).join('，')}` : ''}
+${plan.checks?.build || plan.checks?.test || plan.checks?.start ? `- 项目的检查命令（合并后、最后系统都会跑，要能直接跑通）：${[plan.checks.install && `装依赖 ${plan.checks.install}`, plan.checks.build && `构建 ${plan.checks.build}`, plan.checks.test && `测试 ${plan.checks.test}`, plan.checks.start && `启动 ${plan.checks.start}${plan.checks.url ? `（打开 ${plan.checks.url}）` : ''}`].filter(Boolean).join('，')}` : ''}
 ${notes.length ? `\n## 总指挥另外交代\n${notes.map((n) => `- ${n}`).join('\n')}\n` : ''}${retry ? `\n## 上一次的问题，这次要改好\n${retry}\n` : ''}`;
 }
 
@@ -106,8 +108,11 @@ export const SUMMARY_PROMPT = `你是项目总指挥。项目做完了，给宿�
 {"did":"做了什么（一两句，带数字：几个页面、几个接口、几个测试）","run":"怎么运行（一条命令，加上打开哪个网址）","notes":"要宿主知道的（做了的假设、没做的、要注意的；没有就空）"}`;
 
 // 网站截图：页面正常吗
-export const SHOT_PROMPT = `你在帮项目总指挥检查一个刚做好的网站首页截图。看页面是不是正常显示了：有没有白屏、报错信息、明显错位、内容全空。
-只输出 JSON：{"ok":true,"note":"一句话"} 或 {"ok":false,"note":"哪里不对"}`;
+export const SHOT_PROMPT = `你在帮项目总指挥检查一个刚做好的网站：下面是刚打开页面一两秒后的截图，还有宿主要的是什么。看页面是不是正常、是不是宿主要的那个东西：
+- 白屏、报错信息、明显错位、内容全空，算不对。
+- 刚打开就是一个还没开始用就结束了的状态（比如游戏一打开就显示「游戏结束」、表单一打开就提示出错），也算不对：刚打开应该是等宿主开始用的样子。
+- 跟宿主要的明显不是一个东西，算不对。
+只输出 JSON：{"ok":true,"note":"一句话"} 或 {"ok":false,"note":"哪里不对，怎么改"}`;
 
 // 模型回的 JSON（可能夹着别的字）
 export function parseJson(text) {

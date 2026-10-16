@@ -39,9 +39,10 @@ class StuckDetector {
 
 export class PiWorker extends EventEmitter {
   // ask({ question, options }) → 回答（总指挥或者宿主的）；confirm({ label, detail }) → 宿主允不允许；gate(event) → null 或 { label, detail }
-  constructor({ id, role, cwd, sessionDir, modelRuntime, model, system, maxTurns = 80, gate, ask, confirm, log = () => {} }) {
+  // preview({ path }) → { ok, text, image }：把项目在自己的副本里跑起来、截一张图、关掉（网站类项目才有）
+  constructor({ id, role, cwd, sessionDir, modelRuntime, model, system, maxTurns = 80, gate, ask, confirm, preview, log = () => {} }) {
     super();
-    Object.assign(this, { id, role, cwd, sessionDir, modelRuntime, model, system, maxTurns, gate, ask, confirm, log });
+    Object.assign(this, { id, role, cwd, sessionDir, modelRuntime, model, system, maxTurns, gate, ask, confirm, preview, log });
     this.engine = 'pi';
     this.turns = 0;
     this.usd = 0;
@@ -95,6 +96,23 @@ export class PiWorker extends EventEmitter {
         return ok(String(answer || '总指挥没回答，按你觉得最合理的做，并在汇报里写明你的假设。'));
       },
     });
+    if (this.preview) {
+      pi.registerTool({
+        name: 'preview',
+        label: '预览页面',
+        description: '看看你做的网页现在长什么样：系统在你的副本里把项目跑起来（用项目的启动命令）、打开网址截一张图给你看，再自己关掉。path 是要看的页面路径（比如 /about），不给就是首页。改完界面要检查时用它，不要自己去启动服务器或者结束进程。',
+        parameters: Type.Object({ path: Type.Optional(Type.String()) }),
+        async execute(_id, p, signal) {
+          const r = await Promise.race([
+            Promise.resolve(self.preview({ path: p.path || '' })).catch((e) => ({ ok: false, text: `预览出错：${e?.message || e}` })),
+            new Promise((res) => signal?.addEventListener?.('abort', () => res({ ok: false, text: '（项目停下了）' }), { once: true })),
+          ]);
+          const content = [{ type: 'text', text: r.text }];
+          if (r.image) content.push({ type: 'image', data: r.image.data, mimeType: r.image.mimeType || 'image/png' });
+          return { content, details: { ok: r.ok } };
+        },
+      });
+    }
     pi.registerTool({
       name: 'report',
       label: '汇报',

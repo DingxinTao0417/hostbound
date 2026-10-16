@@ -13,6 +13,7 @@ import * as G from '../brain/project-git.mjs';
 import { runCommand, startAndWait } from '../brain/project-checks.mjs';
 import * as P from '../brain/project-prompts.mjs';
 import { Commander, normalizePlan } from '../brain/project-commander.mjs';
+import { Projects } from '../brain/projects.mjs';
 import { CliWorker, parseFinal } from '../brain/project-workers.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -174,6 +175,8 @@ const read = (f) => (fs.existsSync(f) ? fs.readFileSync(f, 'utf8') : '');
   ok('模型什么都没给：也有一个智能体、一个任务', empty.agents.length === 1 && empty.tasks.length === 1);
   const cont = normalizePlan({ agents: [{ id: 'fe', role: '前端' }], tasks: [{ id: 't1', agent: 'fe', title: '加页面', deps: ['t1x'] }] }, { prefix: 'r2-', old: plan });
   ok('接着改：任务 id 加前缀、沿用原来的智能体', cont.tasks[0].id === 'r2-t1' && cont.agents[0] === plan.agents[0]);
+  const withReview = normalizePlan({ agents: [{ id: 'fe', role: '前端' }, { id: 'review', role: '评审' }], tasks: [{ id: 't3', agent: 'fe', title: '改开局' }, { id: 'review-2', agent: 'review', title: '评审' }] }, { prefix: 'r2-', old: plan });
+  ok('计划里抄进来的评审去掉（系统自己派）', withReview.tasks.length === 1 && withReview.tasks[0].id === 'r2-t3' && !withReview.agents.some((a) => a.id === 'review'), JSON.stringify(withReview.tasks));
   ok('JSON 夹着别的字也能读', P.parseJson('好的：\n```json\n{"a":1}\n```')?.a === 1 && P.parseJson('没有') === null);
   ok('最后一行 QUESTION:', parseFinal('看了一下。\nQUESTION: 用什么端口？').kind === 'question');
   ok('REPORT: / BLOCKED:', parseFinal('REPORT: 做完了').text === '做完了' && parseFinal('x\nBLOCKED: 缺密钥').kind === 'blocked' && parseFinal('就这样').kind === 'report');
@@ -364,6 +367,13 @@ const stripMarkers = (s) => s.split(/\r?\n/).filter((l) => !/^(<<<<<<<|=======|>
   ok('花费记下了（人民币）', c.card().costCny > 0 && c.state.costUsd > 0.05);
   ok('事件种类齐', ['plan', 'approved', 'dispatch', 'step', 'question', 'ask_host', 'host_answer', 'report', 'commit', 'merge', 'merged', 'check', 'retry', 'review', 'fix', 'task_done', 'done'].every((t) => types.has(t)), [...types].join(','));
   ok('git 历史里是系统的身份', /Hostbound/.test((await G.git(p.dir, ['log', '-1', '--format=%an'])).stdout));
+  const subjects = (await G.git(p.dir, ['log', '--format=%s'])).stdout;
+  ok('合并提交跟任务提交分得清', /^合并：前端（前端）$/m.test(subjects) && /^前端（前端）$/m.test(subjects), subjects);
+  const sumCall = llm.calls.filter((x) => x.kind === 'summary').at(-1);
+  ok('写总结时带着真跑过的最后检查', /系统最后在项目文件夹里做的检查（这些是真跑过的）/.test(sumCall?.content || '') && /测试（node test\.js）：过了/.test(sumCall?.content || ''), sumCall?.content?.slice(0, 300));
+  ok('这一轮的实际用时、花费、任务数记下了', c.state.rounds?.length === 1 && c.state.rounds[0].tasks === 3 && c.state.rounds[0].ms > 0 && c.state.rounds[0].usd > 0, JSON.stringify(c.state.rounds));
+  ok('干活的系统提示：不开服务器、不结束进程', /不要结束任何进程/.test(workers[0].o.system) && /npm run dev、vite/.test(workers[0].o.system));
+  ok('不是网站：没有预览', workers.every((w) => !w.o.preview));
   const snap = c.snapshot();
   ok('项目页的快照：计划、状态、事件', snap.plan && snap.state && snap.events.length > 20 && snap.card.name === '小网站');
   ok('给大脑的一句话', /小网站（做完了，任务 \d+\/\d+/.test(c.brief()), c.brief());
@@ -521,6 +531,121 @@ const stripMarkers = (s) => s.split(/\r?\n/).filter((l) => !/^(<<<<<<<|=======|>
   ok('预算 0：不限', !c.state.budgetAsked);
   ok('停下：干活的都停了', c.stop() && (await until(() => w0.stopReason === 'stopped', 2000)) && c.card().kind === 'stopped');
   c.dispose();
+}
+
+{
+  // 总管：新建的项目不当成「重启时计划写到一半」；听事件时又去取同一个项目，不会套娃（2026-10-16 真跑时碰到的）
+  const pmLlm = makeLlm({ plan: { agents: [{ id: 'dev', role: '开发' }], tasks: [{ id: 't1', agent: 'dev', title: '小东西' }], checks: {} } });
+  const pm = new Projects({
+    dataDir: path.join(tmp, 'data-m'),
+    cfg: () => ({ projects: { root: path.join(tmp, 'pm') } }),
+    runtime: () => null,
+    model: () => null,
+    root: ROOT,
+    commanderOpts: { complete: pmLlm },
+  });
+  let gets = 0;
+  pm.on('event', ({ projectId }) => {
+    pm.get(projectId);
+    gets++;
+  });
+  let c = null;
+  let err = '';
+  try {
+    c = pm.create({ name: '小东西', request: '做个小东西' });
+  } catch (e) {
+    err = e.message;
+  }
+  ok('听事件时取项目：不套娃', !err && gets > 0, err);
+  ok('新建的项目：直接写计划，不当成出错', c && (await until(() => c.state.status === 'awaiting_approval', 5000)) && !c.state.error && !pm.store.events(c.id).some((e) => e.type === 'status' && e.status === 'failed'), c && JSON.stringify(c.state));
+  ok('取到的是同一个总指挥', pm.get(c.id) === c);
+  // 以前做完的项目：平均每个任务多久、多少钱，写计划时带上
+  const done = pm.store.create({ name: '做完的', request: 'x' });
+  pm.store.writeJson(done.id, 'state.json', { status: 'done', rounds: [{ at: 1, tasks: 2, ms: 6 * 60_000, usd: 0.07 }] });
+  pm.store.update(done.id, { status: 'done' });
+  const hist = pm.history();
+  ok('以前的项目：平均每个任务约 3 分钟、¥0.25', /2 个任务，平均每个任务（连合并、检查、评审）约 3 分钟、¥0\.3/.test(hist), hist);
+  const c2 = pm.create({ name: '再来一个', request: '做个东西' });
+  await until(() => c2.state.status === 'awaiting_approval', 5000);
+  ok('写计划时带着以前的实际数字', /以前做过的项目的实际数字（估算照这个）：最近 1 次一共 2 个任务/.test(pmLlm.calls.filter((x) => x.kind === 'plan').at(-1)?.content || ''));
+  pm.dispose();
+}
+
+// 预览用的假检查：start 记下同时跑着几个，shot 写一张假图
+function previewChecks(stat) {
+  return {
+    start: async () => {
+      stat.starts++;
+      stat.live++;
+      stat.max = Math.max(stat.max, stat.live);
+      await wait(150);
+      return { ok: true, output: 'ready', ms: 150, stop: async () => ((stat.stops++), stat.live--) };
+    },
+    shot: async (url, file) => {
+      fs.mkdirSync(path.dirname(file), { recursive: true });
+      fs.writeFileSync(file, Buffer.from('89504e470d0a1a0a', 'hex'));
+      return { ok: true, file };
+    },
+  };
+}
+function previewProject(tag, port, stat, results) {
+  const store = new ProjectStore({ dataDir: path.join(tmp, `data-${tag}`), root: () => path.join(tmp, `p${tag}`) });
+  const p = store.create({ name: '预览', request: '做一个网页' });
+  const c = new Commander({
+    store,
+    id: p.id,
+    cfg: () => ({ projects: { budget: 0 } }),
+    runtime: () => null,
+    model: () => null,
+    root: ROOT,
+    complete: makeLlm({
+      plan: { agents: [{ id: 'a', role: '前端' }, { id: 'b', role: '后端' }], tasks: [{ id: 't1', agent: 'a', title: '首页' }, { id: 't2', agent: 'b', title: '关于页' }], checks: { start: 'npm start', url: `http://127.0.0.1:${port}`, web: true } },
+      shot: { ok: true, note: '正常' },
+      summary: { did: 'x', run: 'npm start', notes: '' },
+    }),
+    checks: previewChecks(stat),
+    workerFactory: (o) =>
+      new FakeWorker(o, async (w) => {
+        if (o.task.kind === 'review') return { status: 'reported', report: { status: 'done', summary: '没问题', issues: [] } };
+        results.push({ task: o.task.id, r: await w.o.preview({ path: o.task.id === 't2' ? '/about' : '' }), system: o.system });
+        return { status: 'reported', report: { status: 'done', summary: '看过了' } };
+      }),
+  });
+  return { c, store, p };
+}
+
+{
+  // 预览：网站类的干活的能看页面（系统替它启动、截图、关掉），一个项目一次一个
+  const port = 49000 + Math.floor(Math.random() * 400);
+  const stat = { starts: 0, stops: 0, live: 0, max: 0 };
+  const results = [];
+  const { c, store, p } = previewProject('d', port, stat, results);
+  await c.start();
+  await c.approve();
+  ok('预览：两个干活的都看到了页面（带图）', (await until(() => results.length === 2, 10_000)) && results.every((x) => x.r.ok && x.r.image?.data && x.r.image.mimeType === 'image/png'), JSON.stringify(results.map((x) => x.r.text)));
+  ok('预览：看的是要的那一页', /\/about/.test(results.find((x) => x.task === 't2').r.text));
+  ok('预览：一次一个，用完就关', stat.max === 1 && stat.stops === stat.starts && stat.starts >= 2, JSON.stringify(stat));
+  ok('预览：网站类的系统提示里有 preview', /用 preview/.test(results[0].system));
+  ok('预览：记进事件（项目页能看到）', store.events(p.id).filter((e) => e.type === 'preview_shot').length === 2);
+  ok('预览完以后项目照常做完', await until(() => c.state.status === 'done', 20_000), c.state.status);
+  c.dispose();
+}
+
+{
+  // 网址已经有程序在用（比如宿主自己开着别的网站）：不跑预览，免得看到别人的页面
+  const port = 49500 + Math.floor(Math.random() * 400);
+  const srv = http.createServer((q, r) => r.end('别人的页面')).listen(port, '127.0.0.1');
+  await wait(200);
+  const stat = { starts: 0, stops: 0, live: 0, max: 0 };
+  const results = [];
+  const { c } = previewProject('e', port, stat, results);
+  await c.start();
+  await c.approve();
+  await until(() => results.length === 2, 10_000);
+  ok('网址被占着：预览不跑、说清楚', results.length === 2 && results.every((x) => !x.r.ok && /已经有别的程序在用/.test(x.r.text)) && stat.starts === 0, JSON.stringify(results.map((x) => x.r.text)));
+  c.stop();
+  c.dispose();
+  srv.close();
 }
 
 // ---------- Claude Code / Codex：假的命令行程序 ----------

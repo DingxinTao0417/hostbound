@@ -287,6 +287,7 @@
 - **总指挥**（`brain/project-commander.mjs`）：一次性的模型调用（不进对话）写计划、答疑、处理失败、分配修改、总结、看截图；派活按依赖、一个智能体一次一个任务、同时最多几个；合并一次一个（`_merge` 副本里检查过了主线才 fast-forward），冲突和没过的退回原来那个改；最后检查、评审、最多两轮修。所有事写进 `events.jsonl`，状态在 `state.json`，重启后正在做的停在暂停。
 - **干活的**（`brain/project-workers.mjs`）：pi 会话（工具 read / write / edit / powershell / ls / find / grep + 问总指挥 + 汇报），授权按 `project-gate.mjs`；Claude Code 用 `claude -p --output-format stream-json`，授权走 PreToolUse 钩子（`tools/project-hook.mjs`，请求文件交给系统去问）；Codex 用 `codex exec --json`（workspace-write 沙箱，能联网装依赖）。后两种最后一行写 `QUESTION:` / `REPORT:`，回答后 resume 接着做。卡住检测：同样的操作和结果重复 4 次。
 - **界面**：对话里一张项目卡跟着状态变（计划金 / 进行中蓝 / 等你粉紫 / 完成绿）；面板加了「项目」页签和设置 · 项目；项目页是单独的大窗口（`app/project-window.cjs` + `app/renderer/project.*`）。
+- **真模型实测（2026-10-16）**：网页版贪吃蛇（`tools/run-project.mjs`，DeepSeek V4.1 Flash）。第一次 6 分钟 ¥0.55，接着改一次 5 分钟 ¥1.1，游戏能玩。跑出来修掉的：新建项目时总指挥被当成「重启时写到一半」还会套娃；干活的自己开服务器、想结束 node 进程（被授权拦下）→ 加了 preview 工具、提示里禁止；首页截图检查太松（一打开就「游戏结束」也算正常）→ 对照宿主原话、刚打开要是能开始用的样子；总结说没验证过启动 → 带上真跑过的检查；计划里缺 `npm start` 脚本 → 计划要求写进 package.json；接着改时把评审抄进计划 → 去掉；估算离谱 → 按以前的实际数字；合并提交跟任务提交同名 → 加「合并：」。装依赖有 npm 缓存只要 1～3 秒，共用 node_modules 先不做。
 - 调研里定下来的几条：干活的只跟总指挥说话、不能直接问宿主；智能体的话不算宿主的同意；状态全写成文件；合并一个检查一次；预算、轮数、卡住都有硬上限；小东西一个智能体干。
 
 ## 四、费用、隐私、开源

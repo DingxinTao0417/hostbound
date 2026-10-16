@@ -373,6 +373,10 @@
         return box.append(stp('sys2', '✓', e.at, '检查过了，主线往前走了'));
       case 'check_start':
         return;
+      case 'preview':
+        return box.append(stp('sys2', '◐', e.at, `预览页面：${e.url}`));
+      case 'preview_shot':
+        return box.append(stp('sys2', '✓', e.at, '截了一张图给它看'));
       case 'check':
         return box.append(stp(e.ok ? 'sys2' : 'bad', e.ok ? '✓' : '✗', e.at, `${e.scope === 'final' ? '最后检查' : '合并后'} · ${CHECK[e.name] || e.name}${e.command ? `（${e.command}）` : ''}${e.ok ? ' 过了' : ' 没过'}${e.ms ? ` · ${(e.ms / 1000).toFixed(1)} 秒` : ''}`, !e.ok && e.output ? h('span', { class: 'err', text: e.output }) : e.skipped ? h('small', { text: e.output }) : e.name === 'shot' && e.output ? h('small', { text: e.output }) : null));
       case 'retry':

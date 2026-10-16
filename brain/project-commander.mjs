@@ -41,10 +41,12 @@ export function normalizePlan(raw, { prefix = '', old = null } = {}) {
     agents.push({ id, role: clip(a?.role || '开发', 8), does: clip(a?.does || '', 80) });
   }
   if (!agents.length) agents.push(old?.agents?.[0] || { id: 'dev', role: '开发', does: '全部' });
+  const reserved = (a) => /^review/.test(slugId(a?.id, -1)) || /^评审$/.test(String(a?.role || '').trim());
+  for (let i = agents.length - 1; i >= 0; i--) if (reserved(agents[i]) && agents.length > 1) agents.splice(i, 1);
   const tasks = [];
   const ids = new Set(old?.tasks?.map((t) => t.id) || []);
   const rename = new Map();
-  for (const [i, t] of (Array.isArray(p.tasks) ? p.tasks : []).slice(0, 40).entries()) {
+  for (const [i, t] of (Array.isArray(p.tasks) ? p.tasks : []).filter((t) => !/^review/.test(slugId(t?.agent, -1)) && !/^评审$/.test(String(t?.title || '').trim())).slice(0, 40).entries()) {
     let id = `${prefix}${String(t?.id || '').toLowerCase().replace(/[^a-z0-9-]+/g, '').slice(0, 16) || `t${i + 1}`}`;
     while (ids.has(id)) id += 'x';
     ids.add(id);
@@ -83,14 +85,17 @@ export function normalizePlan(raw, { prefix = '', old = null } = {}) {
 export class Commander extends EventEmitter {
   // store：ProjectStore；id：项目；cfg()：当前配置；runtime() / model()：大脑的模型运行时和模型；root：Hostbound 的目录（找 agent-browser、钩子）
   // 测试可以换掉：complete(system, content) → { text, usd }、workerFactory(opts) → 干活的、checks { run, start, shot }
-  constructor({ store, id, cfg, runtime, model, root, complete, workerFactory, checks, log = () => {}, now = () => Date.now() }) {
+  // history()：以前做完的项目的实际用时、花费（一句话），写计划时照着估
+  constructor({ store, id, cfg, runtime, model, root, complete, workerFactory, checks, history, log = () => {}, now = () => Date.now() }) {
     super();
     Object.assign(this, { store, id, cfg, runtime, model, root, log, now });
+    this.history = history || (() => '');
     this.completeFn = complete || null;
     this.workerFactory = workerFactory || null;
     this.check = { run: runCommand, start: startAndWait, shot: screenshot, ...(checks || {}) };
     this.plan = store.readJson(id, 'plan.json');
-    this.state = store.readJson(id, 'state.json') || { status: 'planning', costUsd: 0, round: 1, tasks: {}, questions: [], answers: '', agentNotes: {}, fixRounds: 0, reviewed: 0 };
+    const saved = store.readJson(id, 'state.json');
+    this.state = saved || { status: 'planning', costUsd: 0, round: 1, tasks: {}, questions: [], answers: '', agentNotes: {}, fixRounds: 0, reviewed: 0 };
     this.workers = new Map(); // 任务 id → 干活的
     this.waiters = new Map(); // 问题 id → 宿主回答了就调
     this.confirms = new Map(); // 授权 id → 宿主回答了就调
@@ -98,8 +103,8 @@ export class Commander extends EventEmitter {
     this.merging = false;
     this.seq = 0;
     this.ctl = new AbortController();
-    // 重启以后：正在干的项目先停在「暂停」，宿主点继续再接着做
-    if (BUSY.has(this.state.status) || this.state.status === 'planning') {
+    // 重启以后（存盘里读回来的）：正在干的项目先停在「暂停」，宿主点继续再接着做。刚建的项目还没存盘，不算
+    if (saved && (BUSY.has(this.state.status) || this.state.status === 'planning')) {
       for (const ts of Object.values(this.state.tasks)) if (ts.status === 'running') ts.status = 'pending';
       if (this.state.status !== 'planning') this.#setStatus('paused', 'restart');
       else if (this.state.pendingPlan || (this.plan && !this.state.startedAt)) this.#setStatus('awaiting_approval');
@@ -313,7 +318,8 @@ export class Commander extends EventEmitter {
     this.#card(true);
     try {
       const request = this.#request();
-      const plan = normalizePlan(await this.#llmJson(P.PLAN_PROMPT, `宿主原话：${request}${this.state.answers ? `\n宿主补充：${this.state.answers}` : ''}`, { maxTokens: 6000, reasoning: 'low' }));
+      const hist = this.history();
+      const plan = normalizePlan(await this.#llmJson(P.PLAN_PROMPT, `宿主原话：${request}${this.state.answers ? `\n宿主补充：${this.state.answers}` : ''}${hist ? `\n\n以前做过的项目的实际数字（估算照这个）：${hist}` : ''}`, { maxTokens: 6000, reasoning: 'low' }));
       this.plan = plan;
       this.store.writeJson(this.id, 'plan.json', plan);
       this.store.update(this.id, { summary: plan.summary });
@@ -342,8 +348,9 @@ export class Commander extends EventEmitter {
     this.#card(true);
     try {
       const tree = (await G.fileTree(this.dir, 200)).join('\n');
-      const old = { name: this.plan?.name, summary: this.plan?.summary, approach: this.plan?.approach, agents: this.plan?.agents, tasks: this.plan?.tasks?.map((t) => ({ id: t.id, agent: t.agent, title: t.title })), checks: this.plan?.checks };
-      const raw = await this.#llmJson(P.REPLAN_PROMPT, `原来的计划：${JSON.stringify(old)}\n\n现在的文件：\n${tree}\n\n宿主原话（最开始）：${this.#request()}\n\n宿主这次要：${text}`, { maxTokens: 4000, reasoning: 'low' });
+      const old = { name: this.plan?.name, summary: this.plan?.summary, approach: this.plan?.approach, agents: this.plan?.agents?.filter((a) => a.id !== 'review'), tasks: this.plan?.tasks?.filter((t) => !t.kind).map((t) => ({ id: t.id, agent: t.agent, title: t.title, files: t.files })), checks: this.plan?.checks };
+      const hist = this.history();
+      const raw = await this.#llmJson(P.REPLAN_PROMPT, `原来的计划：${JSON.stringify(old)}\n\n现在的文件：\n${tree}\n\n宿主原话（最开始）：${this.#request()}\n\n宿主这次要：${text}${hist ? `\n\n以前做过的项目的实际数字（估算照这个）：${hist}` : ''}`, { maxTokens: 4000, reasoning: 'low' });
       const plan = normalizePlan(raw, { prefix: `r${this.state.round}-`, old: this.plan });
       this.state.pendingPlan = plan;
       this.#event({ type: 'plan', plan, continued: true });
@@ -378,9 +385,17 @@ export class Commander extends EventEmitter {
     return true;
   }
 
-  // 宿主点了开工
+  // 宿主点了开工（点按钮的同时又说了「开工」：只算一次）
   async approve() {
-    if (this.state.status !== 'awaiting_approval') return false;
+    if (this.state.status !== 'awaiting_approval' || this.approving) return false;
+    this.approving = true;
+    try {
+      return await this.#approve();
+    } finally {
+      this.approving = false;
+    }
+  }
+  async #approve() {
     try {
       const repo = await G.ensureRepo(this.dir);
       if (this.state.pendingPlan) {
@@ -396,6 +411,7 @@ export class Commander extends EventEmitter {
       }
       this.state.main = repo.main;
       this.state.roundStartedAt = this.now();
+      this.state.roundCostStart = this.state.costUsd || 0;
       this.state.fixRounds = 0;
       this.state.reviewed = 0;
       this.state.lastFixFrom = null;
@@ -461,7 +477,9 @@ export class Commander extends EventEmitter {
     const agent = this.#agent(t.agent);
     const want = this.pcfg.workerEngine;
     const engine = want === 'claude' || want === 'codex' ? want : 'pi';
-    const system = P.workerSystem({ role: agent.role, engine });
+    const c = this.plan?.checks || {};
+    const web = !!(c.web && c.start && c.url);
+    const system = P.workerSystem({ role: agent.role, engine, web });
     const common = {
       id: agent.id,
       role: agent.role,
@@ -473,10 +491,11 @@ export class Commander extends EventEmitter {
       log: this.log,
     };
     let w;
-    if (this.workerFactory) w = await this.workerFactory({ ...common, engine, task: t, agent, dir: this.dir });
+    if (this.workerFactory) w = await this.workerFactory({ ...common, engine, task: t, agent, dir: this.dir, preview: web ? ({ path: sub } = {}) => this.#preview(t, wt, sub) : null });
     else if (engine === 'pi') {
       const gate = this.pcfg.autoAllow === false ? (ev) => assessRisk(ev, wt) : (ev) => projectRisk(ev, { dir: this.dir, cwd: wt });
-      w = new PiWorker({ ...common, sessionDir: path.join(this.store.hb(this.id), 'agents', agent.id), modelRuntime: this.runtime(), model: await this.#workerModel(), gate });
+      const preview = web ? ({ path: sub }) => this.#preview(t, wt, sub) : null;
+      w = new PiWorker({ ...common, sessionDir: path.join(this.store.hb(this.id), 'agents', agent.id), modelRuntime: this.runtime(), model: await this.#workerModel(), gate, preview });
     } else {
       const left = this.budgetCny > 0 ? Math.max(0.5, (this.budgetCny - this.costCny) / this.usdToCny) : 0;
       w = new CliWorker({
@@ -493,6 +512,32 @@ export class Commander extends EventEmitter {
     w.on('step', (s) => this.#event({ type: 'step', agent: t.agent, task: t.id, ...s }));
     w.on('cost', ({ usd }) => this.#addCost(usd));
     return { w, engine, system };
+  }
+
+  // 干活的要看页面：在它的副本里用项目的启动命令跑起来，打开网址截一张图，关掉。返回 { ok, text, image }
+  #preview(t, wt, sub = '') {
+    const run = async () => {
+      const c = this.plan?.checks || {};
+      const base = String(c.url || '').replace(/\/+$/, '');
+      const url = base + (sub ? (sub.startsWith('/') ? sub : `/${sub}`) : '');
+      this.#event({ type: 'preview', agent: t.agent, task: t.id, url });
+      const busy = await fetch(base, { signal: AbortSignal.timeout(1500) }).then(() => true, () => false);
+      if (busy) return { ok: false, text: `${base} 已经有别的程序在用（可能是宿主自己开着的），这次先不预览。用构建和测试检查，或者稍后再试。` };
+      const s = await this.check.start(c.start, base, { cwd: wt, timeoutMs: 90_000 });
+      if (!s.ok) return { ok: false, text: `项目启动不起来（${c.start}）：\n${clip(s.output, 1500)}` };
+      try {
+        const file = path.join(this.store.hb(this.id), 'shots', `preview-${t.id}-${this.now()}.png`);
+        const sh = await this.check.shot(url, file, { root: this.root });
+        if (!sh.ok) return { ok: true, text: `项目跑起来了（${url} 能打开），但截图没截成：${clip(sh.output, 300)}` };
+        this.#event({ type: 'preview_shot', agent: t.agent, task: t.id, url, file });
+        return { ok: true, text: `这是刚打开 ${url} 一两秒后的样子。启动输出的最后一段：\n${clip(s.output, 600)}`, image: { data: fs.readFileSync(file).toString('base64'), mimeType: 'image/png' } };
+      } finally {
+        await s.stop();
+      }
+    };
+    const p = (this.previewing || Promise.resolve()).then(run, run);
+    this.previewing = p.catch(() => {});
+    return p;
   }
 
   async #runTask(t) {
@@ -657,7 +702,7 @@ export class Commander extends EventEmitter {
     const ts = this.#ts(t.id);
     const agent = this.#agent(t.agent);
     const changed = await G.changedFiles(this.dir, ts.branch, 'HEAD');
-    const m = await G.tryMerge(this.dir, ts.branch, `${t.title}（${agent.role}）`);
+    const m = await G.tryMerge(this.dir, ts.branch, `合并：${t.title}（${agent.role}）`);
     this.#event({ type: 'merge', agent: t.agent, task: t.id, ok: m.ok, conflict: !!m.conflict, files: m.files || changed, output: m.ok ? '' : clip(m.output, 800) });
     if (!m.ok) {
       if (m.conflict) {
@@ -758,7 +803,7 @@ export class Commander extends EventEmitter {
   async #judgeShot(file, url) {
     try {
       const data = fs.readFileSync(file).toString('base64');
-      const j = P.parseJson(await this.#llm(P.SHOT_PROMPT, [{ type: 'text', text: `网址：${url}。项目：${this.plan.summary}` }, { type: 'image', data, mimeType: 'image/png' }], { maxTokens: 300 }));
+      const j = P.parseJson(await this.#llm(P.SHOT_PROMPT, [{ type: 'text', text: `宿主要的：${this.#request()}${this.state.lastRequest ? `\n这次接着改：${this.state.lastRequest}` : ''}\n项目：${this.plan.summary}\n网址：${url}` }, { type: 'image', data, mimeType: 'image/png' }], { maxTokens: 400 }));
       return j && typeof j.ok === 'boolean' ? { ok: j.ok, note: clip(j.note, 200) } : { ok: true, note: '没看出结果，当作正常' };
     } catch (e) {
       return { ok: true, note: `看不了截图（${clip(e.message, 60)}），跳过` };
@@ -843,7 +888,8 @@ export class Commander extends EventEmitter {
     try {
       const stat = await G.diffStat(this.dir, this.state.roundBase || this.state.base, 'HEAD');
       const reports = this.plan.tasks.map((t) => `- ${t.title}（${this.#agent(t.agent).role}，${this.#ts(t.id).status}）：${this.#ts(t.id).report || ''}`).join('\n');
-      const j = await this.#llmJson(P.SUMMARY_PROMPT, `宿主原话：${this.#request()}\n${this.state.lastRequest ? `这次接着改：${this.state.lastRequest}\n` : ''}计划：${this.plan.summary}\n检查命令：${JSON.stringify(this.plan.checks)}\n改动：${stat}\n各任务的汇报：\n${reports}${this.state.finalIssues?.length ? `\n没解决的问题：\n${this.state.finalIssues.map((s) => `- ${clip(s, 200)}`).join('\n')}` : ''}`, { maxTokens: 800 });
+      const finals = this.store.events(this.id).filter((e) => e.type === 'check' && e.scope === 'final' && e.at >= (this.state.roundStartedAt || 0)).map((e) => `- ${CHECK_NAMES[e.name] || e.name}${e.command ? `（${e.command}）` : ''}：${e.skipped ? '跳过' : e.ok ? '过了' : '没过'}${e.name === 'shot' && e.output ? `，${e.output}` : ''}`).join('\n');
+      const j = await this.#llmJson(P.SUMMARY_PROMPT, `宿主原话：${this.#request()}\n${this.state.lastRequest ? `这次接着改：${this.state.lastRequest}\n` : ''}计划：${this.plan.summary}\n检查命令：${JSON.stringify(this.plan.checks)}\n改动：${stat}\n系统最后在项目文件夹里做的检查（这些是真跑过的）：\n${finals || '（没有）'}\n各任务的汇报：\n${reports}${this.state.finalIssues?.length ? `\n没解决的问题：\n${this.state.finalIssues.map((s) => `- ${clip(s, 200)}`).join('\n')}` : ''}`, { maxTokens: 800 });
       if (j) result = { did: clip(j.did, 200), run: clip(j.run, 200), notes: clip(j.notes, 300) };
     } catch (e) {
       result.did = '做完了（总结没写出来）';
@@ -862,6 +908,9 @@ export class Commander extends EventEmitter {
     result.stat = await G.diffStat(this.dir, this.state.base, 'HEAD').catch(() => '');
     this.state.result = result;
     this.state.finishedAt = this.now();
+    // 这一轮实际用了多久、花了多少、几个计划里的任务（下次写计划时照着估）
+    const planned = this.plan.tasks.filter((t) => !t.kind && (this.#ts(t.id).finishedAt || 0) >= (this.state.roundStartedAt || 0)).length;
+    if (planned) (this.state.rounds ||= []).push({ at: this.now(), tasks: planned, ms: this.now() - (this.state.roundStartedAt || this.state.startedAt || this.now()), usd: (this.state.costUsd || 0) - (this.state.roundCostStart || 0) });
     this.state.finalIssues = null;
     this.#event({ type: 'done', result });
     this.#setStatus('done');
